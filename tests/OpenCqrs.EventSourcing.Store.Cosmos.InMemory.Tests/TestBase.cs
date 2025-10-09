@@ -1,16 +1,22 @@
 ﻿using System.Diagnostics;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Time.Testing;
+using NSubstitute;
 using OpenCqrs.EventSourcing.Domain;
 using OpenCqrs.EventSourcing.Store.Tests.Models.Aggregates;
 using OpenCqrs.EventSourcing.Store.Tests.Models.Events;
 
-namespace OpenCqrs.EventSourcing.Store.EntityFrameworkCore.Tests;
+namespace OpenCqrs.EventSourcing.Store.Cosmos.InMemory.Tests;
 
 public abstract class TestBase : IDisposable
 {
-    protected IDomainService DomainService = null!;
+    protected IDomainService DomainService;
+    protected ICosmosDataStore DataStore;
+    protected FakeTimeProvider TimeProvider;
 
-    private ActivitySource _activitySource = null!;
-    private ActivityListener _activityListener = null!;
+    private ActivitySource _activitySource;
+    private ActivityListener _activityListener;
 
     protected TestBase()
     {
@@ -37,8 +43,31 @@ public abstract class TestBase : IDisposable
 
     private void SetupDomainService()
     {
-        var dbContext = Shared.CreateTestDbContext();
-        DomainService = new EntityFrameworkCoreDomainService(dbContext);
+        TimeProvider = new FakeTimeProvider();
+        var httpContextAccessor = CreateHttpContextAccessor();
+
+        var inMemoryCosmosStorage = new InMemoryCosmosStorage();
+        DataStore = new InMemoryCosmosDataStore(inMemoryCosmosStorage, TimeProvider, httpContextAccessor);
+        DomainService = new InMemoryCosmosDomainService(inMemoryCosmosStorage, TimeProvider, httpContextAccessor);
+    }
+
+    private static IHttpContextAccessor CreateHttpContextAccessor()
+    {
+        var httpContextAccessor = Substitute.For<IHttpContextAccessor>();
+        var context = new DefaultHttpContext();
+
+        var claims = new List<Claim>
+        {
+            new(ClaimTypes.NameIdentifier, "TestUser")
+        };
+
+        var identity = new ClaimsIdentity(claims, "TestAuth");
+        var principal = new ClaimsPrincipal(identity);
+
+        context.User = principal;
+
+        httpContextAccessor.HttpContext.Returns(context);
+        return httpContextAccessor;
     }
 
     private void SetupActivity()

@@ -13,7 +13,7 @@ public class InMemoryCosmosDomainService(
     IHttpContextAccessor httpContextAccessor)
     : IDomainService
 {
-    private readonly InMemoryCosmosDataStore _dataStore = new(storage);
+    private readonly InMemoryCosmosDataStore _dataStore = new(storage, timeProvider, httpContextAccessor);
 
     public async Task<Result<T?>> GetAggregate<T>(IStreamId streamId, IAggregateId<T> aggregateId, ReadMode readMode = ReadMode.SnapshotOnly, CancellationToken cancellationToken = default) where T : IAggregateRoot, new()
     {
@@ -71,7 +71,7 @@ public class InMemoryCosmosDomainService(
             aggregateDocument.CreatedBy = currentUserNameIdentifier;
             aggregateDocument.UpdatedDate = timeStamp;
             aggregateDocument.UpdatedBy = currentUserNameIdentifier;
-            
+
             var aggregateKey = InMemoryCosmosStorage.CreateAggregateKey(streamId, aggregateId);
             var aggregateAdded = storage.AggregateDocuments.TryAdd(aggregateKey, aggregateDocument);
             if (!aggregateAdded)
@@ -89,7 +89,7 @@ public class InMemoryCosmosDomainService(
                     EventId = eventDocument.Id,
                     AppliedDate = timeStamp
                 };
-                
+
                 if (!storage.AggregateEventDocuments.TryGetValue(aggregateKey, out var bag))
                 {
                     bag = [];
@@ -97,7 +97,7 @@ public class InMemoryCosmosDomainService(
                 }
                 bag.Add(aggregateEventDocument);
             }
-            
+
             return aggregate;
         }
         catch (Exception ex)
@@ -344,7 +344,7 @@ public class InMemoryCosmosDomainService(
             {
                 storage.AggregateDocuments[aggregateKey] = aggregateDocument;
             }
-            
+
             foreach (var @event in aggregate.UncommittedEvents)
             {
                 latestEventSequence++;
@@ -357,7 +357,7 @@ public class InMemoryCosmosDomainService(
                 {
                     throw new Exception("Could not add event");
                 }
-                
+
                 var sequence = latestEventSequence;
                 storage.StreamSequences.AddOrUpdate(streamId.Id, sequence, (key, oldValue) => sequence);
 
@@ -376,7 +376,7 @@ public class InMemoryCosmosDomainService(
                 }
                 bag.Add(aggregateEventDocument);
             }
-            
+
             return Result.Ok();
         }
         catch (Exception ex)
@@ -446,7 +446,7 @@ public class InMemoryCosmosDomainService(
         var aggregateDocument = aggregateDocumentResult.Value;
         return await _dataStore.UpdateAggregateDocument(streamId, aggregateId, aggregateDocument, cancellationToken);
     }
-    
+
     public void Dispose()
     {
         throw new NotImplementedException();

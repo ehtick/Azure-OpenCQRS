@@ -1,21 +1,30 @@
 ﻿using System.Diagnostics;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Time.Testing;
+using NSubstitute;
 using OpenCqrs.EventSourcing.Domain;
 using OpenCqrs.EventSourcing.Store.Tests.Models.Aggregates;
 using OpenCqrs.EventSourcing.Store.Tests.Models.Events;
 
-namespace OpenCqrs.EventSourcing.Store.EntityFrameworkCore.Tests;
+namespace OpenCqrs.EventSourcing.Store.Tests;
 
 public abstract class TestBase : IDisposable
 {
-    protected IDomainService DomainService = null!;
+    protected readonly IDomainService DomainService;
+    protected readonly FakeTimeProvider TimeProvider;
+    protected readonly IHttpContextAccessor HttpContextAccessor;
 
     private ActivitySource _activitySource = null!;
     private ActivityListener _activityListener = null!;
 
-    protected TestBase()
+    protected TestBase(IDomainServiceFactory domainServiceFactory)
     {
+        TimeProvider = new FakeTimeProvider();
+        HttpContextAccessor = CreateHttpContextAccessor();
+        DomainService = domainServiceFactory.CreateDomainService(TimeProvider, HttpContextAccessor);
+
         SetupTypeBindings();
-        SetupDomainService();
         SetupActivity();
     }
 
@@ -35,10 +44,23 @@ public abstract class TestBase : IDisposable
         };
     }
 
-    private void SetupDomainService()
+    private static IHttpContextAccessor CreateHttpContextAccessor()
     {
-        var dbContext = Shared.CreateTestDbContext();
-        DomainService = new EntityFrameworkCoreDomainService(dbContext);
+        var httpContextAccessor = Substitute.For<IHttpContextAccessor>();
+        var context = new DefaultHttpContext();
+
+        var claims = new List<Claim>
+        {
+            new(ClaimTypes.NameIdentifier, "TestUser")
+        };
+
+        var identity = new ClaimsIdentity(claims, "TestAuth");
+        var principal = new ClaimsPrincipal(identity);
+
+        context.User = principal;
+
+        httpContextAccessor.HttpContext.Returns(context);
+        return httpContextAccessor;
     }
 
     private void SetupActivity()
