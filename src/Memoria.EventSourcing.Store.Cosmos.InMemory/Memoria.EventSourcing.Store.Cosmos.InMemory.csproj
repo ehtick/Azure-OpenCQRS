@@ -1,0 +1,16 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net9.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <IsPackable>true</IsPackable>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Memoria.EventSourcing.Store.Cosmos\Memoria.EventSourcing.Store.Cosmos.csproj" />
+      <ProjectReference Include="..\Memoria.EventSourcing\Memoria.EventSourcing.csproj" />
+      <ProjectReference Include="..\Memoria\Memoria.csproj" />
+    </ItemGroup>
+
+</Project>
