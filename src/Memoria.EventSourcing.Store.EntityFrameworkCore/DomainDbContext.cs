@@ -185,6 +185,7 @@ public abstract class DomainDbContext(
         modelBuilder.ApplyConfiguration(new AggregateEntityConfiguration());
         modelBuilder.ApplyConfiguration(new EventEntityConfiguration());
         modelBuilder.ApplyConfiguration(new AggregateEventEntityConfiguration());
+        modelBuilder.ApplyConfiguration(new ProjectionEntityConfiguration());
     }
 
     /// <summary>
@@ -219,6 +220,15 @@ public abstract class DomainDbContext(
     /// facilitating efficient navigation between aggregates and events in the event sourcing system.
     /// </value>
     public DbSet<AggregateEventEntity> AggregateEvents { get; set; } = null!;
+
+    /// <summary>
+    /// Gets or sets the database set for projection entities that store serialized projection (read model) snapshots.
+    /// Provides access to projection persistence operations, kept in a dedicated table separate from aggregate snapshots.
+    /// </summary>
+    /// <value>
+    /// A <see cref="DbSet{ProjectionEntity}"/> that enables CRUD operations on projection snapshots.
+    /// </value>
+    public DbSet<ProjectionEntity> Projections { get; set; } = null!;
 
     /// <summary>
     /// Detaches the specified aggregate entity from the Entity Framework change tracker to prevent
@@ -315,6 +325,28 @@ public abstract class DomainDbContext(
             }
 
             if (aggregateEntity.Id == aggregateId.ToStoreId())
+            {
+                entityEntry.State = EntityState.Detached;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Detaches a projection snapshot entity from the change tracker so the context can be reused.
+    /// </summary>
+    /// <typeparam name="T">The projection type.</typeparam>
+    /// <param name="projectionId">The projection identifier whose snapshot should be detached.</param>
+    /// <param name="projection">The projection instance associated with the snapshot.</param>
+    public void DetachProjection<T>(IProjectionId<T> projectionId, T projection) where T : IProjection
+    {
+        foreach (var entityEntry in ChangeTracker.Entries())
+        {
+            if (entityEntry.Entity is not ProjectionEntity projectionEntity)
+            {
+                continue;
+            }
+
+            if (projectionEntity.Id == projectionId.ToStoreId())
             {
                 entityEntry.State = EntityState.Detached;
             }

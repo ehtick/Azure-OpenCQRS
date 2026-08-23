@@ -17,7 +17,7 @@ The solution file is `Memoria.slnx` (modern .slnx format). Target framework is .
 
 ## Project Overview
 
-Memoria is a .NET framework for DDD, CQRS, and Event Sourcing. It can be used as a simple mediator or as a full event sourcing solution. The solution has 13 source projects, 12 test projects, and 6 example projects.
+Memoria is a .NET framework for DDD, CQRS, and Event Sourcing. It can be used as a simple mediator or as a full event sourcing solution. The solution has 13 source projects, 13 test projects, and 6 example projects.
 
 ## Architecture
 
@@ -32,10 +32,12 @@ DI registration uses `services.AddMemoria(typeof(Program))` which auto-discovers
 
 ### Event Sourcing (`src/Memoria.EventSourcing`)
 Built on top of core. Key concepts:
-- **AggregateRoot**: Abstract base class with `Add(event)` to stage events and abstract `Apply<T>(event)` for state transitions. Tracks `Version`, `UncommittedEvents`, and `EventTypeFilter`
-- **IDomainService**: Primary service for saving/retrieving aggregates with four read modes (`SnapshotOnly`, `SnapshotWithNewEvents`, `SnapshotOrCreate`, `SnapshotWithNewEventsOrCreate`)
+- **EventSourcedModel**: Abstract base shared by write and read models. Holds the identity common to both (`StreamId`), plus `Version`, `EventTypeFilter`, `IsEventHandled`, and the abstract `Apply<T>(event)` / `Apply(events)` for state transitions. Instance identity is not shared: `AggregateId` lives on `AggregateRoot`/`IAggregateRoot`, `ProjectionId` on `Projection`/`IProjection`
+- **AggregateRoot** (write model): `EventSourcedModel` plus `AggregateId`, `Add(event)` to stage events, and `UncommittedEvents`
+- **Projection** (read model): `EventSourcedModel` plus `ProjectionId` — no `Add`/`UncommittedEvents`. Built by applying events, then persisted as a snapshot. Identified by `IProjectionId<T>` + `[ProjectionType]`
+- **IDomainService**: Primary service for saving/retrieving aggregates with four read modes (`SnapshotOnly`, `SnapshotWithNewEvents`, `SnapshotOrCreate`, `SnapshotWithNewEventsOrCreate`). Also `SaveProjection`/`GetProjection` — each store uses a **dedicated projection type** keyed by `{projectionId}:{version}` with no optimistic-concurrency check: EF Core persists a `ProjectionEntity` in its own `DomainProjections` table; Cosmos persists a `ProjectionDocument` (`documentType: "Projection"`) in the same container as aggregates
 - **IStreamId** / **IAggregateId**: Multiple aggregates can share a single stream
-- **TypeBindings** / **InstanceFactory**: Map event types to CLR types for deserialization
+- **TypeBindings** / **InstanceFactory**: Map event/aggregate/projection types to CLR types for deserialization (populated by `AddMemoriaEventSourcing` assembly scanning)
 
 ### Provider Pattern
 Each concern (storage, messaging, caching, validation) follows an abstraction + provider pattern. The core registers default no-op/in-memory providers; real providers replace them:

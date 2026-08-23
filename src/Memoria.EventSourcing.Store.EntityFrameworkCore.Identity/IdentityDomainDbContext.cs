@@ -29,11 +29,13 @@ public abstract class IdentityDomainDbContext(
         modelBuilder.ApplyConfiguration(new AggregateEntityConfiguration());
         modelBuilder.ApplyConfiguration(new EventEntityConfiguration());
         modelBuilder.ApplyConfiguration(new AggregateEventEntityConfiguration());
+        modelBuilder.ApplyConfiguration(new ProjectionEntityConfiguration());
     }
 
     public DbSet<AggregateEntity> Aggregates { get; set; } = null!;
     public DbSet<EventEntity> Events { get; set; } = null!;
     public DbSet<AggregateEventEntity> AggregateEvents { get; set; } = null!;
+    public DbSet<ProjectionEntity> Projections { get; set; } = null!;
 
     public void DetachAggregate<T>(IAggregateId<T> aggregateId, T aggregate) where T : IAggregateRoot
     {
@@ -45,6 +47,22 @@ public abstract class IdentityDomainDbContext(
             }
 
             if (aggregateEntity.Id == aggregateId.ToStoreId())
+            {
+                entityEntry.State = EntityState.Detached;
+            }
+        }
+    }
+
+    public void DetachProjection<T>(IProjectionId<T> projectionId, T projection) where T : IProjection
+    {
+        foreach (var entityEntry in ChangeTracker.Entries())
+        {
+            if (entityEntry.Entity is not ProjectionEntity projectionEntity)
+            {
+                continue;
+            }
+
+            if (projectionEntity.Id == projectionId.ToStoreId())
             {
                 entityEntry.State = EntityState.Detached;
             }
