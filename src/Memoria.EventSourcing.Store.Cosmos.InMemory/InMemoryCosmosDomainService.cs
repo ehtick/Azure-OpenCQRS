@@ -318,16 +318,166 @@ public class InMemoryCosmosDomainService(
         return aggregate;
     }
 
-    public Task<Result<T?>> GetProjection<T>(IStreamId streamId, IProjectionId<T> projectionId,
+    public async Task<Result<T>> GetInMemoryProjection<T>(IStreamId streamId, IProjectionId<T> projectionId,
         CancellationToken cancellationToken = default) where T : IProjection, new()
     {
-        var key = CreateProjectionKey(streamId, projectionId);
-        if (storage.ProjectionDocuments.TryGetValue(key, out var projectionDocument))
+        var projection = new T();
+
+        var eventDocumentsResult = await _dataStore.GetEventDocuments(streamId, projection.EventTypeFilter,
+            cancellationToken: cancellationToken);
+        if (eventDocumentsResult.IsNotSuccess)
         {
-            return Task.FromResult<Result<T?>>(projectionDocument.ToProjection<T>());
+            return eventDocumentsResult.Failure!;
         }
 
-        return Task.FromResult<Result<T?>>(default(T));
+        var eventDocuments = eventDocumentsResult.Value!.ToList();
+        if (eventDocuments.Count == 0)
+        {
+            return projection;
+        }
+
+        projection.Apply(eventDocuments.Select(eventDocument => eventDocument.ToDomainEvent()));
+        if (projection.Version == 0)
+        {
+            return projection;
+        }
+
+        projection.StreamId = streamId.Id;
+        projection.ProjectionId = projectionId.ToStoreId();
+        projection.LatestEventSequence = eventDocuments.OrderBy(eventDocument => eventDocument.Sequence).Last().Sequence;
+
+        return projection;
+    }
+
+    public async Task<Result<T>> GetInMemoryProjection<T>(IStreamId streamId, IProjectionId<T> projectionId,
+        int upToSequence, CancellationToken cancellationToken = default) where T : IProjection, new()
+    {
+        var projection = new T();
+
+        var eventDocumentsResult = await _dataStore.GetEventDocumentsUpToSequence(streamId, upToSequence,
+            projection.EventTypeFilter, cancellationToken: cancellationToken);
+        if (eventDocumentsResult.IsNotSuccess)
+        {
+            return eventDocumentsResult.Failure!;
+        }
+
+        var eventDocuments = eventDocumentsResult.Value!.ToList();
+        if (eventDocuments.Count == 0)
+        {
+            return projection;
+        }
+
+        projection.Apply(eventDocuments.Select(eventDocument => eventDocument.ToDomainEvent()));
+        if (projection.Version == 0)
+        {
+            return projection;
+        }
+
+        projection.StreamId = streamId.Id;
+        projection.ProjectionId = projectionId.ToStoreId();
+        projection.LatestEventSequence = eventDocuments.OrderBy(eventDocument => eventDocument.Sequence).Last().Sequence;
+
+        return projection;
+    }
+
+    public async Task<Result<T>> GetInMemoryProjection<T>(IStreamId streamId, IProjectionId<T> projectionId,
+        DateTimeOffset upToDate, CancellationToken cancellationToken = default) where T : IProjection, new()
+    {
+        var projection = new T();
+
+        var eventDocumentsResult = await _dataStore.GetEventDocumentsUpToDate(streamId, upToDate,
+            projection.EventTypeFilter, cancellationToken: cancellationToken);
+        if (eventDocumentsResult.IsNotSuccess)
+        {
+            return eventDocumentsResult.Failure!;
+        }
+
+        var eventDocuments = eventDocumentsResult.Value!.ToList();
+        if (eventDocuments.Count == 0)
+        {
+            return projection;
+        }
+
+        projection.Apply(eventDocuments.Select(eventDocument => eventDocument.ToDomainEvent()));
+        if (projection.Version == 0)
+        {
+            return projection;
+        }
+
+        projection.StreamId = streamId.Id;
+        projection.ProjectionId = projectionId.ToStoreId();
+        projection.LatestEventSequence = eventDocuments.OrderBy(eventDocument => eventDocument.Sequence).Last().Sequence;
+
+        return projection;
+    }
+
+    public async Task<Result<T?>> GetProjection<T>(IStreamId streamId, IProjectionId<T> projectionId,
+        ReadMode readMode = ReadMode.SnapshotOnly, CancellationToken cancellationToken = default)
+        where T : IProjection, new()
+    {
+        var projectionDocumentResult =
+            await _dataStore.GetProjectionDocument(streamId, projectionId, cancellationToken);
+        if (projectionDocumentResult.IsNotSuccess)
+        {
+            return projectionDocumentResult.Failure!;
+        }
+
+        if (projectionDocumentResult.Value != null)
+        {
+            var currentProjectionDocument = projectionDocumentResult.Value;
+            switch (readMode)
+            {
+                case ReadMode.SnapshotOnly or ReadMode.SnapshotOrCreate:
+                    return currentProjectionDocument.ToProjection<T>();
+                case ReadMode.SnapshotWithNewEvents or ReadMode.SnapshotWithNewEventsOrCreate:
+                    return await _dataStore.UpdateProjectionDocument(streamId, projectionId,
+                        currentProjectionDocument, cancellationToken);
+            }
+        }
+
+        if (readMode is ReadMode.SnapshotOnly or ReadMode.SnapshotWithNewEvents)
+        {
+            return default(T);
+        }
+
+        var projection = new T();
+
+        var eventDocumentsResult =
+            await _dataStore.GetEventDocuments(streamId, projection.EventTypeFilter, cancellationToken: cancellationToken);
+        if (eventDocumentsResult.IsNotSuccess)
+        {
+            return eventDocumentsResult.Failure!;
+        }
+
+        var eventDocuments = eventDocumentsResult.Value!.ToList();
+        if (eventDocuments.Count == 0)
+        {
+            return default(T);
+        }
+
+        var events = eventDocuments.Select(eventDocument => eventDocument.ToDomainEvent()).ToList();
+        projection.Apply(events);
+        if (projection.Version == 0)
+        {
+            return default(T);
+        }
+
+        projection.LatestEventSequence =
+            eventDocuments.OrderBy(eventDocument => eventDocument.Sequence).Last().Sequence;
+
+        var timeStamp = timeProvider.GetUtcNow();
+        var currentUserNameIdentifier = httpContextAccessor.GetCurrentUserNameIdentifier();
+
+        var projectionDocument = projection.ToProjectionDocument(streamId, projectionId);
+        projectionDocument.CreatedDate = timeStamp;
+        projectionDocument.CreatedBy = currentUserNameIdentifier;
+        projectionDocument.UpdatedDate = timeStamp;
+        projectionDocument.UpdatedBy = currentUserNameIdentifier;
+
+        var key = CreateProjectionKey(streamId, projectionId);
+        storage.ProjectionDocuments.AddOrUpdate(key, projectionDocument, (_, _) => projectionDocument);
+
+        return projection;
     }
 
     public Task<Result> SaveProjection<T>(IStreamId streamId, IProjectionId<T> projectionId, T projection,
