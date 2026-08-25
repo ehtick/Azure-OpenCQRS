@@ -6,6 +6,11 @@ redirect_from:
 
 # Release Notes
 
+## Memoria 1.4.1
+_**Released 25/08/2026**_
+- `GetProjection` now accepts a `ReadMode` parameter matching the aggregate read modes (`SnapshotOnly`, `SnapshotWithNewEvents`, `SnapshotOrCreate`, `SnapshotWithNewEventsOrCreate`), enabling on-demand projection reconstruction from the event stream and snapshot refresh when new events have arrived; supported by the Entity Framework Core, Npgsql, and Cosmos DB store providers (and their in-memory variants)
+- New `GetInMemoryProjection` methods on `IDomainService` that fold matching events into a fresh projection without persisting a snapshot, with overloads for the full stream, up to a specific sequence, and up to a specific date — the projection equivalent of `GetInMemoryAggregate`
+
 ## Memoria 1.4.0
 _**Released 22/08/2026**_
 - New `Projection` read-model base class for building query-optimised read models from events, and a shared `EventSourcedModel` base class (with matching `IEventSourcedModel`/`IProjection` interfaces) that `AggregateRoot` and `Projection` both inherit for stream identity, versioning, and event application. Instance identity stays specific to each: `AggregateId` on `IAggregateRoot`, `ProjectionId` on `IProjection`
