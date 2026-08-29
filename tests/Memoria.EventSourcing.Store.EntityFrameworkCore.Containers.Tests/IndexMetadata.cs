@@ -12,7 +12,7 @@ public static class IndexMetadata
         """
         SELECT i.name, i.is_unique
         FROM sys.indexes i
-        WHERE i.object_id = OBJECT_ID(@tableName) AND i.name IS NOT NULL AND i.is_primary_key = 0
+        WHERE i.object_id = OBJECT_ID(@tableName) AND i.name IS NOT NULL
         """;
 
     private const string PostgreSqlQuery =
@@ -21,14 +21,27 @@ public static class IndexMetadata
         FROM pg_class index_class
         JOIN pg_index index_meta ON index_meta.indexrelid = index_class.oid
         JOIN pg_class table_class ON table_class.oid = index_meta.indrelid
-        WHERE table_class.relname = @tableName AND NOT index_meta.indisprimary
+        WHERE table_class.relname = @tableName
         """;
 
-    public static Task<IReadOnlyList<string>> ReadSqlServerAsync(DbContext dbContext, string tableName) =>
-        ReadAsync(dbContext, tableName, SqlServerQuery);
+    private const string SqlServerExcludePrimaryKey = " AND i.is_primary_key = 0";
 
-    public static Task<IReadOnlyList<string>> ReadPostgreSqlAsync(DbContext dbContext, string tableName) =>
-        ReadAsync(dbContext, tableName, PostgreSqlQuery);
+    private const string PostgreSqlExcludePrimaryKey = " AND NOT index_meta.indisprimary";
+
+    /// <param name="includePrimaryKeys">
+    /// Primary keys are indexes too. Exclude them when asserting on secondary indexes alone; include
+    /// them when comparing two schemas, where a differing key matters as much as a differing index.
+    /// </param>
+    public static Task<IReadOnlyList<string>> ReadSqlServerAsync(DbContext dbContext, string tableName,
+        bool includePrimaryKeys = false) =>
+        ReadAsync(dbContext, tableName,
+            includePrimaryKeys ? SqlServerQuery : SqlServerQuery + SqlServerExcludePrimaryKey);
+
+    /// <inheritdoc cref="ReadSqlServerAsync"/>
+    public static Task<IReadOnlyList<string>> ReadPostgreSqlAsync(DbContext dbContext, string tableName,
+        bool includePrimaryKeys = false) =>
+        ReadAsync(dbContext, tableName,
+            includePrimaryKeys ? PostgreSqlQuery : PostgreSqlQuery + PostgreSqlExcludePrimaryKey);
 
     /// <summary>
     /// Index names, each suffixed with " unique" when unique, sorted so comparisons are stable.

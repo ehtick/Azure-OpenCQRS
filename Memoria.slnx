@@ -30,9 +30,8 @@
     <File Path="docs/guides/replay-events-in-memory.md" />
     <File Path="docs/guides/test-without-external-deps.md" />
     <File Path="docs/guides/use-postgres-jsonb.md" />
+    <File Path="docs/guides/install-the-store-schema.md" />
     <File Path="docs/guides/upgrade-1.5.0.md" />
-    <File Path="scripts/migrations/1.5.0-indexes-sqlserver.sql" />
-    <File Path="scripts/migrations/1.5.0-indexes-postgresql.sql" />
     <File Path="docs/guides/validate-commands.md" />
     <File Path="docs/index.md" />
     <File Path="docs/reference/configuration/caching.md" />
@@ -48,6 +47,14 @@
     <File Path="docs/reference/ef-core-extensions.md" />
     <File Path="docs/Release-Notes.md" />
     <File Path="docs/_config.yml" />
+  </Folder>
+  <Folder Name="/scripts/install/">
+    <File Path="scripts/install/1.5.0-install-postgresql.sql" />
+    <File Path="scripts/install/1.5.0-install-sqlserver.sql" />
+  </Folder>
+  <Folder Name="/scripts/migrations/">
+    <File Path="scripts/migrations/1.5.0-indexes-postgresql.sql" />
+    <File Path="scripts/migrations/1.5.0-indexes-sqlserver.sql" />
   </Folder>
   <Folder Name="/src/">
     <Project Path="src/Memoria/Memoria.csproj" />

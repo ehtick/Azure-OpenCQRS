@@ -34,6 +34,7 @@ Memoria is a .NET framework that can be used as a simple mediator or as an Event
 - [Use PostgreSQL with jsonb](guides/use-postgres-jsonb.md)
 - [Integrate with ASP.NET Core Identity](guides/integrate-aspnet-identity.md)
 - [Test without external dependencies](guides/test-without-external-deps.md)
+- [Install the store schema](guides/install-the-store-schema.md)
 - [Upgrade to 1.5.0](guides/upgrade-1.5.0.md)
 
 ### Reference

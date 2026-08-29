@@ -8,7 +8,9 @@ namespace Memoria.EventSourcing.Store.EntityFrameworkCore.Containers.Tests;
 /// </summary>
 public static class MigrationScript
 {
-    public static string Read(string fileName) => File.ReadAllText(Path.Combine(RepositoryRoot(), "scripts", "migrations", fileName));
+    /// <param name="folder">The folder under <c>scripts/</c> holding the file.</param>
+    public static string Read(string fileName, string folder = "migrations") =>
+        File.ReadAllText(Path.Combine(RepositoryRoot(), "scripts", folder, fileName));
 
     public static async Task ExecuteAsync(DbContext dbContext, string sql)
     {
