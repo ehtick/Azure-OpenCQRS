@@ -1,14 +1,22 @@
 # Upgrade to 1.5.0
 
-Two changes need attention when upgrading:
+Four changes need attention when upgrading. The first three affect code, the fourth affects your
+database.
 
-1. [**Store failures are now classified**](#store-failures-are-now-classified) — a code change. If
-   you inspect `Failure` to decide what to do, read this first.
-2. [**Event store index changes**](#event-store-index-changes) — a schema change to apply to existing
-   Entity Framework Core databases.
+1. [**Store failures are now classified**](#store-failures-are-now-classified) — if you inspect
+   `Failure` to decide what to do next, read this first.
+2. [**Saving an aggregate with nothing to save now succeeds**](#nothing-to-save) — it used to fail on
+   the Entity Framework Core store.
+3. [**`DiagnosticsExtensions.AddException` is no longer an extension method**](#add-exception) — a
+   one-line change, and only if you called it yourself.
+4. [**Event store index changes**](#event-store-index-changes) — apply to existing Entity Framework
+   Core databases.
 
-Everything else in 1.5.0 is internal: faster writes and reads, and a change tracker that no longer
-accumulates saved rows. Neither needs anything from you.
+Nothing else needs action. The payload serializer became replaceable via `IDomainSerializer`, but it
+still defaults to the same Newtonsoft implementation, so behaviour is unchanged unless you replace it
+— see [Install the store schema](install-the-store-schema.md) and the release notes. The remaining
+work is internal: fewer allocations on read and write, and a change tracker that no longer
+accumulates saved rows.
 
 <a name="store-failures-are-now-classified"></a>
 ## Store failures are now classified
@@ -33,17 +41,15 @@ from the database being unreachable. Failures now carry a stable `Type` and an a
   `"Concurrency conflict"` or `"Storage failure"`, and `Description` names the
   stream and, for a conflict, the sequences. Match on `Type` instead — the constants are on
   `StoreFailures` — or on `ErrorCode`.
-- **Code assuming `ErrorCode.Error`.** A conflict is now `ErrorCode.Conflict` and an empty save is
-  `ErrorCode.UnprocessableEntity`. Anything treating every store failure as an infrastructure fault
-  will now misclassify those two.
+- **Code assuming `ErrorCode.Error`.** A concurrency conflict is now `ErrorCode.Conflict`. Anything
+  treating every store failure as an infrastructure fault will now misclassify a conflict, which is
+  the one case that is worth retrying.
 - **Switch expressions over `ErrorCode` without a discard arm.** `Conflict` was appended, so existing
   numeric values are unchanged, but a non-exhaustive switch expression warns at compile time
   (`CS8509`) and throws `SwitchExpressionException` at run time if a conflict reaches it. Add a `_`
   arm.
 - **`ErrorHandling.DefaultFailure`** on both store providers is superseded and no longer returned. It
   remains so existing references compile.
-- **`DiagnosticsExtensions.AddException`** is no longer an extension method on `Exception`. If you
-  called `ex.AddException(...)`, call `DiagnosticsExtensions.AddException(ex, ...)`.
 
 ### What you gain
 
@@ -64,11 +70,11 @@ conflict, `operation` on a storage failure — plus `traceId` when there is a cu
 never carry provider exception detail; that stays on the `Activity`, and `traceId` is the handle that
 leads to it. See [Failure classification](../concepts/result-pattern.md#failure-classification).
 
-### Saving an aggregate with nothing to save now succeeds
+<a name="nothing-to-save"></a>
+## Saving an aggregate with nothing to save now succeeds
 
-Related, and a behaviour change in its own right. Saving an aggregate that has no uncommitted events
-used to return a failure on the Entity Framework Core store and success on Cosmos DB. It now returns
-success on both, writing nothing.
+Saving an aggregate that has no uncommitted events used to return a failure on the Entity Framework
+Core store and success on Cosmos DB. It now returns success on both, writing nothing.
 
 Success is the right answer: no decision was taken, so there was nothing to append, and nothing went
 wrong. Both providers already treated `SaveEvents` with an empty array exactly that way — the Entity
@@ -76,7 +82,31 @@ Framework Core `SaveAggregate` path was the only one that disagreed, including w
 
 **If you relied on that failure** to detect a command that produced no events — a missing `Add` in an
 aggregate method, say — that check has to move into your own code, because the store no longer
-reports it. Check `UncommittedEvents` before saving if you want to treat it as an error.
+reports it. Check `UncommittedEvents` before saving if you want to treat it as an error:
+
+```C#
+if (!order.UncommittedEvents.Any())
+{
+    // Your call: log it, or treat it as a bug in the command handler.
+}
+```
+
+<a name="add-exception"></a>
+## `DiagnosticsExtensions.AddException` is no longer an extension method
+
+Unrelated to the changes above, and only affects you if you called it directly. Written as an
+extension it read as though something were being added to the exception, when what it does is record
+the exception against the current `Activity`:
+
+```C#
+// Before
+ex.AddException(streamId, "Save Aggregate");
+
+// After
+DiagnosticsExtensions.AddException(ex, streamId, "Save Aggregate");
+```
+
+Both store providers are affected. Nothing else about it changed — same tags, same `Activity`.
 
 <a name="event-store-index-changes"></a>
 ## Event store index changes
