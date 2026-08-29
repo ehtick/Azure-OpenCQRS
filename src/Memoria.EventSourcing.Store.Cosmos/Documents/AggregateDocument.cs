@@ -98,11 +98,6 @@ public class AggregateDocument
 
 public static class AggregateDocumentExtensions
 {
-    private static readonly JsonSerializerSettings JsonSerializerSettings = new()
-    {
-        ContractResolver = new PrivateSetterContractResolver()
-    };
-
     /// <summary>
     /// Converts an <see cref="AggregateDocument"/> to an aggregate of a specified type.
     /// </summary>
@@ -120,7 +115,7 @@ public static class AggregateDocumentExtensions
             throw new InvalidOperationException($"Aggregate type {aggregateDocument.AggregateType} not found in TypeBindings");
         }
 
-        var aggregate = (T)JsonConvert.DeserializeObject(aggregateDocument.Data, aggregateType!, JsonSerializerSettings)!;
+        var aggregate = (T)DomainSerializer.Current.Deserialize(aggregateDocument.Data, aggregateType!);
         aggregate.StreamId = aggregateDocument.StreamId;
         aggregate.AggregateId = aggregateDocument.Id;
         aggregate.Version = aggregateDocument.Version;

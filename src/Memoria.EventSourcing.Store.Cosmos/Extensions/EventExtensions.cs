@@ -34,7 +34,7 @@ public static class EventExtensions
             StreamId = streamId.Id,
             Sequence = sequence,
             EventType = TypeBindings.GetTypeBindingKey(eventType.Name, eventType.Version),
-            Data = JsonConvert.SerializeObject(@event)
+            Data = DomainSerializer.Current.Serialize(@event)
         };
     }
 }

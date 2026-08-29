@@ -265,3 +265,6 @@ __pycache__/
 
 # Local planning docs (not shipped)
 plans/
+
+# BenchmarkDotNet
+BenchmarkDotNet.Artifacts/

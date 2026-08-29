@@ -12,11 +12,6 @@ namespace Memoria.EventSourcing.Store.Cosmos.Extensions;
 /// </summary>
 public static class ProjectionExtensions
 {
-    private static readonly JsonSerializerSettings JsonSerializerSettings = new()
-    {
-        ContractResolver = new PrivateSetterContractResolver()
-    };
-
     /// <summary>
     /// Converts a projection to a <see cref="ProjectionDocument"/> snapshot for storage in Cosmos DB.
     /// </summary>
@@ -47,7 +42,7 @@ public static class ProjectionExtensions
             Version = projection.Version,
             LatestEventSequence = projection.LatestEventSequence,
             ProjectionType = TypeBindings.GetTypeBindingKey(projectionType.Name, projectionType.Version),
-            Data = JsonConvert.SerializeObject(projection)
+            Data = DomainSerializer.Current.Serialize(projection)
         };
     }
 
@@ -66,7 +61,7 @@ public static class ProjectionExtensions
             throw new InvalidOperationException($"Projection type {projectionDocument.ProjectionType} not found in TypeBindings");
         }
 
-        var projection = (T)JsonConvert.DeserializeObject(projectionDocument.Data, projectionType!, JsonSerializerSettings)!;
+        var projection = (T)DomainSerializer.Current.Deserialize(projectionDocument.Data, projectionType!);
         projection.StreamId = projectionDocument.StreamId;
         projection.ProjectionId = projectionDocument.Id;
         projection.Version = projectionDocument.Version;

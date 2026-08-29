@@ -133,7 +133,7 @@ public static class AggregateExtensions
             Version = aggregate.Version,
             LatestEventSequence = newLatestEventSequence,
             AggregateType = aggregateTypeBindingKey,
-            Data = JsonConvert.SerializeObject(aggregate)
+            Data = DomainSerializer.Current.Serialize(aggregate)
         };
     }
     

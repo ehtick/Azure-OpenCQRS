@@ -52,14 +52,6 @@ public class EventEntity : IAuditableEntity
 public static class EventEntityExtensions
 {
     /// <summary>
-    /// JSON serializer settings.
-    /// </summary>
-    private static readonly JsonSerializerSettings JsonSerializerSettings = new()
-    {
-        ContractResolver = new PrivateSetterContractResolver()
-    };
-
-    /// <summary>
     /// Converts an EventEntity to a event.
     /// </summary>
     /// <param name="eventEntity">The entity.</param>
@@ -73,6 +65,6 @@ public static class EventEntityExtensions
             throw new InvalidOperationException($"Event type {eventEntity.EventType} not found in TypeBindings");
         }
 
-        return (IEvent)JsonConvert.DeserializeObject(eventEntity.Data, eventType!, JsonSerializerSettings)!;
+        return (IEvent)DomainSerializer.Current.Deserialize(eventEntity.Data, eventType!);
     }
 }

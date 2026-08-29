@@ -72,11 +72,6 @@ public class EventDocument
 /// </summary>
 public static class EventDocumentExtensions
 {
-    private static readonly JsonSerializerSettings JsonSerializerSettings = new()
-    {
-        ContractResolver = new PrivateSetterContractResolver()
-    };
-
     /// <summary>
     /// Converts an <see cref="EventDocument"/> to its corresponding <see cref="IEvent"/> instance.
     /// This method deserializes the event data using the event type information stored in the document.
@@ -92,6 +87,6 @@ public static class EventDocumentExtensions
             throw new InvalidOperationException($"Event type {eventDocument.EventType} not found in TypeBindings");
         }
 
-        return (IEvent)JsonConvert.DeserializeObject(eventDocument.Data, eventType!, JsonSerializerSettings)!;
+        return (IEvent)DomainSerializer.Current.Deserialize(eventDocument.Data, eventType!);
     }
 }

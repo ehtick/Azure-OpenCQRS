@@ -12,11 +12,6 @@ namespace Memoria.EventSourcing.Store.EntityFrameworkCore.Extensions;
 /// </summary>
 public static class ProjectionExtensions
 {
-    private static readonly JsonSerializerSettings JsonSerializerSettings = new()
-    {
-        ContractResolver = new PrivateSetterContractResolver()
-    };
-
     /// <summary>
     /// Converts a projection to its corresponding <see cref="ProjectionEntity"/> snapshot for persistence.
     /// </summary>
@@ -43,7 +38,7 @@ public static class ProjectionExtensions
             Version = projection.Version,
             LatestEventSequence = projection.LatestEventSequence,
             ProjectionType = projectionTypeBindingKey,
-            Data = JsonConvert.SerializeObject(projection)
+            Data = DomainSerializer.Current.Serialize(projection)
         };
     }
 
@@ -62,7 +57,7 @@ public static class ProjectionExtensions
             throw new InvalidOperationException($"Projection type {projectionEntity.ProjectionType} not found in TypeBindings");
         }
 
-        var projection = (T)JsonConvert.DeserializeObject(projectionEntity.Data, projectionType!, JsonSerializerSettings)!;
+        var projection = (T)DomainSerializer.Current.Deserialize(projectionEntity.Data, projectionType!);
         projection.StreamId = projectionEntity.StreamId;
         projection.ProjectionId = projectionEntity.Id;
         projection.Version = projectionEntity.Version;

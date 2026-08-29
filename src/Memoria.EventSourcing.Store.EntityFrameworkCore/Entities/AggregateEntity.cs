@@ -67,14 +67,6 @@ public class AggregateEntity : IAuditableEntity, IEditableEntity
 public static class AggregateEntityExtensions
 {
     /// <summary>
-    /// JSON serializer settings.
-    /// </summary>
-    private static readonly JsonSerializerSettings JsonSerializerSettings = new()
-    {
-        ContractResolver = new PrivateSetterContractResolver()
-    };
-
-    /// <summary>
     /// Converts an AggregateEntity to a domain aggregate.
     /// </summary>
     /// <typeparam name="T">The aggregate type.</typeparam>
@@ -95,7 +87,7 @@ public static class AggregateEntityExtensions
             throw new InvalidOperationException($"Aggregate type {aggregateEntity.AggregateType} not found in TypeBindings");
         }
 
-        var aggregate = (T)JsonConvert.DeserializeObject(aggregateEntity.Data, aggregateType!, JsonSerializerSettings)!;
+        var aggregate = (T)DomainSerializer.Current.Deserialize(aggregateEntity.Data, aggregateType!);
         aggregate.StreamId = aggregateEntity.StreamId;
         aggregate.AggregateId = aggregateEntity.Id;
         aggregate.Version = aggregateEntity.Version;

@@ -48,6 +48,9 @@
     <File Path="docs/Release-Notes.md" />
     <File Path="docs/_config.yml" />
   </Folder>
+  <Folder Name="/benchmarks/">
+    <Project Path="benchmarks/Memoria.Benchmarks/Memoria.Benchmarks.csproj" />
+  </Folder>
   <Folder Name="/scripts/install/">
     <File Path="scripts/install/1.5.0-install-postgresql.sql" />
     <File Path="scripts/install/1.5.0-install-sqlserver.sql" />
