@@ -69,8 +69,7 @@ public static partial class IDomainDbContextExtensions
             return default(T);
         }
 
-        projection.LatestEventSequence =
-            eventEntities.OrderBy(eventEntity => eventEntity.Sequence).Last().Sequence;
+        projection.LatestEventSequence = eventEntities[^1].Sequence;
 
         try
         {

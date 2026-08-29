@@ -8,15 +8,23 @@ internal static class EventEntityQueryExtensions
 {
     private static readonly IEventDataFilter DefaultDataFilter = new SubstringEventDataFilter();
 
+    private sealed record ReverseEventTypeBindings(
+        Dictionary<string, Type> Source,
+        Dictionary<Type, string> BindingKeysByType);
+
+    private static ReverseEventTypeBindings? _cachedReverseEventTypeBindings;
+
     public static IQueryable<EventEntity> ApplyFilters(this IQueryable<EventEntity> query,
         Type[]? eventTypeFilter, IDictionary<string, string>? eventPropertyFilter,
         IEventDataFilter? dataFilter = null)
     {
         if (eventTypeFilter is { Length: > 0 })
         {
+            var bindingKeysByType = GetBindingKeysByType();
+
             var eventTypes = eventTypeFilter
-                .Select(eventType => TypeBindings.EventTypeBindings.FirstOrDefault(b => b.Value == eventType))
-                .Select(b => b.Key).ToList();
+                .Select(bindingKeysByType.GetValueOrDefault)
+                .ToList();
 
             query = query.Where(eventEntity => eventTypes.Contains(eventEntity.EventType));
         }
@@ -31,5 +39,26 @@ internal static class EventEntityQueryExtensions
         }
 
         return query;
+    }
+
+    private static Dictionary<Type, string> GetBindingKeysByType()
+    {
+        var source = TypeBindings.EventTypeBindings;
+
+        var cached = _cachedReverseEventTypeBindings;
+        if (cached is not null && ReferenceEquals(cached.Source, source))
+        {
+            return cached.BindingKeysByType;
+        }
+
+        var bindingKeysByType = new Dictionary<Type, string>();
+        foreach (var binding in source)
+        {
+            bindingKeysByType.TryAdd(binding.Value, binding.Key);
+        }
+
+        _cachedReverseEventTypeBindings = new ReverseEventTypeBindings(source, bindingKeysByType);
+
+        return bindingKeysByType;
     }
 }

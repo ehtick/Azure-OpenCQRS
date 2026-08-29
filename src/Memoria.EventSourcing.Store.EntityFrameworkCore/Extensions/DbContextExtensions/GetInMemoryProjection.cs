@@ -47,7 +47,7 @@ public static partial class IDomainDbContextExtensions
 
         projection.StreamId = streamId.Id;
         projection.ProjectionId = projectionId.ToStoreId();
-        projection.LatestEventSequence = eventEntities.OrderBy(eventEntity => eventEntity.Sequence).Last().Sequence;
+        projection.LatestEventSequence = eventEntities[^1].Sequence;
 
         return projection;
     }
@@ -94,7 +94,7 @@ public static partial class IDomainDbContextExtensions
 
         projection.StreamId = streamId.Id;
         projection.ProjectionId = projectionId.ToStoreId();
-        projection.LatestEventSequence = eventEntities.OrderBy(eventEntity => eventEntity.Sequence).Last().Sequence;
+        projection.LatestEventSequence = eventEntities[^1].Sequence;
 
         return projection;
     }
@@ -141,7 +141,7 @@ public static partial class IDomainDbContextExtensions
 
         projection.StreamId = streamId.Id;
         projection.ProjectionId = projectionId.ToStoreId();
-        projection.LatestEventSequence = eventEntities.OrderBy(eventEntity => eventEntity.Sequence).Last().Sequence;
+        projection.LatestEventSequence = eventEntities[^1].Sequence;
 
         return projection;
     }

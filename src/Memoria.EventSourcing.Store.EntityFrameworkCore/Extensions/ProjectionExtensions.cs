@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Reflection;
 using Memoria.EventSourcing.Domain;
 using Memoria.EventSourcing.Store.EntityFrameworkCore.Entities;
@@ -30,11 +31,7 @@ public static class ProjectionExtensions
     public static ProjectionEntity ToProjectionEntity<T>(this IProjection projection, IStreamId streamId,
         IProjectionId<T> projectionId) where T : IProjection
     {
-        var projectionType = projection.GetType().GetCustomAttribute<ProjectionType>();
-        if (projectionType == null)
-        {
-            throw new InvalidOperationException($"Projection {projection.GetType().Name} does not have a ProjectionType attribute.");
-        }
+        var projectionTypeBindingKey = GetTypeBindingKey(projection.GetType());
 
         projection.StreamId = streamId.Id;
         projection.ProjectionId = projectionId.ToStoreId();
@@ -45,7 +42,7 @@ public static class ProjectionExtensions
             StreamId = streamId.Id,
             Version = projection.Version,
             LatestEventSequence = projection.LatestEventSequence,
-            ProjectionType = TypeBindings.GetTypeBindingKey(projectionType.Name, projectionType.Version),
+            ProjectionType = projectionTypeBindingKey,
             Data = JsonConvert.SerializeObject(projection)
         };
     }
@@ -72,4 +69,17 @@ public static class ProjectionExtensions
         projection.LatestEventSequence = projectionEntity.LatestEventSequence;
         return projection;
     }
+    
+    private static string GetTypeBindingKey(Type type) => TypeBindingKeys.GetOrAdd(type, static projectionClrType =>
+    {
+        var projectionType = projectionClrType.GetCustomAttribute<ProjectionType>();
+        if (projectionType == null)
+        {
+            throw new InvalidOperationException($"Projection {projectionClrType.Name} does not have a ProjectionType attribute.");
+        }
+
+        return TypeBindings.GetTypeBindingKey(projectionType.Name, projectionType.Version);
+    });
+    
+    private static readonly ConcurrentDictionary<Type, string> TypeBindingKeys = new();
 }

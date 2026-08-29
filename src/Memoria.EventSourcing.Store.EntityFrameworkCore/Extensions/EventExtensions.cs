@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Reflection;
 using Memoria.EventSourcing.Domain;
 using Memoria.EventSourcing.Store.EntityFrameworkCore.Entities;
@@ -189,19 +190,26 @@ public static class EventExtensions
     /// </example>
     public static EventEntity ToEventEntity(this IEvent @event, IStreamId streamId, int sequence)
     {
-        var eventType = @event.GetType().GetCustomAttribute<EventType>();
-        if (eventType == null)
-        {
-            throw new InvalidOperationException($"Event {@event.GetType().Name} does not have a EventType attribute.");
-        }
-
         return new EventEntity
         {
             Id = $"{streamId.Id}:{sequence}",
             StreamId = streamId.Id,
             Sequence = sequence,
-            EventType = TypeBindings.GetTypeBindingKey(eventType.Name, eventType.Version),
+            EventType = GetTypeBindingKey(@event.GetType()),
             Data = JsonConvert.SerializeObject(@event)
         };
     }
+    
+    private static string GetTypeBindingKey(Type type) => TypeBindingKeys.GetOrAdd(type, static eventClrType =>
+    {
+        var eventType = eventClrType.GetCustomAttribute<EventType>();
+        if (eventType == null)
+        {
+            throw new InvalidOperationException($"Event {eventClrType.Name} does not have a EventType attribute.");
+        }
+
+        return TypeBindings.GetTypeBindingKey(eventType.Name, eventType.Version);
+    });
+    
+    private static readonly ConcurrentDictionary<Type, string> TypeBindingKeys = new();
 }

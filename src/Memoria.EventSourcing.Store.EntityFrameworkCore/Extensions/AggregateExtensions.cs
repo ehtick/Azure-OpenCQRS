@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 ﻿using System.Reflection;
 using Memoria.EventSourcing.Domain;
 using Memoria.EventSourcing.Store.EntityFrameworkCore.Entities;
@@ -119,11 +120,7 @@ public static class AggregateExtensions
     /// </example>
     public static AggregateEntity ToAggregateEntity<T>(this IAggregateRoot aggregate, IStreamId streamId, IAggregateId<T> aggregateId, int newLatestEventSequence) where T : IAggregateRoot
     {
-        var aggregateType = aggregate.GetType().GetCustomAttribute<AggregateType>();
-        if (aggregateType == null)
-        {
-            throw new InvalidOperationException($"Aggregate {aggregate.GetType().Name} does not have a AggregateType attribute.");
-        }
+        var aggregateTypeBindingKey = GetTypeBindingKey(aggregate.GetType());
 
         aggregate.StreamId = streamId.Id;
         aggregate.AggregateId = aggregateId.ToStoreId();
@@ -135,8 +132,21 @@ public static class AggregateExtensions
             StreamId = streamId.Id,
             Version = aggregate.Version,
             LatestEventSequence = newLatestEventSequence,
-            AggregateType = TypeBindings.GetTypeBindingKey(aggregateType.Name, aggregateType.Version),
+            AggregateType = aggregateTypeBindingKey,
             Data = JsonConvert.SerializeObject(aggregate)
         };
     }
+    
+    private static string GetTypeBindingKey(Type type) => TypeBindingKeys.GetOrAdd(type, static aggregateClrType =>
+    {
+        var aggregateType = aggregateClrType.GetCustomAttribute<AggregateType>();
+        if (aggregateType == null)
+        {
+            throw new InvalidOperationException($"Aggregate {aggregateClrType.Name} does not have a AggregateType attribute.");
+        }
+
+        return TypeBindings.GetTypeBindingKey(aggregateType.Name, aggregateType.Version);
+    });
+    
+    private static readonly ConcurrentDictionary<Type, string> TypeBindingKeys = new();
 }

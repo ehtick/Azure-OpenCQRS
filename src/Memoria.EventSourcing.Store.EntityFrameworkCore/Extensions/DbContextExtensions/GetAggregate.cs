@@ -68,8 +68,7 @@ public static partial class IDomainDbContextExtensions
             return default(T);
         }
 
-        var latestEventSequenceForAggregate =
-            eventEntities.OrderBy(eventEntity => eventEntity.Sequence).Last().Sequence;
+        var latestEventSequenceForAggregate = eventEntities[^1].Sequence;
         var trackedAggregateEntity = domainDbContext.TrackAggregateEntity(streamId, aggregateId, aggregate,
             latestEventSequenceForAggregate, aggregateIsNew: true);
         domainDbContext.TrackAggregateEventEntities(trackedAggregateEntity, eventEntities);

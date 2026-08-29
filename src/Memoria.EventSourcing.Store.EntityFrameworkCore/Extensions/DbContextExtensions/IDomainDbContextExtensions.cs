@@ -28,8 +28,7 @@ public static partial class IDomainDbContextExtensions
             return aggregate.Version > 0 ? aggregate : default;
         }
 
-        var latestEventSequenceForAggregate =
-            newEventEntities.OrderBy(eventEntity => eventEntity.Sequence).Last().Sequence;
+        var latestEventSequenceForAggregate = newEventEntities[^1].Sequence;
         var trackedAggregateEntity = domainDbContext.TrackAggregateEntity(streamId, aggregateId, aggregate,
             latestEventSequenceForAggregate, aggregateIsNew: currentAggregateVersion == 0);
         domainDbContext.TrackAggregateEventEntities(trackedAggregateEntity, newEventEntities);
@@ -71,8 +70,7 @@ public static partial class IDomainDbContextExtensions
             return projection.Version > 0 ? projection : default;
         }
 
-        projection.LatestEventSequence =
-            newEventEntities.OrderBy(eventEntity => eventEntity.Sequence).Last().Sequence;
+        projection.LatestEventSequence = newEventEntities[^1].Sequence;
 
         try
         {

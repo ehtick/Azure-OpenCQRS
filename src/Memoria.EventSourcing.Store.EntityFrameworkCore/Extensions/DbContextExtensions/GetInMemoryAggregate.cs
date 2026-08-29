@@ -43,7 +43,7 @@ public static partial class IDomainDbContextExtensions
 
         aggregate.StreamId = streamId.Id;
         aggregate.AggregateId = aggregateId.ToStoreId();
-        aggregate.LatestEventSequence = eventEntities.OrderBy(eventEntity => eventEntity.Sequence).Last().Sequence;
+        aggregate.LatestEventSequence = eventEntities[^1].Sequence;
         aggregate.Apply(eventEntities.Select(eventEntity => eventEntity.ToDomainEvent()));
 
         return aggregate;
@@ -84,7 +84,7 @@ public static partial class IDomainDbContextExtensions
 
         aggregate.StreamId = streamId.Id;
         aggregate.AggregateId = aggregateId.ToStoreId();
-        aggregate.LatestEventSequence = eventEntities.OrderBy(eventEntity => eventEntity.Sequence).Last().Sequence;
+        aggregate.LatestEventSequence = eventEntities[^1].Sequence;
         aggregate.Apply(eventEntities.Select(eventEntity => eventEntity.ToDomainEvent()));
 
         return aggregate;
@@ -126,7 +126,7 @@ public static partial class IDomainDbContextExtensions
 
         aggregate.StreamId = streamId.Id;
         aggregate.AggregateId = aggregateId.ToStoreId();
-        aggregate.LatestEventSequence = eventEntities.OrderBy(eventEntity => eventEntity.Sequence).Last().Sequence;
+        aggregate.LatestEventSequence = eventEntities[^1].Sequence;
         aggregate.Apply(eventEntities.Select(eventEntity => eventEntity.ToDomainEvent()));
 
         return aggregate;
