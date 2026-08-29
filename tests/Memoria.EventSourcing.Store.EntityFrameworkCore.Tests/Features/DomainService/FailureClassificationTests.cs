@@ -82,26 +82,6 @@ public class FailureClassificationTests : TestBase
     }
 
     [Fact]
-    public async Task GivenAnAggregateWithNoUncommittedEvents_ThenTheFailureSaysSoRatherThanReportingAnError()
-    {
-        var id = Guid.NewGuid().ToString();
-        var streamId = new TestStreamId(id);
-        var aggregateId = new TestAggregate1Id(id);
-
-        // Constructed empty: no decision was taken, so there is nothing to append.
-        var aggregate = new TestAggregate1();
-
-        var result = await DomainService.SaveAggregate(streamId, aggregateId, aggregate, expectedEventSequence: 0);
-
-        using (new AssertionScope())
-        {
-            result.IsSuccess.Should().BeFalse();
-            result.Failure!.Type.Should().Be(StoreFailures.NothingToSaveType);
-            result.Failure.ErrorCode.Should().NotBe(ErrorCode.Conflict);
-        }
-    }
-
-    [Fact]
     public async Task AFailureNeverCarriesProviderExceptionDetail()
     {
         var (streamId, aggregateId, _) = await AStoredAggregate();

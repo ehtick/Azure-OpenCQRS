@@ -29,10 +29,13 @@ public static partial class IDomainDbContextExtensions
     /// </example>
     public static async Task<Result<(List<EventEntity>? EventEntities, AggregateEntity? AggregateEntity, List<AggregateEventEntity>? AggregateEventEntities)>> TrackAggregate<T>(this IDomainDbContext domainDbContext, IStreamId streamId, IAggregateId<T> aggregateId, T aggregate, int expectedEventSequence, CancellationToken cancellationToken = default) where T : IAggregateRoot
     {
+        // Nothing to append is a no-op, not a failure: the aggregate simply produced no events. This
+        // matches SaveEvents given an empty array, in this store and in Cosmos. Nulls signal to the
+        // caller that nothing was tracked.
         if (!aggregate.UncommittedEvents.Any())
         {
             DiagnosticsExtensions.AddActivityEvent(streamId, aggregateId, name: "NoUncommittedEvents");
-            return StoreFailures.NothingToSave(streamId);
+            return (null, null, null);
         }
 
         var latestEventSequence = await domainDbContext.GetLatestEventSequence(streamId, cancellationToken: cancellationToken);

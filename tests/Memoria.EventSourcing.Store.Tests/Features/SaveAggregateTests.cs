@@ -13,6 +13,29 @@ namespace Memoria.EventSourcing.Store.Tests.Features;
 public abstract class SaveAggregateTests(IDomainServiceFactory domainServiceFactory) : TestBase(domainServiceFactory)
 {
     [Fact]
+    public async Task GivenAnAggregateWithNoUncommittedEvents_ThenSavingSucceedsAndWritesNothing()
+    {
+        var id = Guid.NewGuid().ToString();
+        var streamId = new TestStreamId(id);
+        var aggregateId = new TestAggregate1Id(id);
+
+        // Constructed empty: no decision was taken, so there is nothing to append. That is a no-op,
+        // not a failure — matching what both providers already do when SaveEvents is given no events.
+        var aggregate = new TestAggregate1();
+
+        var saveResult = await DomainService.SaveAggregate(streamId, aggregateId, aggregate,
+            expectedEventSequence: 0);
+
+        var eventsResult = await DomainService.GetEvents(streamId);
+
+        using (new AssertionScope())
+        {
+            saveResult.IsSuccess.Should().BeTrue();
+            eventsResult.Value.Should().BeEmpty("nothing was appended");
+        }
+    }
+
+    [Fact]
     public async Task GivenAnotherEventWithTheExpectedSequenceIsAlreadyStored_ThenReturnsConcurrencyExceptionFailure()
     {
         var id = Guid.NewGuid().ToString();

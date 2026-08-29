@@ -26,9 +26,6 @@ public static class StoreFailures
     /// <summary>Stable identifier for a storage-level fault, safe to branch on.</summary>
     public const string StorageFailureType = "memoria/storage-failure";
 
-    /// <summary>Stable identifier for a save that had nothing to write, safe to branch on.</summary>
-    public const string NothingToSaveType = "memoria/nothing-to-save";
-
     /// <summary>
     /// The stream moved on between reading its latest sequence and appending to it. Retryable:
     /// reload the aggregate and reapply the decision against <c>latestEventSequence</c>.
@@ -65,17 +62,6 @@ public static class StoreFailures
             Type: StorageFailureType,
             Tags: WithTraceId(tags));
     }
-
-    /// <summary>
-    /// The aggregate had no uncommitted events, so there was nothing to append. Not a fault in the
-    /// store — the caller asked to save a decision that produced no events.
-    /// </summary>
-    public static Failure NothingToSave(IStreamId streamId) =>
-        new(ErrorCode.UnprocessableEntity,
-            Title: "Nothing to save",
-            Description: $"The aggregate has no uncommitted events, so nothing was appended to stream '{streamId.Id}'.",
-            Type: NothingToSaveType,
-            Tags: WithTraceId(new Dictionary<string, string> { ["streamId"] = streamId.Id }));
 
     /// <summary>
     /// Adds the current trace id when there is one, so a reported failure leads an operator to the

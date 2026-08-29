@@ -26,12 +26,11 @@ from the database being unreachable. Failures now carry a stable `Type` and an a
 |---|---|---|
 | The stream moved on between reading its sequence and appending | `memoria/concurrency-conflict` | `Conflict` *(new)* |
 | The store could not complete the operation | `memoria/storage-failure` | `Error` |
-| The aggregate had no uncommitted events | `memoria/nothing-to-save` | `UnprocessableEntity` |
 
 ### What might break
 
 - **Code matching on `Failure.Title` or `Failure.Description`.** Both have changed. `Title` is now
-  `"Concurrency conflict"`, `"Storage failure"` or `"Nothing to save"`, and `Description` names the
+  `"Concurrency conflict"` or `"Storage failure"`, and `Description` names the
   stream and, for a conflict, the sequences. Match on `Type` instead — the constants are on
   `StoreFailures` — or on `ErrorCode`.
 - **Code assuming `ErrorCode.Error`.** A conflict is now `ErrorCode.Conflict` and an empty save is
@@ -65,13 +64,19 @@ conflict, `operation` on a storage failure — plus `traceId` when there is a cu
 never carry provider exception detail; that stays on the `Activity`, and `traceId` is the handle that
 leads to it. See [Failure classification](../concepts/result-pattern.md#failure-classification).
 
-### One inconsistency to be aware of
+### Saving an aggregate with nothing to save now succeeds
 
-The two providers disagree about whether an aggregate with no uncommitted events is a failure at all.
-Entity Framework Core returns `memoria/nothing-to-save`; Cosmos DB returns success for the same call.
-That predates this release and is not resolved by it, so `memoria/nothing-to-save` is currently only
-reachable through the Entity Framework Core store. Do not rely on either behaviour until it is
-settled.
+Related, and a behaviour change in its own right. Saving an aggregate that has no uncommitted events
+used to return a failure on the Entity Framework Core store and success on Cosmos DB. It now returns
+success on both, writing nothing.
+
+Success is the right answer: no decision was taken, so there was nothing to append, and nothing went
+wrong. Both providers already treated `SaveEvents` with an empty array exactly that way — the Entity
+Framework Core `SaveAggregate` path was the only one that disagreed, including with its own sibling.
+
+**If you relied on that failure** to detect a command that produced no events — a missing `Add` in an
+aggregate method, say — that check has to move into your own code, because the store no longer
+reports it. Check `UncommittedEvents` before saving if you want to treat it as an error.
 
 <a name="event-store-index-changes"></a>
 ## Event store index changes

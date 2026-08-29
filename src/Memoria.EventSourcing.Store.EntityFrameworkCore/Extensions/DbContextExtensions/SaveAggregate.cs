@@ -36,6 +36,12 @@ public static partial class IDomainDbContextExtensions
                 return trackResult.Failure!;
             }
 
+            // The aggregate had no uncommitted events, so there is nothing to write.
+            if (trackResult.Value.EventEntities is null)
+            {
+                return Result.Ok();
+            }
+
             await domainDbContext.SaveChangesAsync(cancellationToken);
 
             domainDbContext.DetachAggregate(aggregateId, aggregate);
