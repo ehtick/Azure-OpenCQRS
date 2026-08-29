@@ -30,7 +30,7 @@
     <File Path="docs/guides/replay-events-in-memory.md" />
     <File Path="docs/guides/test-without-external-deps.md" />
     <File Path="docs/guides/use-postgres-jsonb.md" />
-    <File Path="docs/guides/upgrade-1.5.0-indexes.md" />
+    <File Path="docs/guides/upgrade-1.5.0.md" />
     <File Path="scripts/migrations/1.5.0-indexes-sqlserver.sql" />
     <File Path="scripts/migrations/1.5.0-indexes-postgresql.sql" />
     <File Path="docs/guides/validate-commands.md" />

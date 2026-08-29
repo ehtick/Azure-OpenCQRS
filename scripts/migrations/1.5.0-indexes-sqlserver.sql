@@ -10,7 +10,7 @@
     sqlcmd, SSMS, Azure Data Studio, or a plain SqlCommand.
 
     If you manage this database with EF Core migrations, prefer the migrationBuilder snippet in
-    docs/guides/upgrade-1.5.0-indexes.md instead — applying raw DDL out of band leaves your
+    docs/guides/upgrade-1.5.0.md instead — applying raw DDL out of band leaves your
     __EFMigrationsHistory out of step with the schema.
 
     None of these statements rewrite a table, but building an index takes a schema lock for its
