@@ -67,6 +67,44 @@ services.AddMemoriaEntityFrameworkCoreNpgsql();
 
 See [Use PostgreSQL with jsonb](../../guides/use-postgres-jsonb.md) for the column mapping and indexing details.
 
+## Identifier lengths
+
+The store maps identifiers to bounded columns, so stream, aggregate and projection identifiers have
+maximum lengths. The defaults are generous — a GUID-based identifier uses well under a tenth of the
+allowance — but if you compose identifiers from user data, business keys or nested paths, the limits
+below are the ones to design against.
+
+| Identifier | Composed as | Column | Maximum |
+|---|---|---|---|
+| Stream id | `IStreamId.Id` | `events.StreamId`, `DomainAggregates.StreamId`, `DomainProjections.StreamId` | 255 characters |
+| Aggregate store id | `{IAggregateId.Id}:{[AggregateType] version}` | `DomainAggregates.Id` | 255 characters |
+| Projection store id | `{IProjectionId.Id}:{[ProjectionType] version}` | `DomainProjections.Id` | 255 characters |
+| Event id | `{stream id}:{sequence}` | `events.Id` | 450 characters, already bounded by the stream id |
+
+Exceeding one of these fails the write with a truncation error from the provider.
+
+### The SQL Server composite key limit
+
+SQL Server has one further limit that the column widths above do not express. `DomainAggregateEvents`
+has a composite primary key of `AggregateId` plus `EventId` — `nvarchar(255)` and `nvarchar(450)`,
+1410 bytes of maximum potential key against SQL Server's 900-byte limit for a clustered index key.
+
+The table is still created: SQL Server permits an index whose *maximum potential* key exceeds the
+limit and rejects only rows whose *actual* key does. So this surfaces at insert time, not at
+deployment:
+
+> **On SQL Server, the aggregate store id and the event id must together stay under 450 characters**
+> (900 bytes at two bytes per character). In practice that means the aggregate id and the stream id
+> combined, since the event id is derived from the stream id.
+
+Past that, writes fail with `... exceeds the maximum length of 900 bytes ...` naming
+`PK_DomainAggregateEvents`. The store currently reports this as its generic failure result, so check
+the inner provider exception, or the recorded exception on the current `Activity`, when diagnosing an
+unexplained save failure with long identifiers.
+
+**PostgreSQL is not affected.** Npgsql maps unbounded string keys to `text`, and PostgreSQL's btree
+limit of roughly 2704 bytes is far above the largest key this model can produce.
+
 ## ASP.NET Core Identity
 
 Memoria also supports ASP.NET Core Identity. See [Entity Framework Core + Identity](ef-core-identity.md).

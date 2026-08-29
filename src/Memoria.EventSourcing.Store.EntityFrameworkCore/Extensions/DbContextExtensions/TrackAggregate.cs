@@ -39,7 +39,7 @@ public static partial class IDomainDbContextExtensions
         if (latestEventSequence != expectedEventSequence)
         {
             DiagnosticsExtensions.AddActivityEvent(streamId, expectedEventSequence, latestEventSequence);
-            return ErrorHandling.DefaultFailure;
+            return ErrorHandling.DefaultFailure;    
         }
 
         var newLatestEventSequenceForAggregate = latestEventSequence + aggregate.UncommittedEvents.Count();

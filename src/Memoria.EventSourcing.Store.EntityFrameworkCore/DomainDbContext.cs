@@ -109,6 +109,14 @@ namespace Memoria.EventSourcing.Store.EntityFrameworkCore;
 /// }
 /// </code>
 /// </example>
+/// <remarks>
+/// Identifiers are persisted in bounded columns: stream ids, aggregate store ids and projection store
+/// ids are capped at 255 characters, and event ids at 450. On SQL Server there is a further
+/// constraint — the aggregate store id and event id form the composite primary key of
+/// <c>DomainAggregateEvents</c>, which must stay under 900 bytes (450 characters) or the write is
+/// rejected at insert time. GUID-based identifiers are far below all of these. See the Identifier
+/// lengths section of the Entity Framework Core configuration reference.
+/// </remarks>
 public abstract class DomainDbContext(
     DbContextOptions<DomainDbContext> options,
     TimeProvider timeProvider,

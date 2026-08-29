@@ -1,6 +1,7 @@
 using FluentAssertions;
 using FluentAssertions.Execution;
 using Memoria.EventSourcing.Store.EntityFrameworkCore.Containers.Tests.Fixtures;
+using Memoria.EventSourcing.Store.EntityFrameworkCore.Entities;
 using Memoria.EventSourcing.Store.EntityFrameworkCore.Relational.Tests.Data;
 using Microsoft.EntityFrameworkCore;
 using Xunit;
@@ -37,6 +38,31 @@ public class SqlServerSchemaTests(SqlServerFixture fixture)
 
     [RequiresDockerFact]
     public async Task TheStoreSchemaCanBeCreated() => await WithFreshSchema(_ => Task.CompletedTask);
+
+    [RequiresDockerFact]
+    public async Task AStreamIdBeyondTheColumnWidthIsRejected() =>
+        await WithFreshSchema(async dbContext =>
+        {
+            // Backs the 255-character limit published in the Identifier lengths reference. The event
+            // id stays inside its own 450-character column, so only StreamId overflows.
+            var streamId = new string('s', 300);
+
+            dbContext.Events.Add(new EventEntity
+            {
+                Id = $"{streamId}:1",
+                StreamId = streamId,
+                EventType = "TestAggregateCreated:1",
+                Sequence = 1,
+                Data = "{}"
+            });
+
+            var save = async () => await dbContext.SaveChangesAsync();
+
+            var thrown = await save.Should().ThrowAsync<DbUpdateException>();
+
+            thrown.And.InnerException.Should().NotBeNull();
+            thrown.And.InnerException!.Message.Should().Contain("truncated");
+        });
 
     [RequiresDockerFact]
     public async Task UnboundedStringKeysBecomeTheProviderDefaultWidth() =>

@@ -53,6 +53,11 @@ public class OrderAggregateId(string orderId) : IAggregateId<OrderAggregate>
 var aggregateId = new OrderAggregateId(orderId);
 ```
 
+Stream and aggregate identifiers are persisted in bounded columns, so they have maximum lengths. A
+GUID-based identifier like the one above is nowhere near them, but if you compose identifiers from
+user data or nested business keys, see [Identifier lengths](../reference/configuration/ef-core.md#identifier-lengths)
+for the limits and the additional SQL Server composite-key constraint.
+
 ### Event Property Filter
 
 In addition to the aggregate's `EventTypeFilter`, the aggregate id can declare an optional `EventPropertyFilter` made of key/value pairs. When the aggregate is retrieved or reconstructed in memory, only the events whose properties match every entry in the filter will be applied.
