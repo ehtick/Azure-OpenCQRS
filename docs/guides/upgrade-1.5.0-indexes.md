@@ -1,4 +1,4 @@
-  # Upgrade to 1.5.0: event store index changes
+# Upgrade to 1.5.0: event store index changes
 
 Memoria 1.5.0 changes three indexes on the Entity Framework Core event store. Nothing about your
 events, aggregates or projections changes — no table is rewritten and no data is migrated — but the
