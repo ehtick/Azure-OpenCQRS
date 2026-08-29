@@ -52,8 +52,9 @@ public static partial class IDomainDbContextExtensions
         }
         catch (Exception ex)
         {
-            ex.AddException(streamId, operation: "Save Projection");
-            return ErrorHandling.DefaultFailure;
+            const string operation = "Save Projection";
+            DiagnosticsExtensions.AddException(ex, streamId, operation);
+            return StoreFailures.StorageFailure(operation, streamId);
         }
     }
 }

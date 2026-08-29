@@ -80,8 +80,9 @@ public static partial class IDomainDbContextExtensions
         }
         catch (Exception ex)
         {
-            ex.AddException(streamId, operation: "Get Projection");
-            return ErrorHandling.DefaultFailure;
+            const string operation = "Get Projection";
+            DiagnosticsExtensions.AddException(ex, streamId, operation);
+            return StoreFailures.StorageFailure(operation, streamId);
         }
 
         return projection;

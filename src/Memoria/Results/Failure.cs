@@ -90,5 +90,16 @@ public enum ErrorCode
     /// <summary>
     /// Bad request.
     /// </summary>
-    BadRequest
+    BadRequest,
+
+    /// <summary>
+    /// The operation conflicts with the current state, and may succeed if retried against the
+    /// state as it now stands. Event store providers use this for an optimistic concurrency
+    /// conflict, where the stream moved on between reading its sequence and appending to it.
+    /// </summary>
+    /// <remarks>
+    /// Appended last deliberately: the numeric values of the existing members stay stable for
+    /// anything that persisted or transmitted them.
+    /// </remarks>
+    Conflict
 }

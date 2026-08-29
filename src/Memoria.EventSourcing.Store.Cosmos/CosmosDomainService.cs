@@ -132,12 +132,13 @@ public class CosmosDomainService : IDomainService
 
             var batchResponse = await batch.ExecuteAsync(cancellationToken);
             batchResponse.AddActivityEvent(streamId, aggregateId, operation: "Get Aggregate");
-            return batchResponse.IsSuccessStatusCode ? aggregate : ErrorHandling.DefaultFailure;
+            return batchResponse.IsSuccessStatusCode ? aggregate : StoreFailures.StorageFailure("Get Aggregate", streamId);
         }
         catch (Exception ex)
         {
-            ex.AddException(streamId, operation: "Get Aggregate");
-            return ErrorHandling.DefaultFailure;
+            const string operation = "Get Aggregate";
+            DiagnosticsExtensions.AddException(ex, streamId, operation);
+            return StoreFailures.StorageFailure(operation, streamId);
         }
     }
 
@@ -652,12 +653,13 @@ public class CosmosDomainService : IDomainService
             response.AddActivityEvent(streamId, operation: "Get Projection");
             return response.StatusCode is System.Net.HttpStatusCode.OK or System.Net.HttpStatusCode.Created
                 ? projection
-                : ErrorHandling.DefaultFailure;
+                : StoreFailures.StorageFailure("Get Projection", streamId);
         }
         catch (Exception ex)
         {
-            ex.AddException(streamId, operation: "Get Projection");
-            return ErrorHandling.DefaultFailure;
+            const string operation = "Get Projection";
+            DiagnosticsExtensions.AddException(ex, streamId, operation);
+            return StoreFailures.StorageFailure(operation, streamId);
         }
     }
 
@@ -701,12 +703,13 @@ public class CosmosDomainService : IDomainService
             response.AddActivityEvent(streamId, operation: "Save Projection");
             return response.StatusCode is System.Net.HttpStatusCode.OK or System.Net.HttpStatusCode.Created
                 ? Result.Ok()
-                : ErrorHandling.DefaultFailure;
+                : StoreFailures.StorageFailure("Save Projection", streamId);
         }
         catch (Exception ex)
         {
-            ex.AddException(streamId, operation: "Save Projection");
-            return ErrorHandling.DefaultFailure;
+            const string operation = "Save Projection";
+            DiagnosticsExtensions.AddException(ex, streamId, operation);
+            return StoreFailures.StorageFailure(operation, streamId);
         }
     }
 
@@ -750,8 +753,9 @@ public class CosmosDomainService : IDomainService
         }
         catch (Exception ex)
         {
-            ex.AddException(streamId, operation: "Get Latest Event Sequence");
-            return ErrorHandling.DefaultFailure;
+            const string operation = "Get Latest Event Sequence";
+            DiagnosticsExtensions.AddException(ex, streamId, operation);
+            return StoreFailures.StorageFailure(operation, streamId);
         }
     }
 
@@ -783,7 +787,7 @@ public class CosmosDomainService : IDomainService
         if (latestEventSequence != expectedEventSequence)
         {
             DiagnosticsExtensions.AddActivityEvent(streamId, expectedEventSequence, latestEventSequence);
-            return ErrorHandling.DefaultFailure;
+            return StoreFailures.ConcurrencyConflict(streamId, expectedEventSequence, latestEventSequence);
         }
 
         var newLatestEventSequenceForAggregate = latestEventSequence + aggregate.UncommittedEvents.Count();
@@ -850,12 +854,13 @@ public class CosmosDomainService : IDomainService
 
             var batchResponse = await batch.ExecuteAsync(cancellationToken);
             batchResponse.AddActivityEvent(streamId, aggregateId, "Save Aggregate");
-            return batchResponse.IsSuccessStatusCode ? Result.Ok() : ErrorHandling.DefaultFailure;
+            return batchResponse.IsSuccessStatusCode ? Result.Ok() : StoreFailures.StorageFailure("Save Aggregate", streamId);
         }
         catch (Exception ex)
         {
-            ex.AddException(streamId, operation: "Save Aggregate");
-            return ErrorHandling.DefaultFailure;
+            const string operation = "Save Aggregate";
+            DiagnosticsExtensions.AddException(ex, streamId, operation);
+            return StoreFailures.StorageFailure(operation, streamId);
         }
     }
 
@@ -885,7 +890,7 @@ public class CosmosDomainService : IDomainService
         if (latestEventSequence != expectedEventSequence)
         {
             DiagnosticsExtensions.AddActivityEvent(streamId, expectedEventSequence, latestEventSequence);
-            return ErrorHandling.DefaultFailure;
+            return StoreFailures.ConcurrencyConflict(streamId, expectedEventSequence, latestEventSequence);
         }
 
         var timeStamp = _timeProvider.GetUtcNow();
@@ -906,12 +911,13 @@ public class CosmosDomainService : IDomainService
 
             var batchResponse = await batch.ExecuteAsync(cancellationToken);
             batchResponse.AddActivityEvent(streamId, eventDocuments, "Save Domain Events");
-            return batchResponse.IsSuccessStatusCode ? Result.Ok() : ErrorHandling.DefaultFailure;
+            return batchResponse.IsSuccessStatusCode ? Result.Ok() : StoreFailures.StorageFailure("Save Domain Events", streamId);
         }
         catch (Exception ex)
         {
-            ex.AddException(streamId, operation: "Save Domain Events");
-            return ErrorHandling.DefaultFailure;
+            const string operation = "Save Domain Events";
+            DiagnosticsExtensions.AddException(ex, streamId, operation);
+            return StoreFailures.StorageFailure(operation, streamId);
         }
     }
 

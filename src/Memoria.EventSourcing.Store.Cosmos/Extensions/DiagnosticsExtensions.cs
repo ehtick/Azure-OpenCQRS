@@ -128,12 +128,17 @@ public static class DiagnosticsExtensions
     }
 
     /// <summary>
-    /// Adds exception information to the current activity with stream and operation context.
+    /// Records an exception on the current activity, tagged with the stream and operation.
     /// </summary>
-    /// <param name="exception">The exception to add to the activity.</param>
+    /// <remarks>
+    /// Deliberately not an extension method on <see cref="Exception"/>: written that way it reads as
+    /// though something is being added to the exception, when what it does is record the exception
+    /// against the current <see cref="Activity"/>.
+    /// </remarks>
+    /// <param name="exception">The exception to record.</param>
     /// <param name="streamId">The stream identifier associated with the operation.</param>
     /// <param name="operation">A description of the operation that caused the exception.</param>
-    public static void AddException(this Exception exception, IStreamId streamId, string operation)
+    public static void AddException(Exception exception, IStreamId streamId, string operation)
     {
         Activity.Current?.AddException(exception, tags: new TagList
         {

@@ -80,8 +80,9 @@ public static partial class IDomainDbContextExtensions
         }
         catch (Exception ex)
         {
-            ex.AddException(streamId, operation: "Get Aggregate");
-            return ErrorHandling.DefaultFailure;
+            const string operation = "Get Aggregate";
+            DiagnosticsExtensions.AddException(ex, streamId, operation);
+            return StoreFailures.StorageFailure(operation, streamId);
         }
 
         domainDbContext.DetachAggregate(aggregateId, aggregate);

@@ -36,7 +36,7 @@ public static partial class IDomainDbContextExtensions
         if (latestEventSequence != expectedEventSequence)
         {
             DiagnosticsExtensions.AddActivityEvent(streamId, expectedEventSequence, latestEventSequence);
-            return ErrorHandling.DefaultFailure;
+            return StoreFailures.ConcurrencyConflict(streamId, expectedEventSequence, latestEventSequence);
         }
 
         var trackedEntities = domainDbContext.TrackEventEntities(streamId, events, startingEventSequence: latestEventSequence + 1);

@@ -110,8 +110,9 @@ public class InMemoryCosmosDomainService(
         }
         catch (Exception ex)
         {
-            ex.AddException(streamId, operation: "Get Aggregate");
-            return ErrorHandling.DefaultFailure;
+            const string operation = "Get Aggregate";
+            DiagnosticsExtensions.AddException(ex, streamId, operation);
+            return StoreFailures.StorageFailure(operation, streamId);
         }
     }
 
@@ -550,7 +551,7 @@ public class InMemoryCosmosDomainService(
         if (latestEventSequence != expectedEventSequence)
         {
             DiagnosticsExtensions.AddActivityEvent(streamId, expectedEventSequence, latestEventSequence);
-            return ErrorHandling.DefaultFailure;
+            return StoreFailures.ConcurrencyConflict(streamId, expectedEventSequence, latestEventSequence);
         }
 
         var newLatestEventSequenceForAggregate = latestEventSequence + aggregate.UncommittedEvents.Count();
@@ -645,8 +646,9 @@ public class InMemoryCosmosDomainService(
         }
         catch (Exception ex)
         {
-            ex.AddException(streamId, operation: "Save Aggregate");
-            return ErrorHandling.DefaultFailure;
+            const string operation = "Save Aggregate";
+            DiagnosticsExtensions.AddException(ex, streamId, operation);
+            return StoreFailures.StorageFailure(operation, streamId);
         }
     }
 
@@ -668,7 +670,7 @@ public class InMemoryCosmosDomainService(
         if (latestEventSequence != expectedEventSequence)
         {
             DiagnosticsExtensions.AddActivityEvent(streamId, expectedEventSequence, latestEventSequence);
-            return ErrorHandling.DefaultFailure;
+            return StoreFailures.ConcurrencyConflict(streamId, expectedEventSequence, latestEventSequence);
         }
 
         var timeStamp = timeProvider.GetUtcNow();
@@ -697,8 +699,9 @@ public class InMemoryCosmosDomainService(
         }
         catch (Exception ex)
         {
-            ex.AddException(streamId, operation: "Save Domain Events");
-            return ErrorHandling.DefaultFailure;
+            const string operation = "Save Domain Events";
+            DiagnosticsExtensions.AddException(ex, streamId, operation);
+            return StoreFailures.StorageFailure(operation, streamId);
         }
     }
 

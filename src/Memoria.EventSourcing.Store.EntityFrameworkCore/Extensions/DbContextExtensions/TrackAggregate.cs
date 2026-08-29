@@ -32,14 +32,14 @@ public static partial class IDomainDbContextExtensions
         if (!aggregate.UncommittedEvents.Any())
         {
             DiagnosticsExtensions.AddActivityEvent(streamId, aggregateId, name: "NoUncommittedEvents");
-            return ErrorHandling.DefaultFailure;
+            return StoreFailures.NothingToSave(streamId);
         }
 
         var latestEventSequence = await domainDbContext.GetLatestEventSequence(streamId, cancellationToken: cancellationToken);
         if (latestEventSequence != expectedEventSequence)
         {
             DiagnosticsExtensions.AddActivityEvent(streamId, expectedEventSequence, latestEventSequence);
-            return ErrorHandling.DefaultFailure;    
+            return StoreFailures.ConcurrencyConflict(streamId, expectedEventSequence, latestEventSequence);
         }
 
         var newLatestEventSequenceForAggregate = latestEventSequence + aggregate.UncommittedEvents.Count();

@@ -41,8 +41,9 @@ public static partial class IDomainDbContextExtensions
         }
         catch (Exception ex)
         {
-            ex.AddException(streamId, operation: "Update Aggregate");
-            return ErrorHandling.DefaultFailure;
+            const string operation = "Update Aggregate";
+            DiagnosticsExtensions.AddException(ex, streamId, operation);
+            return StoreFailures.StorageFailure(operation, streamId);
         }
 
         domainDbContext.DetachAggregate(aggregateId, aggregate);
@@ -92,8 +93,9 @@ public static partial class IDomainDbContextExtensions
         }
         catch (Exception ex)
         {
-            ex.AddException(streamId, operation: "Update Projection");
-            return ErrorHandling.DefaultFailure;
+            const string operation = "Update Projection";
+            DiagnosticsExtensions.AddException(ex, streamId, operation);
+            return StoreFailures.StorageFailure(operation, streamId);
         }
 
         domainDbContext.DetachProjection(projectionId, projection);

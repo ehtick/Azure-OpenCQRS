@@ -5,6 +5,7 @@ using Memoria.EventSourcing.Store.EntityFrameworkCore.Entities;
 using Memoria.EventSourcing.Store.EntityFrameworkCore.Relational.Tests.Data;
 using Memoria.EventSourcing.Store.Tests.Models.Aggregates;
 using Memoria.EventSourcing.Store.Tests.Models.Streams;
+using Memoria.Results;
 using Microsoft.EntityFrameworkCore;
 using Xunit;
 
@@ -91,7 +92,7 @@ public class SqlServerIndexKeyLimitTests(SqlServerFixture fixture)
         });
 
     [RequiresDockerFact]
-    public async Task ThroughTheStoreTheSameLimitSurfacesOnlyAsAGenericFailure() =>
+    public async Task ThroughTheStoreTheSameLimitSurfacesAsAStorageFailure() =>
         await WithFreshSchema(async dbContext =>
         {
             var streamId = new TestStreamId(new string('s', 240));
@@ -103,8 +104,14 @@ public class SqlServerIndexKeyLimitTests(SqlServerFixture fixture)
             var result = await domainService.SaveAggregate(streamId, aggregateId, aggregate,
                 expectedEventSequence: 0);
 
-            // The store catches the provider exception and returns its default failure, so a caller
-            // hitting the index limit gets no indication of the cause.
+            // Classified as a storage fault rather than something retryable, and tagged with the
+            // operation and stream. The provider's own message stays on the Activity, out of the
+            // caller-facing result.
             result.IsSuccess.Should().BeFalse();
+            result.Failure!.ErrorCode.Should().Be(ErrorCode.Error);
+            result.Failure.Type.Should().Be(StoreFailures.StorageFailureType);
+            result.Failure.Tags!["operation"].Should().Be("Save Aggregate");
+            result.Failure.Tags["streamId"].Should().Be(streamId.Id);
+            result.Failure.Tags.Keys.Should().NotContain("exception");
         });
 }

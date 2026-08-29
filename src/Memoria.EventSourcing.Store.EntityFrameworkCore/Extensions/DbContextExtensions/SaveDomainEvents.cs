@@ -42,8 +42,9 @@ public static partial class IDomainDbContextExtensions
         }
         catch (Exception ex)
         {
-            ex.AddException(streamId, operation: "Save Domain Events");
-            return ErrorHandling.DefaultFailure;
+            const string operation = "Save Domain Events";
+            DiagnosticsExtensions.AddException(ex, streamId, operation);
+            return StoreFailures.StorageFailure(operation, streamId);
         }
     }
 }

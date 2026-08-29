@@ -39,6 +39,39 @@ if (!aggregateResult.IsSuccess)
 var aggregate = aggregateResult.Value;
 ```
 
+## Failure classification
+
+Event store providers classify their failures, so a caller can tell what to do next without knowing
+which provider is behind `IDomainService`. Every provider reports the same three shapes:
+
+| `Type` | `ErrorCode` | Means | What to do |
+|---|---|---|---|
+| `memoria/concurrency-conflict` | `Conflict` | The stream moved on between reading its sequence and appending to it | Reload and retry — the tags carry `latestEventSequence` |
+| `memoria/storage-failure` | `Error` | The store could not complete the operation | Not retryable on its own; the provider's exception is on the current `Activity` |
+| `memoria/nothing-to-save` | `UnprocessableEntity` | The aggregate had no uncommitted events | Nothing was written, and nothing needed to be |
+
+The constants live on `StoreFailures`, so you can branch on them without matching strings:
+
+```C#
+var result = await domainService.SaveAggregate(streamId, aggregateId, order, expectedEventSequence);
+
+if (!result.IsSuccess && result.Failure!.Type == StoreFailures.ConcurrencyConflictType)
+{
+    var latest = int.Parse(result.Failure.Tags!["latestEventSequence"]);
+    // Reload at `latest`, reapply the decision, and save again.
+}
+```
+
+### What tags carry, and what they do not
+
+`Tags` carry your own context echoed back — the stream you addressed, the sequences you supplied, the
+operation attempted — plus `traceId` when there is a current `Activity`.
+
+They deliberately never carry provider exception detail. Those messages name tables, columns and
+constraints, vary by engine and locale, and a `Failure` mapped onto an HTTP response would disclose
+them without you deciding to. That detail is recorded on the current `Activity` for operators, and
+`traceId` is the handle that leads there.
+
 ## Notifications return a list of results
 
 When a notification fans out to multiple handlers, the dispatcher returns the list of every handler's result. This lets you decide what "partial success" means for your domain — proceed if any succeeded, fail if any failed, log and continue, etc.

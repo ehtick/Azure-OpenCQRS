@@ -60,8 +60,9 @@ public class CosmosDataStore : ICosmosDataStore
         }
         catch (Exception ex)
         {
-            ex.AddException(streamId, operation: "Get Aggregate Document");
-            return ErrorHandling.DefaultFailure;
+            const string operation = "Get Aggregate Document";
+            DiagnosticsExtensions.AddException(ex, streamId, operation);
+            return StoreFailures.StorageFailure(operation, streamId);
         }
     }
 
@@ -364,12 +365,13 @@ public class CosmosDataStore : ICosmosDataStore
 
             var batchResponse = await batch.ExecuteAsync(cancellationToken);
             batchResponse.AddActivityEvent(streamId, aggregateId, operation: "Update Aggregate Document");
-            return batchResponse.IsSuccessStatusCode ? aggregate : ErrorHandling.DefaultFailure;
+            return batchResponse.IsSuccessStatusCode ? aggregate : StoreFailures.StorageFailure("Update Aggregate Document", streamId);
         }
         catch (Exception ex)
         {
-            ex.AddException(streamId, operation: "Update Aggregate Document");
-            return ErrorHandling.DefaultFailure;
+            const string operation = "Update Aggregate Document";
+            DiagnosticsExtensions.AddException(ex, streamId, operation);
+            return StoreFailures.StorageFailure(operation, streamId);
         }
     }
 
@@ -398,8 +400,9 @@ public class CosmosDataStore : ICosmosDataStore
         }
         catch (Exception ex)
         {
-            ex.AddException(streamId, operation: "Get Projection Document");
-            return ErrorHandling.DefaultFailure;
+            const string operation = "Get Projection Document";
+            DiagnosticsExtensions.AddException(ex, streamId, operation);
+            return StoreFailures.StorageFailure(operation, streamId);
         }
     }
 
@@ -460,12 +463,13 @@ public class CosmosDataStore : ICosmosDataStore
             response.AddActivityEvent(streamId, operation: "Update Projection Document");
             return response.StatusCode is System.Net.HttpStatusCode.OK or System.Net.HttpStatusCode.Created
                 ? projection
-                : ErrorHandling.DefaultFailure;
+                : StoreFailures.StorageFailure("Update Projection Document", streamId);
         }
         catch (Exception ex)
         {
-            ex.AddException(streamId, operation: "Update Projection Document");
-            return ErrorHandling.DefaultFailure;
+            const string operation = "Update Projection Document";
+            DiagnosticsExtensions.AddException(ex, streamId, operation);
+            return StoreFailures.StorageFailure(operation, streamId);
         }
     }
 

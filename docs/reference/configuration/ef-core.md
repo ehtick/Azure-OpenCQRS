@@ -98,9 +98,10 @@ deployment:
 > combined, since the event id is derived from the stream id.
 
 Past that, writes fail with `... exceeds the maximum length of 900 bytes ...` naming
-`PK_DomainAggregateEvents`. The store currently reports this as its generic failure result, so check
-the inner provider exception, or the recorded exception on the current `Activity`, when diagnosing an
-unexplained save failure with long identifiers.
+`PK_DomainAggregateEvents`. The store reports this as a storage failure — `ErrorCode.Error` with
+`Type` of `memoria/storage-failure` — and records the provider's exception on the current `Activity`,
+where the message naming the constraint can be read. See
+[Failure classification](../../concepts/result-pattern.md#failure-classification).
 
 **PostgreSQL is not affected.** Npgsql maps unbounded string keys to `text`, and PostgreSQL's btree
 limit of roughly 2704 bytes is far above the largest key this model can produce.

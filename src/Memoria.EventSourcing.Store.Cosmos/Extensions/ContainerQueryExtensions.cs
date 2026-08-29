@@ -28,8 +28,8 @@ internal static class ContainerQueryExtensions
         }
         catch (Exception ex)
         {
-            ex.AddException(streamId, operation);
-            return ErrorHandling.DefaultFailure;
+            DiagnosticsExtensions.AddException(ex, streamId, operation);
+            return StoreFailures.StorageFailure(operation, streamId);
         }
 
         return documents;

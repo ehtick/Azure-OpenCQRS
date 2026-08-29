@@ -27,9 +27,15 @@ public abstract class SaveAggregateTests(IDomainServiceFactory domainServiceFact
         {
             saveResult.IsSuccess.Should().BeFalse();
             saveResult.Failure.Should().NotBeNull();
-            saveResult.Failure.ErrorCode.Should().Be(ErrorCode.Error);
-            saveResult.Failure.Title.Should().Be("Error");
-            saveResult.Failure.Description.Should().Be("There was an error when processing the request");
+            // Classified so a caller can retry rather than treating it as an infrastructure fault,
+            // and carrying the sequences a retry needs. Asserted here, in the shared suite, so every
+            // store provider reports a conflict the same way.
+            saveResult.Failure.ErrorCode.Should().Be(ErrorCode.Conflict);
+            saveResult.Failure.Type.Should().Be(StoreFailures.ConcurrencyConflictType);
+            saveResult.Failure.Title.Should().Be("Concurrency conflict");
+            saveResult.Failure.Tags!["streamId"].Should().Be(streamId.Id);
+            saveResult.Failure.Tags["expectedEventSequence"].Should().Be("0");
+            saveResult.Failure.Tags["latestEventSequence"].Should().Be("1");
 
             var activityEvent = Activity.Current?.Events.SingleOrDefault(e => e.Name == "Concurrency Exception");
             activityEvent.Should().NotBeNull();

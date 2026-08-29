@@ -46,8 +46,9 @@ public static partial class IDomainDbContextExtensions
         }
         catch (Exception ex)
         {
-            ex.AddException(streamId, operation: "Save Aggregate");
-            return ErrorHandling.DefaultFailure;
+            const string operation = "Save Aggregate";
+            DiagnosticsExtensions.AddException(ex, streamId, operation);
+            return StoreFailures.StorageFailure(operation, streamId);
         }
     }
 }
