@@ -66,6 +66,7 @@
     <Project Path="tests/Memoria.Tests/Memoria.Tests.csproj" />
     <Project Path="tests/Memoria.EventSourcing.Store.EntityFrameworkCore.Tests/Memoria.EventSourcing.Store.EntityFrameworkCore.Tests.csproj" />
     <Project Path="tests/Memoria.EventSourcing.Store.EntityFrameworkCore.Npgsql.Tests/Memoria.EventSourcing.Store.EntityFrameworkCore.Npgsql.Tests.csproj" />
+    <Project Path="tests/Memoria.EventSourcing.Store.EntityFrameworkCore.Relational.Tests/Memoria.EventSourcing.Store.EntityFrameworkCore.Relational.Tests.csproj" />
     <Project Path="tests/Memoria.EventSourcing.Store.Cosmos.Tests/Memoria.EventSourcing.Store.Cosmos.Tests.csproj" />
     <Project Path="tests/Memoria.EventSourcing.Store.Cosmos.InMemory.Tests/Memoria.EventSourcing.Store.Cosmos.InMemory.Tests.csproj" />
     <Project Path="tests/Memoria.EventSourcing.Store.Tests/Memoria.EventSourcing.Store.Tests.csproj" />
