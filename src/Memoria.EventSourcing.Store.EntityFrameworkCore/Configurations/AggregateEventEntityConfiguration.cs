@@ -28,8 +28,7 @@ public class AggregateEventEntityConfiguration : IEntityTypeConfiguration<Aggreg
             .HasForeignKey(aggregateEventEntity => aggregateEventEntity.EventId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        builder
-            .HasIndex(aggregateEventEntity => aggregateEventEntity.AggregateId)
-            .HasDatabaseName("IX_AggregateEvents_AggregateId");
+        // No index on AggregateId: it is the leading column of the composite primary key, so a
+        // separate index duplicates it and costs maintenance on every link row written.
     }
 }

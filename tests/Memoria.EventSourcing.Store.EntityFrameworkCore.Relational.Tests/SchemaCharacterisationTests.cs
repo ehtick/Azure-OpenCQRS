@@ -71,21 +71,20 @@ public class SchemaCharacterisationTests : RelationalTestBase
     [Fact]
     public void EventIndexesAreAsConfigured()
     {
-        // Items 2, 3 and 5: [StreamId] is a prefix of [StreamId, Sequence] and so redundant;
-        // [StreamId, Sequence] is not unique; and nothing indexes CreatedDate.
+        // The redundant [StreamId] index is gone (item 2), [StreamId, Sequence] is unique (item 3),
+        // and date-range reads are served by [StreamId, CreatedDate] (item 5).
         IndexesOf<EventEntity>().Should().Equal(
             "[EventType]",
-            "[StreamId, Sequence]",
-            "[StreamId]");
+            "[StreamId, CreatedDate]",
+            "[StreamId, Sequence] unique");
     }
 
     [Fact]
     public void AggregateEventIndexesAreAsConfigured()
     {
-        // Item 2: [AggregateId] duplicates the leading column of the composite primary key.
-        IndexesOf<AggregateEventEntity>().Should().Equal(
-            "[AggregateId]",
-            "[EventId]");
+        // Item 2: the explicit [AggregateId] index is gone — it duplicated the leading column of the
+        // composite primary key. [EventId] remains, created by EF for the foreign key.
+        IndexesOf<AggregateEventEntity>().Should().Equal("[EventId]");
     }
 
     [Fact]

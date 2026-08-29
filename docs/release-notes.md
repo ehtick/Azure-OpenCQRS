@@ -6,6 +6,12 @@ redirect_from:
 
 # Release Notes
 
+## Memoria 1.5.0
+_**Released 29/08/2026**_
+- **Event store index changes (Entity Framework Core).** `IX_Events_StreamId_Sequence` is now unique, a new `IX_Events_StreamId_CreatedDate` serves the date-range reads (`GetEventsFromDate`, `GetEventsUpToDate`, `GetEventsBetweenDates`) that previously had to scan a whole stream, and two redundant indexes are dropped: `IX_Events_StreamId` (a prefix of `IX_Events_StreamId_Sequence`) and `IX_AggregateEvents_AggregateId` (the leading column of the composite primary key). No table is rewritten and no data is migrated, but existing databases need the schema change applied — see [Upgrade to 1.5.0](guides/upgrade-1.5.0-indexes.md) for the EF migration path and idempotent SQL Server and PostgreSQL scripts
+- Faster writes and reads in the Entity Framework Core store: event, aggregate and projection type-binding keys are resolved once per CLR type instead of by reflection on every write; the event-type filter uses a cached reverse index instead of scanning the binding dictionary on every query; and redundant sorts were removed from the aggregate and projection read paths
+- The Entity Framework Core store no longer leaves written event and aggregate-event rows attached to the change tracker after a save, so a context reused across many saves no longer accumulates tracked entities
+
 ## Memoria 1.4.1
 _**Released 25/08/2026**_
 - `GetProjection` now accepts a `ReadMode` parameter matching the aggregate read modes (`SnapshotOnly`, `SnapshotWithNewEvents`, `SnapshotOrCreate`, `SnapshotWithNewEventsOrCreate`), enabling on-demand projection reconstruction from the event stream and snapshot refresh when new events have arrived; supported by the Entity Framework Core, Npgsql, and Cosmos DB store providers (and their in-memory variants)

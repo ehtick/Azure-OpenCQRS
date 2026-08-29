@@ -16,19 +16,20 @@ namespace Memoria.EventSourcing.Store.EntityFrameworkCore.Relational.Tests;
 public class ConcurrencyCharacterisationTests : RelationalTestBase
 {
     [Fact]
-    public void StreamSequenceIndexIsNotUnique()
+    public void StreamSequenceIndexIsUnique()
     {
-        // Item 3: uniqueness is not declared on (StreamId, Sequence).
+        // Item 3: uniqueness is now declared on (StreamId, Sequence) rather than left implicit in the
+        // derived "{StreamId}:{Sequence}" primary key.
         var index = DbContext.Model.FindEntityType(typeof(EventEntity))!
             .GetIndexes()
             .Single(candidate => candidate.Properties.Select(property => property.Name)
                 .SequenceEqual([nameof(EventEntity.StreamId), nameof(EventEntity.Sequence)]));
 
-        index.IsUnique.Should().BeFalse();
+        index.IsUnique.Should().BeTrue();
     }
 
     [Fact]
-    public async Task WhenTwoWritersBothPassTheSequenceCheck_ThenTheSecondIsRejectedByTheEventPrimaryKey()
+    public async Task WhenTwoWritersBothPassTheSequenceCheck_ThenTheSecondIsRejectedByTheDatabase()
     {
         var id = Guid.NewGuid().ToString();
         var streamId = new TestStreamId(id);
@@ -55,9 +56,10 @@ public class ConcurrencyCharacterisationTests : RelationalTestBase
         var savedByA = await writerA.Save();
         var savedByB = await writerB.Save();
 
-        // The second writer is stopped, but by the EventEntity primary key ("{streamId}:{sequence}"),
-        // not by any declared uniqueness on (StreamId, Sequence). Item 3 therefore buys a round trip,
-        // not protection against a corrupted stream — the key already provides that.
+        // The second writer is stopped by the database, not by the store's own check. Two constraints
+        // now cover this: the derived primary key ("{streamId}:{sequence}") and, since item 3, the
+        // unique index on (StreamId, Sequence). Either is sufficient; the point is that the store's
+        // read-then-write check is not what prevents it.
         savedByA.IsSuccess.Should().BeTrue();
         savedByB.IsSuccess.Should().BeFalse();
 
