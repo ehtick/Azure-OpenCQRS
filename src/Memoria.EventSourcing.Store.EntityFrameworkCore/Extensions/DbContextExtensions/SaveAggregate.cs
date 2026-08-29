@@ -39,6 +39,8 @@ public static partial class IDomainDbContextExtensions
             await domainDbContext.SaveChangesAsync(cancellationToken);
 
             domainDbContext.DetachAggregate(aggregateId, aggregate);
+            domainDbContext.DetachWrittenEntities(trackResult.Value.EventEntities,
+                trackResult.Value.AggregateEventEntities);
 
             return Result.Ok();
         }

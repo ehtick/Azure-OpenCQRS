@@ -1,6 +1,7 @@
 ﻿using Memoria.EventSourcing.Domain;
 using Memoria.EventSourcing.Store.EntityFrameworkCore.Entities;
 using Memoria.Results;
+using Microsoft.EntityFrameworkCore;
 
 namespace Memoria.EventSourcing.Store.EntityFrameworkCore.Extensions.DbContextExtensions;
 
@@ -31,7 +32,8 @@ public static partial class IDomainDbContextExtensions
         var latestEventSequenceForAggregate = newEventEntities[^1].Sequence;
         var trackedAggregateEntity = domainDbContext.TrackAggregateEntity(streamId, aggregateId, aggregate,
             latestEventSequenceForAggregate, aggregateIsNew: currentAggregateVersion == 0);
-        domainDbContext.TrackAggregateEventEntities(trackedAggregateEntity, newEventEntities);
+        var trackedAggregateEventEntities =
+            domainDbContext.TrackAggregateEventEntities(trackedAggregateEntity, newEventEntities);
 
         try
         {
@@ -44,6 +46,7 @@ public static partial class IDomainDbContextExtensions
         }
 
         domainDbContext.DetachAggregate(aggregateId, aggregate);
+        domainDbContext.DetachWrittenEntities(trackedAggregateEventEntities);
 
         return aggregate;
     }
@@ -122,6 +125,28 @@ public static partial class IDomainDbContextExtensions
         }
 
         return aggregateEntity;
+    }
+
+    private static void DetachWrittenEntities(this IDomainDbContext domainDbContext,
+        params IEnumerable<object>?[] writtenEntities)
+    {
+        if (domainDbContext is not DbContext dbContext)
+        {
+            return;
+        }
+
+        foreach (var entities in writtenEntities)
+        {
+            if (entities is null)
+            {
+                continue;
+            }
+
+            foreach (var entity in entities)
+            {
+                dbContext.Entry(entity).State = EntityState.Detached;
+            }
+        }
     }
 
     private static List<AggregateEventEntity> TrackAggregateEventEntities(this IDomainDbContext domainDbContext,

@@ -27,10 +27,10 @@ public static partial class IDomainDbContextExtensions
     /// </example>
     public static async Task<Result<List<AggregateEventEntity>>> GetAggregateEventEntities<T>(this IDomainDbContext domainDbContext, IAggregateId<T> aggregateId, CancellationToken cancellationToken = default) where T : IAggregateRoot, new()
     {
-        var aggregateEventEntities = await domainDbContext.AggregateEvents.Include(entity => entity.Event).AsNoTracking()
-            .Where(entity => entity.AggregateId == aggregateId.ToStoreId())
-            .ToListAsync(cancellationToken);
+        var storeId = aggregateId.ToStoreId();
 
-        return aggregateEventEntities.ToList();
+        return await domainDbContext.AggregateEvents.Include(entity => entity.Event).AsNoTracking()
+            .Where(entity => entity.AggregateId == storeId)
+            .ToListAsync(cancellationToken);
     }
 }

@@ -317,17 +317,16 @@ public abstract class DomainDbContext(
     /// </example>
     public void DetachAggregate<T>(IAggregateId<T> aggregateId, T aggregate) where T : IAggregateRoot
     {
-        foreach (var entityEntry in ChangeTracker.Entries())
-        {
-            if (entityEntry.Entity is not AggregateEntity aggregateEntity)
-            {
-                continue;
-            }
+        var storeId = aggregateId.ToStoreId();
 
-            if (aggregateEntity.Id == aggregateId.ToStoreId())
-            {
-                entityEntry.State = EntityState.Detached;
-            }
+        // At most one entry can be tracked per key, so stopping at the first match is equivalent
+        // to the sweep this replaced — and it avoids mutating the entries while enumerating them.
+        var trackedAggregate = ChangeTracker.Entries<AggregateEntity>()
+            .FirstOrDefault(entityEntry => entityEntry.Entity.Id == storeId);
+
+        if (trackedAggregate is not null)
+        {
+            trackedAggregate.State = EntityState.Detached;
         }
     }
 
@@ -339,17 +338,14 @@ public abstract class DomainDbContext(
     /// <param name="projection">The projection instance associated with the snapshot.</param>
     public void DetachProjection<T>(IProjectionId<T> projectionId, T projection) where T : IProjection
     {
-        foreach (var entityEntry in ChangeTracker.Entries())
-        {
-            if (entityEntry.Entity is not ProjectionEntity projectionEntity)
-            {
-                continue;
-            }
+        var storeId = projectionId.ToStoreId();
 
-            if (projectionEntity.Id == projectionId.ToStoreId())
-            {
-                entityEntry.State = EntityState.Detached;
-            }
+        var trackedProjection = ChangeTracker.Entries<ProjectionEntity>()
+            .FirstOrDefault(entityEntry => entityEntry.Entity.Id == storeId);
+
+        if (trackedProjection is not null)
+        {
+            trackedProjection.State = EntityState.Detached;
         }
     }
 }

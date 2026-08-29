@@ -71,7 +71,8 @@ public static partial class IDomainDbContextExtensions
         var latestEventSequenceForAggregate = eventEntities[^1].Sequence;
         var trackedAggregateEntity = domainDbContext.TrackAggregateEntity(streamId, aggregateId, aggregate,
             latestEventSequenceForAggregate, aggregateIsNew: true);
-        domainDbContext.TrackAggregateEventEntities(trackedAggregateEntity, eventEntities);
+        var trackedAggregateEventEntities =
+            domainDbContext.TrackAggregateEventEntities(trackedAggregateEntity, eventEntities);
 
         try
         {
@@ -84,6 +85,7 @@ public static partial class IDomainDbContextExtensions
         }
 
         domainDbContext.DetachAggregate(aggregateId, aggregate);
+        domainDbContext.DetachWrittenEntities(trackedAggregateEventEntities);
 
         return aggregate;
     }

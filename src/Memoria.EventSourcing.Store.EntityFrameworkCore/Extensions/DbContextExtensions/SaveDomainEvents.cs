@@ -36,6 +36,8 @@ public static partial class IDomainDbContextExtensions
 
             await domainDbContext.SaveChangesAsync(cancellationToken);
 
+            domainDbContext.DetachWrittenEntities(trackResult.Value);
+
             return Result.Ok();
         }
         catch (Exception ex)
