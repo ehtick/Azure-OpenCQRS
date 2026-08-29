@@ -1,8 +1,5 @@
 using Memoria.EventSourcing.Domain;
 using Memoria.EventSourcing.Store.EntityFrameworkCore.Relational.Tests.Data;
-using Memoria.EventSourcing.Store.Tests.Models.Aggregates;
-using Memoria.EventSourcing.Store.Tests.Models.Events;
-using Memoria.EventSourcing.Store.Tests.Models.Projections;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 
@@ -28,7 +25,7 @@ public abstract class RelationalTestBase : IAsyncDisposable
 
     protected RelationalTestBase()
     {
-        SetupTypeBindings();
+        TestTypeBindings.Configure();
 
         _connection = new SqliteConnection("DataSource=:memory:");
         _connection.Open();
@@ -55,29 +52,6 @@ public abstract class RelationalTestBase : IAsyncDisposable
     protected RelationalTestDbContext CreateAdditionalDbContext() =>
         new(new DbContextOptionsBuilder<DomainDbContext>().UseSqlite(_connection).Options,
             TimeProvider.System, new TestHttpContextAccessor());
-
-    private static void SetupTypeBindings()
-    {
-        TypeBindings.EventTypeBindings = new Dictionary<string, Type>
-        {
-            { "TestAggregateCreated:1", typeof(TestAggregateCreatedEvent) },
-            { "TestAggregateUpdated:1", typeof(TestAggregateUpdatedEvent) },
-            { "SomethingHappened:1", typeof(SomethingHappenedEvent) },
-            { "SomethingHappened:2", typeof(SomethingHappenedEvent2) }
-        };
-
-        TypeBindings.AggregateTypeBindings = new Dictionary<string, Type>
-        {
-            { "TestAggregate1:1", typeof(TestAggregate1) },
-            { "TestAggregate2:1", typeof(TestAggregate2) },
-            { "TestAggregateWithNoTypeFilter:1", typeof(TestAggregateWithNoTypeFilter) }
-        };
-
-        TypeBindings.ProjectionTypeBindings = new Dictionary<string, Type>
-        {
-            { "TestProjection:1", typeof(TestProjection) }
-        };
-    }
 
     public async ValueTask DisposeAsync()
     {

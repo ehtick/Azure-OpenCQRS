@@ -54,10 +54,13 @@ public class SchemaCharacterisationTests : RelationalTestBase
     public void AggregateEventCompositeKeyColumnsAreBothUnbounded()
     {
         // Item 1. These two make up the composite primary key, so their combined width is what a
-        // provider has to fit into an index key. Note that AggregateId is unbounded even though its
-        // principal (AggregateEntity.Id) is capped at 255 — EF does not propagate the facet — so a
-        // provider defaults *both* columns. On SQL Server that is nvarchar(450), i.e. 900 bytes
-        // each and 1800 for the pair, against a 900-byte limit for a clustered index key.
+        // provider has to fit into an index key.
+        //
+        // Both report no max length here, but that is the *model* view and does not predict the DDL:
+        // a foreign key's type mapping resolves through its principal, so SQL Server emits
+        // nvarchar(255) for AggregateId (inherited from AggregateEntity.Id) and nvarchar(450) for
+        // EventId (inherited from the unbounded EventEntity.Id). See the container tests for the
+        // measured column types — this assertion pins the model, not the schema.
         using (new AssertionScope())
         {
             MaxLengthOf<AggregateEventEntity>(nameof(AggregateEventEntity.AggregateId)).Should().BeNull();

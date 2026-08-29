@@ -21,11 +21,46 @@ jobs:
         run: dotnet restore
       - name: Build solution
         run: dotnet build --configuration Release --no-restore
+      # Container-backed tests run in their own job so a slow image pull cannot obscure a
+      # unit-test failure, and so this job stays fast enough for pull request feedback.
       - name: Run tests
-        run: dotnet test --configuration Release --no-build --verbosity normal
+        run: dotnet test --configuration Release --no-build --verbosity normal --filter "Category!=Container"
+
+  container-tests:
+
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Build container test project
+        run: dotnet build tests/Memoria.EventSourcing.Store.EntityFrameworkCore.Containers.Tests --configuration Release
+      # These start real SQL Server and PostgreSQL containers. They skip themselves when no Docker
+      # endpoint is present, so check the summary for skips rather than reading green as proof.
+      - name: Run container tests
+        run: dotnet test tests/Memoria.EventSourcing.Store.EntityFrameworkCore.Containers.Tests --configuration Release --no-build --verbosity normal
+
+  publish:
+
+    runs-on: ubuntu-latest
+    needs: [ build, container-tests ]
+    if: ${{ github.ref == 'refs/heads/main' }}
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Restore dependencies
+        run: dotnet restore
+      - name: Build solution
+        run: dotnet build --configuration Release --no-restore
       - name: Create packages
-        if: ${{ github.ref == 'refs/heads/main' }}
         run: dotnet pack --configuration Release --no-build --output ./packages
       - name: Publish packages
-        if: ${{ github.ref == 'refs/heads/main' }}
         run: dotnet nuget push ./packages/*.nupkg --source 'https://api.nuget.org/v3/index.json' --api-key ${{secrets.NUGET_API_KEY}} --skip-duplicate
