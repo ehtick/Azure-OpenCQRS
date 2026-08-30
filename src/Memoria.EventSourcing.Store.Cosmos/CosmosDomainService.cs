@@ -17,25 +17,22 @@ public class CosmosDomainService : IDomainService
 {
     private readonly TimeProvider _timeProvider;
     private readonly IHttpContextAccessor _httpContextAccessor;
-    private readonly CosmosClient _cosmosClient;
     private readonly Container _container;
     private readonly ICosmosDataStore _cosmosDataStore;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="CosmosDomainService"/> class.
     /// </summary>
-    /// <param name="cosmosOptions">Cosmos DB configuration options.</param>
+    /// <param name="clientProvider">Provides the container backed by the shared Cosmos DB client.</param>
     /// <param name="timeProvider">The time provider for timestamps.</param>
     /// <param name="httpContextAccessor">HTTP context accessor for user information.</param>
     /// <param name="cosmosDataStore">The Cosmos data store for document operations.</param>
-    public CosmosDomainService(IOptions<CosmosOptions> cosmosOptions, TimeProvider timeProvider,
+    public CosmosDomainService(CosmosClientProvider clientProvider, TimeProvider timeProvider,
         IHttpContextAccessor httpContextAccessor, ICosmosDataStore cosmosDataStore)
     {
         _timeProvider = timeProvider;
         _httpContextAccessor = httpContextAccessor;
-        _cosmosClient = new CosmosClient(cosmosOptions.Value.Endpoint, cosmosOptions.Value.AuthKey,
-            cosmosOptions.Value.ClientOptions);
-        _container = _cosmosClient.GetContainer(cosmosOptions.Value.DatabaseName, cosmosOptions.Value.ContainerName);
+        _container = clientProvider.Container;
         _cosmosDataStore = cosmosDataStore;
     }
 
@@ -103,43 +100,18 @@ public class CosmosDomainService : IDomainService
         var timeStamp = _timeProvider.GetUtcNow();
         var currentUserNameIdentifier = _httpContextAccessor.GetCurrentUserNameIdentifier();
 
-        try
-        {
-            var batch = _container.CreateTransactionalBatch(new PartitionKey(streamId.Id));
+        var latestEventSequenceForAggregate = eventDocuments[^1].Sequence;
+        var aggregateDocument =
+            aggregate.ToAggregateDocument(streamId, aggregateId, latestEventSequenceForAggregate);
+        aggregateDocument.CreatedDate = timeStamp;
+        aggregateDocument.CreatedBy = currentUserNameIdentifier;
+        aggregateDocument.UpdatedDate = timeStamp;
+        aggregateDocument.UpdatedBy = currentUserNameIdentifier;
 
-            var latestEventSequenceForAggregate =
-                eventDocuments.OrderBy(eventDocument => eventDocument.Sequence).Last().Sequence;
-            var aggregateDocument =
-                aggregate.ToAggregateDocument(streamId, aggregateId, latestEventSequenceForAggregate);
-            aggregateDocument.CreatedDate = timeStamp;
-            aggregateDocument.CreatedBy = currentUserNameIdentifier;
-            aggregateDocument.UpdatedDate = timeStamp;
-            aggregateDocument.UpdatedBy = currentUserNameIdentifier;
-            batch.CreateItem(aggregateDocument);
+        var writeResult = await _container.WriteAggregateSnapshot(streamId, aggregateId, aggregateDocument,
+            eventDocuments, timeStamp, operation: "Get Aggregate", cancellationToken);
 
-            foreach (var eventDocument in eventDocuments)
-            {
-                var aggregateEventDocument = new AggregateEventDocument
-                {
-                    Id = $"{aggregateId.ToStoreId()}|{eventDocument.Id}",
-                    StreamId = streamId.Id,
-                    AggregateId = aggregateId.ToStoreId(),
-                    EventId = eventDocument.Id,
-                    AppliedDate = timeStamp
-                };
-                batch.CreateItem(aggregateEventDocument);
-            }
-
-            var batchResponse = await batch.ExecuteAsync(cancellationToken);
-            batchResponse.AddActivityEvent(streamId, aggregateId, operation: "Get Aggregate");
-            return batchResponse.IsSuccessStatusCode ? aggregate : StoreFailures.StorageFailure("Get Aggregate", streamId);
-        }
-        catch (Exception ex)
-        {
-            const string operation = "Get Aggregate";
-            DiagnosticsExtensions.AddException(ex, streamId, operation);
-            return StoreFailures.StorageFailure(operation, streamId);
-        }
+        return writeResult.IsSuccess ? aggregate : writeResult.Failure!;
     }
 
     /// <summary>
@@ -374,7 +346,7 @@ public class CosmosDomainService : IDomainService
 
         aggregate.StreamId = streamId.Id;
         aggregate.AggregateId = aggregateId.ToStoreId();
-        aggregate.LatestEventSequence = eventDocuments.OrderBy(eventEntity => eventEntity.Sequence).Last().Sequence;
+        aggregate.LatestEventSequence = eventDocuments[^1].Sequence;
         aggregate.Apply(eventDocuments.Select(eventEntity => eventEntity.ToDomainEvent()));
 
         return aggregate;
@@ -409,7 +381,7 @@ public class CosmosDomainService : IDomainService
 
         aggregate.StreamId = streamId.Id;
         aggregate.AggregateId = aggregateId.ToStoreId();
-        aggregate.LatestEventSequence = eventDocuments.OrderBy(eventEntity => eventEntity.Sequence).Last().Sequence;
+        aggregate.LatestEventSequence = eventDocuments[^1].Sequence;
         aggregate.Apply(eventDocuments.Select(eventEntity => eventEntity.ToDomainEvent()));
 
         return aggregate;
@@ -446,7 +418,7 @@ public class CosmosDomainService : IDomainService
 
         aggregate.StreamId = streamId.Id;
         aggregate.AggregateId = aggregateId.ToStoreId();
-        aggregate.LatestEventSequence = eventDocuments.OrderBy(eventEntity => eventEntity.Sequence).Last().Sequence;
+        aggregate.LatestEventSequence = eventDocuments[^1].Sequence;
         aggregate.Apply(eventDocuments.Select(eventEntity => eventEntity.ToDomainEvent()));
 
         return aggregate;
@@ -487,7 +459,7 @@ public class CosmosDomainService : IDomainService
 
         projection.StreamId = streamId.Id;
         projection.ProjectionId = projectionId.ToStoreId();
-        projection.LatestEventSequence = eventDocuments.OrderBy(eventDocument => eventDocument.Sequence).Last().Sequence;
+        projection.LatestEventSequence = eventDocuments[^1].Sequence;
 
         return projection;
     }
@@ -528,7 +500,7 @@ public class CosmosDomainService : IDomainService
 
         projection.StreamId = streamId.Id;
         projection.ProjectionId = projectionId.ToStoreId();
-        projection.LatestEventSequence = eventDocuments.OrderBy(eventDocument => eventDocument.Sequence).Last().Sequence;
+        projection.LatestEventSequence = eventDocuments[^1].Sequence;
 
         return projection;
     }
@@ -569,7 +541,7 @@ public class CosmosDomainService : IDomainService
 
         projection.StreamId = streamId.Id;
         projection.ProjectionId = projectionId.ToStoreId();
-        projection.LatestEventSequence = eventDocuments.OrderBy(eventDocument => eventDocument.Sequence).Last().Sequence;
+        projection.LatestEventSequence = eventDocuments[^1].Sequence;
 
         return projection;
     }
@@ -634,8 +606,7 @@ public class CosmosDomainService : IDomainService
             return default(T);
         }
 
-        projection.LatestEventSequence =
-            eventDocuments.OrderBy(eventDocument => eventDocument.Sequence).Last().Sequence;
+        projection.LatestEventSequence = eventDocuments[^1].Sequence;
 
         var timeStamp = _timeProvider.GetUtcNow();
         var currentUserNameIdentifier = _httpContextAccessor.GetCurrentUserNameIdentifier();
@@ -649,7 +620,7 @@ public class CosmosDomainService : IDomainService
             projectionDocument.UpdatedBy = currentUserNameIdentifier;
 
             var response = await _container.UpsertItemAsync(projectionDocument, new PartitionKey(streamId.Id),
-                cancellationToken: cancellationToken);
+                WriteRequestOptions.Item, cancellationToken);
             response.AddActivityEvent(streamId, operation: "Get Projection");
             return response.StatusCode is System.Net.HttpStatusCode.OK or System.Net.HttpStatusCode.Created
                 ? projection
@@ -699,7 +670,7 @@ public class CosmosDomainService : IDomainService
             projectionDocument.UpdatedBy = currentUserNameIdentifier;
 
             var response = await _container.UpsertItemAsync(projectionDocument, new PartitionKey(streamId.Id),
-                cancellationToken: cancellationToken);
+                WriteRequestOptions.Item, cancellationToken);
             response.AddActivityEvent(streamId, operation: "Save Projection");
             return response.StatusCode is System.Net.HttpStatusCode.OK or System.Net.HttpStatusCode.Created
                 ? Result.Ok()
@@ -777,6 +748,16 @@ public class CosmosDomainService : IDomainService
             return Result.Ok();
         }
 
+        // Rejected here rather than by Cosmos DB, so the caller can tell an oversized save from the
+        // store being unreachable. The batch cannot be split: it has to commit atomically with the
+        // sequence check below.
+        var uncommittedEventCount = aggregate.UncommittedEvents.Count();
+        if (uncommittedEventCount > CosmosLimits.MaxUncommittedEventsPerAggregateSave)
+        {
+            return StoreFailures.BatchLimitExceeded("Save Aggregate", streamId, uncommittedEventCount,
+                CosmosLimits.MaxUncommittedEventsPerAggregateSave);
+        }
+
         var latestEventSequenceResult = await GetLatestEventSequence(streamId, cancellationToken: cancellationToken);
         if (latestEventSequenceResult.IsNotSuccess)
         {
@@ -832,14 +813,14 @@ public class CosmosDomainService : IDomainService
                 }
             }
 
-            batch.UpsertItem(aggregateDocument);
+            batch.UpsertItem(aggregateDocument, WriteRequestOptions.BatchItem);
 
             foreach (var @event in aggregate.UncommittedEvents)
             {
                 var eventDocument = @event.ToEventDocument(streamId, sequence: ++latestEventSequence);
                 eventDocument.CreatedDate = timeStamp;
                 eventDocument.CreatedBy = currentUserNameIdentifier;
-                batch.CreateItem(eventDocument);
+                batch.CreateItem(eventDocument, WriteRequestOptions.BatchItem);
 
                 var aggregateEventDocument = new AggregateEventDocument
                 {
@@ -849,7 +830,7 @@ public class CosmosDomainService : IDomainService
                     EventId = eventDocument.Id,
                     AppliedDate = timeStamp
                 };
-                batch.CreateItem(aggregateEventDocument);
+                batch.CreateItem(aggregateEventDocument, WriteRequestOptions.BatchItem);
             }
 
             var batchResponse = await batch.ExecuteAsync(cancellationToken);
@@ -880,6 +861,14 @@ public class CosmosDomainService : IDomainService
             return Result.Ok();
         }
 
+        // As in SaveAggregate: this batch commits atomically with the sequence check, so an
+        // oversized append is refused up front instead of failing as a storage error.
+        if (events.Length > CosmosLimits.MaxEventsPerSave)
+        {
+            return StoreFailures.BatchLimitExceeded("Save Domain Events", streamId, events.Length,
+                CosmosLimits.MaxEventsPerSave);
+        }
+
         var latestEventSequenceResult = await GetLatestEventSequence(streamId, cancellationToken: cancellationToken);
         if (latestEventSequenceResult.IsNotSuccess)
         {
@@ -906,7 +895,7 @@ public class CosmosDomainService : IDomainService
                 eventDocument.CreatedDate = timeStamp;
                 eventDocument.CreatedBy = currentUserNameIdentifier;
                 eventDocuments.Add(eventDocument);
-                batch.CreateItem(eventDocument);
+                batch.CreateItem(eventDocument, WriteRequestOptions.BatchItem);
             }
 
             var batchResponse = await batch.ExecuteAsync(cancellationToken);
@@ -945,7 +934,12 @@ public class CosmosDomainService : IDomainService
     }
 
     /// <summary>
-    /// Disposes the Cosmos client resources.
+    /// Does nothing. The Cosmos DB client is shared across the application and owned by
+    /// <see cref="CosmosClientProvider"/>; disposing it here would tear down connections still in
+    /// use by other scopes. <see cref="IDomainService"/> declares <see cref="IDisposable"/>, so the
+    /// method remains.
     /// </summary>
-    public void Dispose() => _cosmosClient.Dispose();
+    public void Dispose()
+    {
+    }
 }
