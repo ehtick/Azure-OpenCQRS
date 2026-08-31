@@ -92,6 +92,11 @@ public class CosmosDomainService : IDomainService
 
         var events = eventDocuments.Select(eventDocument => eventDocument.ToDomainEvent()).ToList();
         aggregate.Apply(events);
+
+        AggregateDiagnostics.AddAggregateFoldedEvent(streamId, aggregateId,
+            appliedFromSequence: eventDocuments[0].Sequence, appliedToSequence: eventDocuments[^1].Sequence,
+            appliedCount: eventDocuments.Count, versionBefore: 0, versionAfter: aggregate.Version);
+
         if (aggregate.Version == 0)
         {
             return default(T);
@@ -109,7 +114,7 @@ public class CosmosDomainService : IDomainService
         aggregateDocument.UpdatedBy = currentUserNameIdentifier;
 
         var writeResult = await _container.WriteAggregateSnapshot(streamId, aggregateId, aggregateDocument,
-            eventDocuments, timeStamp, operation: "Get Aggregate", cancellationToken);
+            operation: "Get Aggregate", cancellationToken);
 
         return writeResult.IsSuccess ? aggregate : writeResult.Failure!;
     }
@@ -132,41 +137,6 @@ public class CosmosDomainService : IDomainService
         }
 
         return eventDocumentsResult.Value!.Select(eventDocument => eventDocument.ToDomainEvent()).ToList();
-    }
-
-    /// <summary>
-    /// Gets domain events that have been applied to a specific aggregate.
-    /// </summary>
-    /// <typeparam name="T">The type of aggregate.</typeparam>
-    /// <param name="streamId">The stream identifier.</param>
-    /// <param name="aggregateId">The aggregate identifier.</param>
-    /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>A result containing the list of domain events applied to the aggregate or failure information.</returns>
-    public async Task<Result<List<IEvent>>> GetEventsAppliedToAggregate<T>(IStreamId streamId,
-        IAggregateId<T> aggregateId, CancellationToken cancellationToken = default) where T : IAggregateRoot, new()
-    {
-        var aggregateEventDocumentsResult =
-            await _cosmosDataStore.GetAggregateEventDocuments(streamId, aggregateId, cancellationToken);
-        if (aggregateEventDocumentsResult.IsNotSuccess)
-        {
-            return aggregateEventDocumentsResult.Failure!;
-        }
-
-        var aggregateEventDocuments = aggregateEventDocumentsResult.Value!;
-        if (aggregateEventDocuments.Count == 0)
-        {
-            return new List<IEvent>();
-        }
-
-        var eventDocumentsResult = await _cosmosDataStore.GetEventDocuments(streamId,
-            aggregateEventDocuments.Select(ae => ae.EventId).ToArray(), cancellationToken);
-        if (eventDocumentsResult.IsNotSuccess)
-        {
-            return eventDocumentsResult.Failure!;
-        }
-
-        var eventDocuments = eventDocumentsResult.Value!;
-        return eventDocuments.Select(eventDocument => eventDocument.ToDomainEvent()).ToList();
     }
 
     /// <summary>
@@ -621,7 +591,7 @@ public class CosmosDomainService : IDomainService
 
             var response = await _container.UpsertItemAsync(projectionDocument, new PartitionKey(streamId.Id),
                 WriteRequestOptions.Item, cancellationToken);
-            response.AddActivityEvent(streamId, operation: "Get Projection");
+            DiagnosticsExtensions.AddActivityEvent(response, streamId, operation: "Get Projection");
             return response.StatusCode is System.Net.HttpStatusCode.OK or System.Net.HttpStatusCode.Created
                 ? projection
                 : StoreFailures.StorageFailure("Get Projection", streamId);
@@ -671,7 +641,7 @@ public class CosmosDomainService : IDomainService
 
             var response = await _container.UpsertItemAsync(projectionDocument, new PartitionKey(streamId.Id),
                 WriteRequestOptions.Item, cancellationToken);
-            response.AddActivityEvent(streamId, operation: "Save Projection");
+            DiagnosticsExtensions.AddActivityEvent(response, streamId, operation: "Save Projection");
             return response.StatusCode is System.Net.HttpStatusCode.OK or System.Net.HttpStatusCode.Created
                 ? Result.Ok()
                 : StoreFailures.StorageFailure("Save Projection", streamId);
@@ -718,7 +688,7 @@ public class CosmosDomainService : IDomainService
             }
 
             var response = await iterator.ReadNextAsync(cancellationToken);
-            response.AddActivityEvent(streamId, operation: "Get Latest Event Sequence");
+            DiagnosticsExtensions.AddActivityEvent(response, streamId, operation: "Get Latest Event Sequence");
             var result = response.FirstOrDefault();
             return result ?? 0;
         }
@@ -775,6 +745,11 @@ public class CosmosDomainService : IDomainService
         var currentAggregateVersion = aggregate.Version - aggregate.UncommittedEvents.Count();
         var aggregateIsNew = currentAggregateVersion == 0;
 
+        AggregateDiagnostics.AddAggregateFoldedEvent(streamId, aggregateId,
+            appliedFromSequence: latestEventSequence + 1, appliedToSequence: newLatestEventSequenceForAggregate,
+            appliedCount: aggregate.UncommittedEvents.Count(), versionBefore: currentAggregateVersion,
+            versionAfter: aggregate.Version);
+
         var timeStamp = _timeProvider.GetUtcNow();
         var currentUserNameIdentifier = _httpContextAccessor.GetCurrentUserNameIdentifier();
 
@@ -821,20 +796,10 @@ public class CosmosDomainService : IDomainService
                 eventDocument.CreatedDate = timeStamp;
                 eventDocument.CreatedBy = currentUserNameIdentifier;
                 batch.CreateItem(eventDocument, WriteRequestOptions.BatchItem);
-
-                var aggregateEventDocument = new AggregateEventDocument
-                {
-                    Id = $"{aggregateId.ToStoreId()}|{eventDocument.Id}",
-                    StreamId = streamId.Id,
-                    AggregateId = aggregateId.ToStoreId(),
-                    EventId = eventDocument.Id,
-                    AppliedDate = timeStamp
-                };
-                batch.CreateItem(aggregateEventDocument, WriteRequestOptions.BatchItem);
             }
 
             var batchResponse = await batch.ExecuteAsync(cancellationToken);
-            batchResponse.AddActivityEvent(streamId, aggregateId, "Save Aggregate");
+            DiagnosticsExtensions.AddActivityEvent(batchResponse, streamId, aggregateId, "Save Aggregate");
             return batchResponse.IsSuccessStatusCode ? Result.Ok() : StoreFailures.StorageFailure("Save Aggregate", streamId);
         }
         catch (Exception ex)
@@ -899,7 +864,7 @@ public class CosmosDomainService : IDomainService
             }
 
             var batchResponse = await batch.ExecuteAsync(cancellationToken);
-            batchResponse.AddActivityEvent(streamId, eventDocuments, "Save Domain Events");
+            DiagnosticsExtensions.AddActivityEvent(batchResponse, streamId, eventDocuments, "Save Domain Events");
             return batchResponse.IsSuccessStatusCode ? Result.Ok() : StoreFailures.StorageFailure("Save Domain Events", streamId);
         }
         catch (Exception ex)

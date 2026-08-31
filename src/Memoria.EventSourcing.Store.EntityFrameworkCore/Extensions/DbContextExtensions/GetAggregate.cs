@@ -63,16 +63,18 @@ public static partial class IDomainDbContextExtensions
         var events = eventEntities.Select(eventEntity => eventEntity.ToDomainEvent()).ToList();
         aggregate.Apply(events);
 
+        AggregateDiagnostics.AddAggregateFoldedEvent(streamId, aggregateId,
+            appliedFromSequence: eventEntities[0].Sequence, appliedToSequence: eventEntities[^1].Sequence,
+            appliedCount: eventEntities.Count, versionBefore: 0, versionAfter: aggregate.Version);
+
         if (aggregate.Version == 0)
         {
             return default(T);
         }
 
         var latestEventSequenceForAggregate = eventEntities[^1].Sequence;
-        var trackedAggregateEntity = domainDbContext.TrackAggregateEntity(streamId, aggregateId, aggregate,
+        domainDbContext.TrackAggregateEntity(streamId, aggregateId, aggregate,
             latestEventSequenceForAggregate, aggregateIsNew: true);
-        var trackedAggregateEventEntities =
-            domainDbContext.TrackAggregateEventEntities(trackedAggregateEntity, eventEntities);
 
         try
         {
@@ -86,7 +88,6 @@ public static partial class IDomainDbContextExtensions
         }
 
         domainDbContext.DetachAggregate(aggregateId, aggregate);
-        domainDbContext.DetachWrittenEntities(trackedAggregateEventEntities);
 
         return aggregate;
     }

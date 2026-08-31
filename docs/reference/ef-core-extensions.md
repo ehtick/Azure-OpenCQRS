@@ -27,15 +27,12 @@ The Entity Framework Core store provider offers a variety of built-in extension 
   - [Get Domain Events From Date](#get-domain-events-from-date)
   - [Get Domain Events Up To Date](#get-domain-events-up-to-date)
   - [Get Domain Events Between Dates](#get-domain-events-between-dates)
-  - [Get Domain Events Applied To Aggregate](#get-domain-events-applied-to-aggregate)
   - [Get Latest Event Sequence](#get-latest-event-sequence)
 - [Retrieving Database Entities](#retrieving-database-entities)
   - [Get Event Entities](#get-event-entities)
   - [Get Event Entities Between Sequences](#get-event-entities-between-sequences)
   - [Get Event Entities From Sequence](#get-event-entities-from-sequence)
   - [Get Event Entities Up To Sequence](#get-event-entities-up-to-sequence)
-  - [Get Event Entities Applied To Aggregate](#get-event-entities-applied-to-aggregate)
-  - [Get Aggregate Event Entities](#get-aggregate-event-entities)
 
 <a name="saving"></a>
 ## Saving
@@ -336,15 +333,6 @@ var eventTypes = new Type[] { typeof(OrderPlaced), typeof(OrderShipped) };
 var eventsResult = await dbContext.GetEventsBetweenDates(streamId, fromDate, toDate, eventTypes);
 ```
 
-<a name="get-domain-events-applied-to-aggregate"></a>
-### Get Domain Events Applied To Aggregate
-Retrieves all domain events that have been applied to a specific aggregate instance, using the explicit aggregate-event relationship tracking. This method provides precise access to the events that actually contributed to an aggregate's current state.
-```C#
-var streamId = new CustomerStreamId(customerId);
-var aggregateId = new OrderAggregateId(orderId);
-var eventsResult = await dbContext.GetEventsAppliedToAggregate(streamId, aggregateId);
-```
-
 <a name="get-latest-event-sequence"></a>
 ### Get Latest Event Sequence
 Retrieves the latest event sequence number for a specified stream, with optional filtering by event types. This method provides the current position in an event stream, essential for optimistic concurrency control and determining where to append new events in event sourcing operations.
@@ -424,22 +412,4 @@ var streamId = new CustomerStreamId(customerId);
 var upToSequence = 10;
 var eventTypes = new Type[] { typeof(OrderPlaced), typeof(OrderShipped) };
 var eventEntitiesResult = await dbContext.GetEventEntitiesUpToSequence(streamId, upToSequence, eventTypes);
-```
-
-<a name="get-event-entities-applied-to-aggregate"></a>
-### Get Event Entities Applied To Aggregate
-Retrieves all event entities that have been applied to a specific aggregate instance, providing a complete audit trail of changes that contributed to the aggregate's current state.
-```C#
-var streamId = new CustomerStreamId(customerId);
-var aggregateId = new OrderAggregateId(orderId);
-var eventEntitiesResult = await dbContext.GetEventEntitiesAppliedToAggregate(streamId, aggregateId);
-```
-
-<a name="get-aggregate-event-entities"></a>
-### Get Aggregate Event Entities
-Retrieves all aggregate-event relationship entities associated with a specific aggregate instance, providing complete visibility into the many-to-many relationships between the aggregate and its applied events.
-```C#
-var streamId = new CustomerStreamId(customerId);
-var aggregateId = new OrderAggregateId(orderId);
-var aggregateEventEntitiesResult = await dbContext.GetAggregateEventEntities(streamId, aggregateId);
 ```

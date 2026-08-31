@@ -27,11 +27,11 @@ public static partial class IDomainDbContextExtensions
     /// var (aggregateEntity, aggregateEventEntities) = result.Value;
     /// </code>
     /// </example>
-    public static async Task<Result<(AggregateEntity? AggregateEntity, List<AggregateEventEntity>? AggregateEventEntities)>> TrackEventEntities<T>(this IDomainDbContext domainDbContext, IStreamId streamId, IAggregateId<T> aggregateId, List<EventEntity> eventEntities, int expectedEventSequence, CancellationToken cancellationToken = default) where T : IAggregateRoot, new()
+    public static async Task<Result<AggregateEntity?>> TrackEventEntities<T>(this IDomainDbContext domainDbContext, IStreamId streamId, IAggregateId<T> aggregateId, List<EventEntity> eventEntities, int expectedEventSequence, CancellationToken cancellationToken = default) where T : IAggregateRoot, new()
     {
         if (eventEntities.Count == 0)
         {
-            return (null, null);
+            return (AggregateEntity?)null;
         }
 
         var aggregateResult = await domainDbContext.GetAggregate(streamId, aggregateId, ReadMode.SnapshotOrCreate, cancellationToken: cancellationToken);
@@ -42,7 +42,8 @@ public static partial class IDomainDbContextExtensions
         var aggregate = aggregateResult.Value;
         aggregate ??= new T();
 
-        var aggregateIsNew = aggregate.Version == 0;
+        var currentAggregateVersion = aggregate.Version;
+        var aggregateIsNew = currentAggregateVersion == 0;
 
         var eventEntitiesHandledByTheAggregate = new Dictionary<int, EventEntity>();
         for (var i = 0; i < eventEntities.Count; i++)
@@ -61,15 +62,19 @@ public static partial class IDomainDbContextExtensions
 
         if (eventEntitiesHandledByTheAggregate.Count == 0)
         {
-            return (null, null);
+            return (AggregateEntity?)null;
         }
 
         aggregate.Apply(eventEntitiesHandledByTheAggregate.Select(@event => @event.Value.ToDomainEvent()));
 
-        var newLatestEventSequenceForAggregate = expectedEventSequence + eventEntitiesHandledByTheAggregate.Last().Key;
-        var trackedAggregateEntity = domainDbContext.TrackAggregateEntity(streamId, aggregateId, aggregate, newLatestEventSequenceForAggregate, aggregateIsNew);
-        var trackedAggregateEventEntities = domainDbContext.TrackAggregateEventEntities(trackedAggregateEntity, eventEntitiesHandledByTheAggregate.Select(e => e.Value).ToList());
+        AggregateDiagnostics.AddAggregateFoldedEvent(streamId, aggregateId,
+            appliedFromSequence: eventEntitiesHandledByTheAggregate.First().Value.Sequence,
+            appliedToSequence: eventEntitiesHandledByTheAggregate.Last().Value.Sequence,
+            appliedCount: eventEntitiesHandledByTheAggregate.Count, versionBefore: currentAggregateVersion,
+            versionAfter: aggregate.Version);
 
-        return (trackedAggregateEntity, trackedAggregateEventEntities);
+        var newLatestEventSequenceForAggregate = expectedEventSequence + eventEntitiesHandledByTheAggregate.Last().Key;
+
+        return domainDbContext.TrackAggregateEntity(streamId, aggregateId, aggregate, newLatestEventSequenceForAggregate, aggregateIsNew);
     }
 }
