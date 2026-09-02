@@ -408,7 +408,7 @@ public class CosmosDomainService : IDomainService
     {
         var projection = new T();
 
-        var eventDocumentsResult = await _cosmosDataStore.GetEventDocuments(streamId, projection.EventTypeFilter,
+        var eventDocumentsResult = await _cosmosDataStore.GetEventDocuments(streamId, projection.EventTypeFilter, projectionId.EventPropertyFilter,
             cancellationToken: cancellationToken);
         if (eventDocumentsResult.IsNotSuccess)
         {
@@ -450,7 +450,7 @@ public class CosmosDomainService : IDomainService
         var projection = new T();
 
         var eventDocumentsResult = await _cosmosDataStore.GetEventDocumentsUpToSequence(streamId, upToSequence,
-            projection.EventTypeFilter, cancellationToken: cancellationToken);
+            projection.EventTypeFilter, projectionId.EventPropertyFilter, cancellationToken: cancellationToken);
         if (eventDocumentsResult.IsNotSuccess)
         {
             return eventDocumentsResult.Failure!;
@@ -491,7 +491,7 @@ public class CosmosDomainService : IDomainService
         var projection = new T();
 
         var eventDocumentsResult = await _cosmosDataStore.GetEventDocumentsUpToDate(streamId, upToDate,
-            projection.EventTypeFilter, cancellationToken: cancellationToken);
+            projection.EventTypeFilter, projectionId.EventPropertyFilter, cancellationToken: cancellationToken);
         if (eventDocumentsResult.IsNotSuccess)
         {
             return eventDocumentsResult.Failure!;
@@ -557,7 +557,7 @@ public class CosmosDomainService : IDomainService
         var projection = new T();
 
         var eventDocumentsResult =
-            await _cosmosDataStore.GetEventDocuments(streamId, projection.EventTypeFilter, cancellationToken: cancellationToken);
+            await _cosmosDataStore.GetEventDocuments(streamId, projection.EventTypeFilter, projectionId.EventPropertyFilter, cancellationToken: cancellationToken);
         if (eventDocumentsResult.IsNotSuccess)
         {
             return eventDocumentsResult.Failure!;
@@ -570,7 +570,14 @@ public class CosmosDomainService : IDomainService
         }
 
         var events = eventDocuments.Select(eventDocument => eventDocument.ToDomainEvent()).ToList();
+        var versionBefore = projection.Version;
         projection.Apply(events);
+
+        ProjectionDiagnostics.AddProjectionFoldedEvent(streamId, projectionId,
+            appliedFromSequence: eventDocuments[0].Sequence, appliedToSequence: eventDocuments[^1].Sequence,
+            appliedCount: eventDocuments.Count, versionBefore: versionBefore,
+            versionAfter: projection.Version);
+
         if (projection.Version == 0)
         {
             return default(T);
@@ -583,6 +590,7 @@ public class CosmosDomainService : IDomainService
 
         try
         {
+            var projectionDocumentId = projectionId.ToStoreId();
             var projectionDocument = projection.ToProjectionDocument(streamId, projectionId);
             projectionDocument.CreatedDate = timeStamp;
             projectionDocument.CreatedBy = currentUserNameIdentifier;
@@ -621,12 +629,22 @@ public class CosmosDomainService : IDomainService
 
         try
         {
+            var projectionDocumentId = projectionId.ToStoreId();
             var projectionDocument = projection.ToProjectionDocument(streamId, projectionId);
 
             try
             {
-                var existing = await _container.ReadItemAsync<ProjectionDocument>(projectionId.ToStoreId(),
+                var existing = await _container.ReadItemAsync<ProjectionDocument>(projectionDocumentId,
                     new PartitionKey(streamId.Id), cancellationToken: cancellationToken);
+
+                // Checked before the upsert below, which would otherwise write the snapshot over
+                // whatever document is actually sitting on this id.
+                if (existing.Resource.DocumentType != DocumentType.Projection)
+                {
+                    return CosmosStoreFailures.DocumentIdCollision("Save Projection", streamId,
+                        projectionDocumentId, DocumentType.Projection, existing.Resource.DocumentType);
+                }
+
                 projectionDocument.CreatedDate = existing.Resource.CreatedDate;
                 projectionDocument.CreatedBy = existing.Resource.CreatedBy;
             }
@@ -743,7 +761,6 @@ public class CosmosDomainService : IDomainService
 
         var newLatestEventSequenceForAggregate = latestEventSequence + aggregate.UncommittedEvents.Count();
         var currentAggregateVersion = aggregate.Version - aggregate.UncommittedEvents.Count();
-        var aggregateIsNew = currentAggregateVersion == 0;
 
         AggregateDiagnostics.AddAggregateFoldedEvent(streamId, aggregateId,
             appliedFromSequence: latestEventSequence + 1, appliedToSequence: newLatestEventSequenceForAggregate,
@@ -761,31 +778,28 @@ public class CosmosDomainService : IDomainService
                 aggregate.ToAggregateDocument(streamId, aggregateId, newLatestEventSequenceForAggregate);
             aggregateDocument.UpdatedDate = timeStamp;
             aggregateDocument.UpdatedBy = currentUserNameIdentifier;
-            if (aggregateIsNew)
+            // Read unconditionally, rather than only when the aggregate is already known to exist.
+            // Whether it is new can only be inferred from the in-memory version, not from the store, so
+            // trusting that meant a first save upserted without ever looking at what it was writing over
+            // — which is where an identifier collision destroyed an event instead of reporting itself.
+            // It also stamped a fresh CreatedDate over an existing document whenever the two disagreed.
+            var existingAggregateDocumentResult =
+                await _cosmosDataStore.GetAggregateDocument(streamId, aggregateId, cancellationToken);
+            if (existingAggregateDocumentResult.IsNotSuccess)
             {
-                aggregateDocument.CreatedDate = timeStamp;
-                aggregateDocument.CreatedBy = currentUserNameIdentifier;
+                return existingAggregateDocumentResult.Failure!;
+            }
+
+            var existingAggregateDocument = existingAggregateDocumentResult.Value;
+            if (existingAggregateDocument is not null)
+            {
+                aggregateDocument.CreatedDate = existingAggregateDocument.CreatedDate;
+                aggregateDocument.CreatedBy = existingAggregateDocument.CreatedBy;
             }
             else
             {
-                var existingAggregateDocumentResult =
-                    await _cosmosDataStore.GetAggregateDocument(streamId, aggregateId, cancellationToken);
-                if (existingAggregateDocumentResult.IsNotSuccess)
-                {
-                    return existingAggregateDocumentResult.Failure!;
-                }
-
-                var existingAggregateDocument = existingAggregateDocumentResult.Value;
-                if (existingAggregateDocument != null)
-                {
-                    aggregateDocument.CreatedDate = existingAggregateDocument.CreatedDate;
-                    aggregateDocument.CreatedBy = existingAggregateDocument.CreatedBy;
-                }
-                else
-                {
-                    aggregateDocument.CreatedDate = timeStamp;
-                    aggregateDocument.CreatedBy = currentUserNameIdentifier;
-                }
+                aggregateDocument.CreatedDate = timeStamp;
+                aggregateDocument.CreatedBy = currentUserNameIdentifier;
             }
 
             batch.UpsertItem(aggregateDocument, WriteRequestOptions.BatchItem);
@@ -895,6 +909,22 @@ public class CosmosDomainService : IDomainService
 
         var aggregateDocument = aggregateDocumentResult.Value;
         return await _cosmosDataStore.UpdateAggregateDocument(streamId, aggregateId, aggregateDocument,
+            cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public async Task<Result<T?>> UpdateProjection<T>(IStreamId streamId, IProjectionId<T> projectionId,
+        CancellationToken cancellationToken = default) where T : IProjection, new()
+    {
+        var projectionDocumentResult =
+            await _cosmosDataStore.GetProjectionDocument(streamId, projectionId, cancellationToken);
+        if (projectionDocumentResult.IsNotSuccess)
+        {
+            return projectionDocumentResult.Failure!;
+        }
+
+        var projectionDocument = projectionDocumentResult.Value;
+        return await _cosmosDataStore.UpdateProjectionDocument(streamId, projectionId, projectionDocument,
             cancellationToken);
     }
 

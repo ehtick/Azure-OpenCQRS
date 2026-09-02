@@ -3,20 +3,12 @@ namespace Memoria.EventSourcing.Domain;
 /// <summary>
 /// Defines the members shared by every event-sourced model, whether it is a write model
 /// (an <see cref="IAggregateRoot"/>) or a read model (an <see cref="IProjection"/>).
-/// An event-sourced model carries stream and aggregate identity, tracks its version, and
-/// rebuilds its state by applying domain events from an event stream.
+/// An event-sourced model tracks its version and rebuilds its state by applying domain events.
+/// It carries no identity of its own: what identifies a model depends on its consistency model,
+/// so stream identity lives on <see cref="IStreamedModel"/>.
 /// </summary>
 public interface IEventSourcedModel
 {
-    /// <summary>
-    /// Gets or sets the unique identifier for the event stream associated with this model.
-    /// </summary>
-    /// <value>
-    /// A string that uniquely identifies the event stream containing this model's domain events.
-    /// This is typically derived from the model's identifier and type information.
-    /// </value>
-    string StreamId { get; set; }
-
     /// <summary>
     /// Gets or sets the current version of the model based on the number of events applied.
     /// </summary>
@@ -25,15 +17,6 @@ public interface IEventSourcedModel
     /// Used for optimistic concurrency control and tracking model evolution.
     /// </value>
     int Version { get; set; }
-
-    /// <summary>
-    /// Gets or sets the sequence number of the latest event applied to this model.
-    /// </summary>
-    /// <value>
-    /// An integer representing the sequence position of the most recent event in the event stream.
-    /// Used for event ordering and ensuring proper event application sequence.
-    /// </value>
-    int LatestEventSequence { get; set; }
 
     /// <summary>
     /// Applies a collection of domain events to rebuild the model's state.

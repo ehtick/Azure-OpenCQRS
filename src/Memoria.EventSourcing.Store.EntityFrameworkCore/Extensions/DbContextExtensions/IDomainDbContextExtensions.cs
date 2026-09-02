@@ -61,7 +61,7 @@ public static partial class IDomainDbContextExtensions
         var currentProjectionVersion = projection.Version;
 
         var newEventEntities = await domainDbContext.GetEventEntitiesFromSequence(streamId,
-            fromSequence: projection.LatestEventSequence + 1, projection.EventTypeFilter,
+            fromSequence: projection.LatestEventSequence + 1, projection.EventTypeFilter, projectionId.EventPropertyFilter,
             cancellationToken: cancellationToken);
         if (newEventEntities.Count == 0)
         {
@@ -70,6 +70,11 @@ public static partial class IDomainDbContextExtensions
 
         var newEvents = newEventEntities.Select(eventEntity => eventEntity.ToDomainEvent()).ToList();
         projection.Apply(newEvents);
+
+        ProjectionDiagnostics.AddProjectionFoldedEvent(streamId, projectionId,
+            appliedFromSequence: newEventEntities[0].Sequence, appliedToSequence: newEventEntities[^1].Sequence,
+            appliedCount: newEventEntities.Count, versionBefore: currentProjectionVersion,
+            versionAfter: projection.Version);
 
         if (projection.Version == currentProjectionVersion)
         {

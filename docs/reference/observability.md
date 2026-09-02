@@ -62,8 +62,63 @@ Emitted from:
 | Entity Framework Core | `GetAggregate` (cold build), `UpdateAggregate`, `SaveAggregate`, `TrackEventEntities` |
 | Cosmos DB | `GetAggregate` (cold build), `UpdateAggregate`, `SaveAggregate` |
 | Cosmos DB InMemory | `GetAggregate` (cold build), `UpdateAggregate`, `SaveAggregate` |
+| Entity Framework Core (DCB) | `GetAggregate` (cold build), `UpdateAggregate` |
 
 Reading an aggregate with `ReadMode.SnapshotOnly` does not fold anything, so it emits nothing.
+
+#### From the DCB store
+
+The [DCB store](configuration/dcb-ef-core.md) emits the **same event name**, so one query finds folds
+in either consistency model. Three tags differ, because the concepts do:
+
+| Tag | Type | Meaning |
+|---|---|---|
+| `tagQuery` | string | The boundary the events were read from, canonical form — replaces `streamId` |
+| `aggregateId` | string | Model store id, as above |
+| `appliedFromPosition` | long | Global position of the first event folded — replaces `appliedFromSequence` |
+| `appliedToPosition` | long | Global position of the last event folded — replaces `appliedToSequence` |
+| `appliedCount` | int | As above |
+| `versionBefore` | int | As above |
+| `versionAfter` | int | As above |
+
+Emitted from `GetAggregate` (cold build), from `UpdateAggregate`, and from the snapshot refresh under
+`ReadMode.SnapshotWithNewEvents` — which is the same refresh `UpdateAggregate` performs.
+
+### Projection Folded
+
+Emitted by every store whenever it folds events into a projection and writes the resulting snapshot.
+A read model differs from a write model only in never producing events, so folding one is worth
+exactly as much to a trace as folding the other, and it is recorded the same way.
+
+| Tag | Type | Meaning |
+|---|---|---|
+| `streamId` | string | The stream the events were read from |
+| `projectionId` | string | Projection store id, `{IProjectionId.Id}:{[ProjectionType] version}` |
+| `appliedFromSequence` | int | Sequence of the first event folded |
+| `appliedToSequence` | int | Sequence of the last event folded |
+| `appliedCount` | int | How many events were folded |
+| `versionBefore` | int | The projection's version before the fold |
+| `versionAfter` | int | The projection's version after the fold |
+
+`appliedCount` against `versionAfter - versionBefore` reads exactly as it does above.
+
+Emitted from:
+
+| Store | Operations |
+|---|---|
+| Entity Framework Core | `GetProjection` (cold build), `UpdateProjection` |
+| Cosmos DB | `GetProjection` (cold build), `UpdateProjection` |
+| Cosmos DB InMemory | `GetProjection` (cold build), `UpdateProjection` |
+| Entity Framework Core (DCB) | `GetProjection` (cold build), `UpdateProjection` |
+
+The DCB store substitutes `tagQuery` for `streamId` and positions for sequences, as it does for
+aggregate folds.
+
+> **Why a separate event name.** The tag shapes match apart from the identifier, so a query across
+> both models is a two-name filter. Calling a projection fold `Aggregate Folded` would have avoided
+> that at the cost of making the name wrong about half its occurrences — the same reasoning that
+> keeps [Concurrency Conflict](#concurrency-conflict) apart from
+> [Concurrency Exception](#concurrency-exception).
 
 ### Concurrency Exception
 
@@ -75,6 +130,21 @@ sequence. The write is refused; see [Result pattern](../concepts/result-pattern.
 | `streamId` | string | The stream |
 | `expectedEventSequence` | int | The sequence the caller expected |
 | `latestEventSequence` | int | The sequence the stream is actually at |
+
+### Concurrency Conflict
+
+The DCB store's equivalent, emitted when an append's boundary moved between the decision reading it
+and the write. Named differently from `Concurrency Exception` on purpose: the two carry different
+tags, and merging them would make either name a lie about half its occurrences.
+
+| Tag | Type | Meaning |
+|---|---|---|
+| `tagQuery` | string | The boundary that was asserted over |
+| `expectedPosition` | long | The position the decision read |
+| `latestPosition` | long | The position the boundary is actually at |
+
+The refusal itself is `memoria/concurrency-conflict` — the same failure type a stream conflict
+produces, so a retry policy keyed on it works against both models.
 
 ### NoUncommittedEvents
 
