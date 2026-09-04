@@ -29,7 +29,7 @@ public static class DcbStoreFailures
             Title: "Concurrency conflict",
             Description:
             $"Expected nothing matching '{query}' to have been appended since position {expectedPosition}, but the boundary is at {latestPosition}. Reload and retry.",
-            Type: EventSourcing.StoreFailures.ConcurrencyConflictType,
+            Type: StoreFailures.ConcurrencyConflictType,
             Tags: WithTraceId(new Dictionary<string, string>
             {
                 ["tagQuery"] = query.ToString(),
@@ -60,7 +60,7 @@ public static class DcbStoreFailures
         return new Failure(ErrorCode.Error,
             Title: "Storage failure",
             Description: $"The store could not complete the '{operation}' operation.",
-            Type: EventSourcing.StoreFailures.StorageFailureType,
+            Type: StoreFailures.StorageFailureType,
             Tags: WithTraceId(tags));
     }
 
@@ -76,7 +76,7 @@ public static class DcbStoreFailures
             Title: "Batch limit exceeded",
             Description:
             $"The '{operation}' operation supplied {requested} events but the store commits at most {maximum} in one atomic append. Split the work across several calls.",
-            Type: EventSourcing.StoreFailures.BatchLimitExceededType,
+            Type: StoreFailures.BatchLimitExceededType,
             Tags: WithTraceId(new Dictionary<string, string>
             {
                 ["operation"] = operation,
