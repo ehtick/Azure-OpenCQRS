@@ -202,4 +202,184 @@ public class TagHeadTests : RelationalTestBase
                 + "WHERE clause the append cannot detect an overlapping one");
         }
     }
+
+    /// <summary>
+    /// The tokens and the boundary position come back from one statement, not two.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// They have to belong to the same observation — a position read after the tokens were captured
+    /// could reflect an append the tokens do not — and reading them together is the only way to get
+    /// that for free rather than by ordering two round trips inside the transaction that holds the
+    /// tag head rows.
+    /// </para>
+    /// <para>
+    /// Asserted on which tables each read touches rather than on a count, because
+    /// <c>EnsureTagHeads</c> reads <c>DcbTagHeads</c> too: a count cannot say which of the two reads
+    /// went away.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public async Task A_conditioned_append_reads_its_tokens_and_its_boundary_in_one_statement()
+    {
+        // Establishes the head row first: a tag nobody has appended under yet is read once to find
+        // nothing, created, and read again, which is the first-append path rather than this one.
+        await Context.SaveEvents([Reserved("a1", "s7")], condition: null);
+        var boundary = TagQuery.AnyOf(SeatA1);
+        var latest = await Context.GetLatestPosition(boundary);
+
+        var interceptor = new CapturingCommandInterceptor();
+        await using var capturing = CreateContext(interceptor);
+
+        var result = await capturing.SaveEvents([Reserved("a1", "s8")],
+            new AppendCondition(boundary, latest));
+
+        result.IsSuccess.Should().BeTrue("the append itself is uncontended");
+
+        var reads = interceptor.Commands
+            .Where(command => command.TrimStart().StartsWith("SELECT", StringComparison.Ordinal))
+            .ToList();
+
+        using (new AssertionScope())
+        {
+            reads.Should().ContainSingle(command =>
+                    command.Contains(nameof(DcbTagHeadEntity.Token), StringComparison.Ordinal)
+                    && command.Contains("DcbEventTags", StringComparison.Ordinal),
+                "the tokens and the boundary position are read together");
+
+            reads.Should().NotContain(command =>
+                    command.Contains("DcbEventTags", StringComparison.Ordinal)
+                    && !command.Contains("DcbTagHeads", StringComparison.Ordinal),
+                "nothing reads the boundary on its own any more");
+        }
+    }
+
+    /// <summary>
+    /// An append over tags that already have head rows asks about them once.
+    /// </summary>
+    /// <remarks>
+    /// The rows were read to find out whether they existed, and then read again for their tokens.
+    /// The first read's answer is a subset of the second's — a row that came back has both — so the
+    /// existence check is free once the token read reports which tags it found. This does not skip
+    /// the check: a missing row is still detected on every append, and still created. See
+    /// <see cref="An_append_restores_a_tag_head_row_that_has_gone_missing"/> for why skipping it
+    /// would be silent and permanent.
+    /// </remarks>
+    [Fact]
+    public async Task An_append_over_known_tags_reads_the_head_rows_once()
+    {
+        // Establishes the head row, so this append finds it rather than creating it.
+        await Context.SaveEvents([Reserved("a1", "s7")], condition: null);
+        var boundary = TagQuery.AnyOf(SeatA1);
+        var latest = await Context.GetLatestPosition(boundary);
+
+        var interceptor = new CapturingCommandInterceptor();
+        await using var capturing = CreateContext(interceptor);
+
+        var result = await capturing.SaveEvents([Reserved("a1", "s8")],
+            new AppendCondition(boundary, latest));
+
+        result.IsSuccess.Should().BeTrue();
+
+        interceptor.Commands
+            .Where(command => command.TrimStart().StartsWith("SELECT", StringComparison.Ordinal))
+            .Should().ContainSingle(command => command.Contains("DcbTagHeads", StringComparison.Ordinal),
+                "existence and tokens come from the same read");
+    }
+
+    /// <summary>
+    /// An append that creates its own head row still guards on it.
+    /// </summary>
+    /// <remarks>
+    /// The first append under a tag reads the rows, finds none, creates one, and reads again. The
+    /// second read is what makes the row guardable: without it the append would hold an empty set of
+    /// heads, emit no update, and commit with no guard — succeeding, silently, exactly as it would
+    /// if the row had gone missing.
+    /// </remarks>
+    [Fact]
+    public async Task A_conditioned_append_that_creates_its_head_row_still_guards_on_it()
+    {
+        var interceptor = new CapturingCommandInterceptor();
+        await using var capturing = CreateContext(interceptor);
+
+        var result = await capturing.SaveEvents([Reserved("a1", "s7")],
+            AppendCondition.NothingAppendedFor(TagQuery.AnyOf(SeatA1)));
+
+        using (new AssertionScope())
+        {
+            result.IsSuccess.Should().BeTrue();
+            interceptor.TagHeadUpdates.Should().ContainSingle(
+                "a row this append created is still a row it has to claim");
+            (await TokenFor(SeatA1)).Should().NotBeNull();
+        }
+    }
+
+    /// <summary>
+    /// A probe that comes back empty reads the boundary again rather than treating it as empty.
+    /// </summary>
+    /// <remarks>
+    /// The tokens and the boundary position arrive together, which means an empty result carries no
+    /// position — and the position it carries no answer for is the one every condition is checked
+    /// against. Taking that silence for <c>NoEvents</c> would let an append conditioned on "this has
+    /// never happened" through against a boundary full of events, which is the one thing a condition
+    /// exists to prevent.
+    /// </remarks>
+    [Fact]
+    public async Task A_conditioned_append_whose_tag_heads_vanish_mid_read_still_sees_its_boundary()
+    {
+        await Context.SaveEvents([Reserved("a1", "s7")], condition: null);
+
+        var vanishing = new VanishingTagHeadInterceptor();
+        await using var racing = CreateContext(vanishing);
+
+        // The boundary already holds an event, so "nothing appended for it" is false and this append
+        // has to be refused however the head rows behave.
+        var result = await racing.SaveEvents([Reserved("a1", "s8")],
+            AppendCondition.NothingAppendedFor(TagQuery.AnyOf(SeatA1)));
+
+        using (new AssertionScope())
+        {
+            vanishing.Fired.Should().BeTrue("the race is only reproduced if the probe was intercepted");
+            result.IsNotSuccess.Should().BeTrue("the boundary is not empty, whatever the head rows say");
+            result.Failure!.Type.Should().Be(EventSourcing.StoreFailures.ConcurrencyConflictType);
+        }
+    }
+
+    /// <summary>
+    /// The third thing the guard needs, after the token declaration and the tracked read: the row has
+    /// to exist at all. Creating it is what <c>EnsureTagHeads</c> does before every append.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Skipping that read when a tag is already known looks like a free round trip to save — the rows
+    /// are never deleted, so a process could remember which ones it has created. What it costs is
+    /// this: an append whose head row is missing loads no row to guard, updates nothing, and
+    /// <em>succeeds</em>. No exception, no conflict, no row created for next time. The tag is left
+    /// with no concurrency guard at all, permanently and silently.
+    /// </para>
+    /// <para>
+    /// So this test appends over a tag whose head row was removed, and asserts the row is put back.
+    /// The assertion is on the recovery rather than on a failure, because there is no failure to
+    /// assert on — which is the whole point.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public async Task An_append_restores_a_tag_head_row_that_has_gone_missing()
+    {
+        await Context.SaveEvents([Reserved("a1", "s7")], condition: null);
+
+        var boundary = TagQuery.AnyOf(SeatA1);
+        var latest = await Context.GetLatestPosition(boundary);
+
+        // Whatever removed it — a restore, a truncate, surgery on the wrong database — the append
+        // that follows must not proceed as though the guard were still there.
+        await Context.Database.ExecuteSqlRawAsync("DELETE FROM DcbTagHeads");
+        Context.ChangeTracker.Clear();
+
+        var result = await Context.SaveEvents([Reserved("a1", "s8")], new AppendCondition(boundary, latest));
+
+        result.IsSuccess.Should().BeTrue();
+        Context.DcbTagHeads.Should().ContainSingle(head => head.Tag == SeatA1.ToString(),
+            "the append has to create the row it contends on, or nothing guards this tag again");
+    }
 }
