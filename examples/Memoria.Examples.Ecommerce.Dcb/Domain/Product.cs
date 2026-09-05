@@ -33,6 +33,7 @@ public class Product : DcbAggregateRoot
     public override Type[]? EventTypeFilter { get; } =
     [
         typeof(ProductCreatedEvent),
+        typeof(ProductDetailsChangedEvent),
         typeof(ProductDeletedEvent)
     ];
 
@@ -57,6 +58,25 @@ public class Product : DcbAggregateRoot
         // Staged with no tags of its own, so it inherits the aggregate's — which the store set from
         // the boundary, and which is exactly product:{id} and sku:{sku}.
         Add(new ProductCreatedEvent(productId, name, sku, price));
+
+        return null;
+    }
+
+    /// <summary>
+    /// Changes what the product is called and what it costs, or explains why it cannot.
+    /// </summary>
+    /// <remarks>
+    /// The SKU is not among them. It is part of the boundary a creation is folded from, so moving it
+    /// would mean deciding all over again whether the new code is free — a different decision, and
+    /// one this example does not make.
+    /// </remarks>
+    public string? ChangeDetails(string name, decimal price)
+    {
+        if (!Exists) return "That product is not in the catalogue.";
+        if (name == Name && price == Price) return "Nothing has changed.";
+
+        // Inherits the aggregate's tags, which for this boundary is the product alone.
+        Add(new ProductDetailsChangedEvent(ProductCode, name, price));
 
         return null;
     }
@@ -89,6 +109,11 @@ public class Product : DcbAggregateRoot
                 Name = created.Name;
                 Sku = created.Sku;
                 Price = created.Price;
+                return true;
+
+            case ProductDetailsChangedEvent changed:
+                Name = changed.Name;
+                Price = changed.Price;
                 return true;
 
             case ProductDeletedEvent:

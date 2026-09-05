@@ -17,3 +17,13 @@ public record ProductCreatedEvent(string ProductId, string Name, string Sku, dec
 /// </remarks>
 [EventType("ProductDeleted")]
 public record ProductDeletedEvent(string ProductId, string Sku) : IEvent;
+
+/// <summary>
+/// A product's name or price changed.
+/// </summary>
+/// <remarks>
+/// Not tagged with the SKU: nothing about this event affects whether a code is free, so the
+/// decision that creates a product has no reason to read it.
+/// </remarks>
+[EventType("ProductDetailsChanged")]
+public record ProductDetailsChangedEvent(string ProductId, string Name, decimal Price) : IEvent;

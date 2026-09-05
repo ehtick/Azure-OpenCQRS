@@ -39,8 +39,9 @@ public class EcommerceDbContext(
             // shows up as a failed insert rather than as two rows in the list.
             product.HasIndex(item => item.Sku).IsUnique();
 
-            // The list orders by this.
+            // The list can order by either of these.
             product.HasIndex(item => item.CreatedDate);
+            product.HasIndex(item => item.UpdatedDate);
         });
     }
 }

@@ -14,7 +14,8 @@ public enum ProductSort
     Name,
     Sku,
     Price,
-    CreatedDate
+    CreatedDate,
+    UpdatedDate
 }
 
 /// <summary>
@@ -99,6 +100,8 @@ public class GetProductsQueryHandler(EcommerceDbContext dbContext) : IQueryHandl
             (ProductSort.Sku, true) => products.OrderByDescending(product => product.Sku),
             (ProductSort.Price, false) => products.OrderBy(product => product.Price),
             (ProductSort.Price, true) => products.OrderByDescending(product => product.Price),
+            (ProductSort.UpdatedDate, false) => products.OrderBy(product => product.UpdatedDate),
+            (ProductSort.UpdatedDate, true) => products.OrderByDescending(product => product.UpdatedDate),
             (_, false) => products.OrderBy(product => product.CreatedDate),
             (_, true) => products.OrderByDescending(product => product.CreatedDate)
         };

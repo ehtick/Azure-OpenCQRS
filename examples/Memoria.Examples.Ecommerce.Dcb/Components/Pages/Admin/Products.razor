@@ -83,8 +83,10 @@ else
                 <td class="sku">@product.Sku</td>
                 <td class="numeric">@product.Price.ToString("C")</td>
                 <td class="muted">@product.CreatedDate.ToLocalTime().ToString("g")</td>
+                <td class="muted">@product.UpdatedDate.ToLocalTime().ToString("g")</td>
                 <td class="actions">
-                    <a class="delete" href="@DeleteLink(product.ProductId)">Delete</a>
+                    <a href="@ActionLink(product.ProductId, "edit")">Edit</a>
+                    <a class="delete" href="@ActionLink(product.ProductId, "delete")">Delete</a>
                 </td>
             </tr>
         }
@@ -159,7 +161,8 @@ else
         new(ProductSort.Name, "name", "Name", Numeric: false),
         new(ProductSort.Sku, "sku", "SKU", Numeric: false),
         new(ProductSort.Price, "price", "Price", Numeric: true),
-        new(ProductSort.CreatedDate, "created", "Created", Numeric: false)
+        new(ProductSort.CreatedDate, "created", "Created", Numeric: false),
+        new(ProductSort.UpdatedDate, "updated", "Updated", Numeric: false)
     ];
 
     private IReadOnlyList<ProductListItem> products = [];
@@ -274,11 +277,11 @@ else
         Columns.First(candidate => candidate.Sort == column).Key;
 
     /// <summary>
-    /// Deleting asks first. The confirmation page is told where to come back to, so the order,
-    /// page, search and size all survive the round trip — whether it is confirmed or cancelled.
+    /// Editing and deleting both leave the list, so both are told where to come back to: the order,
+    /// page, search and size survive the round trip, whether the visitor saves, deletes or cancels.
     /// </summary>
-    private string DeleteLink(string productId) =>
-        $"admin/products/{productId}/delete?returnUrl={Uri.EscapeDataString("/" + Link(sort, descending, CurrentPage))}";
+    private string ActionLink(string productId, string action) =>
+        $"admin/products/{productId}/{action}?returnUrl={Uri.EscapeDataString("/" + Link(sort, descending, CurrentPage))}";
 
     private string AriaSort(ProductSort column) =>
         sort != column ? "none" : descending ? "descending" : "ascending";

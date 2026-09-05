@@ -202,8 +202,31 @@ table {
 
 table td.actions {
     text-align: right;
+    white-space: nowrap;
     width: 1%;
 }
+
+    table td.actions a {
+        border: 1px solid transparent;
+        border-radius: 4px;
+        color: var(--ink-soft);
+        display: inline-block;
+        font-size: 0.875rem;
+        padding: 0.25rem 0.5rem;
+        text-decoration: none;
+    }
+
+    table td.actions a:hover {
+        background: var(--ground);
+        border-color: var(--rule);
+        color: var(--accent);
+    }
+
+    table td.actions a:focus-visible {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px rgb(27 110 194 / 0.2);
+        outline: none;
+    }
 
     /* A quiet control until you go near it: destructive, but not the point of the row. */
     table td.actions .delete {

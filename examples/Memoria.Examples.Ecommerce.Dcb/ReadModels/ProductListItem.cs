@@ -18,4 +18,9 @@ public class ProductListItem
     public decimal Price { get; set; }
 
     public DateTimeOffset CreatedDate { get; set; }
+
+    /// <summary>
+    /// When this row last changed. Equal to <see cref="CreatedDate"/> until something edits it.
+    /// </summary>
+    public DateTimeOffset UpdatedDate { get; set; }
 }

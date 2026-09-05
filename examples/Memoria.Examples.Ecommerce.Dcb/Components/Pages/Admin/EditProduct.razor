@@ -1,0 +1,143 @@
+@page "/admin/products/{ProductId}/edit"
+@layout AdminLayout
+@using System.ComponentModel.DataAnnotations
+@using Memoria
+@using Memoria.Examples.Ecommerce.Dcb.Commands
+@using Memoria.Examples.Ecommerce.Dcb.Queries
+@inject IDispatcher Dispatcher
+@inject NavigationManager Navigation
+
+<PageTitle>Edit product</PageTitle>
+
+<nav class="breadcrumb" aria-label="Breadcrumb">
+    <a href="admin">Overview</a>
+    <span aria-hidden="true">/</span>
+    <a href="@BackLink">Products</a>
+    <span aria-hidden="true">/</span>
+    <span aria-current="page">Edit</span>
+</nav>
+
+@if (!found)
+{
+    <h1>Product not found</h1>
+    <p class="lede">It may have been deleted.</p>
+    <p><a href="@BackLink">Back to products</a></p>
+}
+@* Input is filled by OnInitializedAsync, which Blazor renders around: the first pass runs
+   before the await completes, and EditForm throws on a null Model. On a post it is already
+   bound from the form, so the typed values survive a failed save. *@
+else if (Input is not null)
+{
+    <h1>Edit product</h1>
+    <p class="lede">Change what this product is called and what it costs.</p>
+
+    <EditForm Model="Input" FormName="edit-product" OnValidSubmit="Submit">
+        <DataAnnotationsValidator/>
+
+        @if (failure is not null)
+        {
+            <p class="alert" role="alert">@failure</p>
+        }
+
+        <div class="field">
+            <label for="name">Name</label>
+            <p class="hint">Shown to customers in the catalogue.</p>
+            <InputText id="name" @bind-Value="Input!.Name" autofocus/>
+            <ValidationMessage For="() => Input!.Name"/>
+        </div>
+
+        <div class="field">
+            <span class="label">SKU</span>
+            <p class="hint">Fixed once the product exists. Delete it and add it again to change one.</p>
+            <p class="fixed-value">@sku</p>
+        </div>
+
+        <div class="field">
+            <label for="price">Price</label>
+            <div class="money">
+                <span class="currency" aria-hidden="true">£</span>
+                <InputNumber id="price" @bind-Value="Input!.Price" step="0.01" min="0" placeholder="0.00"/>
+            </div>
+            <ValidationMessage For="() => Input!.Price"/>
+        </div>
+
+        <div class="actions">
+            <button type="submit">Save changes</button>
+            <a href="@BackLink">Cancel</a>
+        </div>
+    </EditForm>
+}
+
+@code {
+    private const string ProductsList = "/admin/products";
+
+    // 92 is the backslash, written as a code point so no editor or shell can eat it. Some
+    // browsers read a leading slash-backslash the way they read a leading double slash.
+    private const char BackSlash = (char)92;
+
+    private bool found = true;
+
+    private string? sku;
+
+    private string? failure;
+
+    [Parameter]
+    public string ProductId { get; set; } = string.Empty;
+
+    [SupplyParameterFromQuery(Name = "returnUrl")]
+    private string? ReturnUrl { get; set; }
+
+    [SupplyParameterFromForm]
+    private Details? Input { get; set; }
+
+    /// <summary>
+    /// Where Cancel and a saved change go back to: the view the edit was started from, but only
+    /// when it is a path on this site. It arrives in the address bar, so it is not to be trusted
+    /// with a host.
+    /// </summary>
+    private string BackLink =>
+        ReturnUrl is { Length: > 1 } url && url[0] == '/' && url[1] != '/' && url[1] != BackSlash
+            ? url
+            : ProductsList;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var result = await Dispatcher.Get(new GetProductQuery(ProductId));
+
+        if (result.Value is not { } product)
+        {
+            found = false;
+            return;
+        }
+
+        sku = product.Sku;
+
+        // Only on the first render: a failed post comes back with what was typed, not with what is
+        // stored, so the visitor does not lose their edit.
+        Input ??= new Details { Name = product.Name, Price = product.Price };
+    }
+
+    private async Task Submit()
+    {
+        var response = await Dispatcher.SendAndPublish(
+            new ChangeProductDetailsCommand(ProductId, Input!.Name, Input.Price ?? 0));
+
+        if (response.CommandResult.IsNotSuccess)
+        {
+            failure = response.CommandResult.Failure!.Description;
+            return;
+        }
+
+        Navigation.NavigateTo(BackLink);
+    }
+
+    private sealed class Details
+    {
+        [Required(ErrorMessage = "Enter a name.")]
+        public string Name { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Enter a price.")]
+        [Range(0, double.MaxValue, ErrorMessage = "Enter a price of 0 or more.")]
+        public decimal? Price { get; set; }
+    }
+}

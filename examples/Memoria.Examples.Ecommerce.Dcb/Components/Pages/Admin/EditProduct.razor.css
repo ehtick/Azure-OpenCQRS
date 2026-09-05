@@ -1,0 +1,139 @@
+/* An internal tool, not a landing page: one accent, hairline rules, no shadows.
+   Palette tokens and shared page furniture live in wwwroot/app.css. */
+
+/* The <form> is rendered by EditForm, so it carries no scope attribute and a `form`
+   selector here would never match. The measure is set on the elements this component
+   owns instead. */
+.alert,
+.field,
+.actions {
+    max-width: 30rem;
+}
+
+.field {
+    margin-bottom: 1.25rem;
+}
+
+    .field label {
+        color: var(--ink);
+        display: block;
+        font-size: 0.8125rem;
+        font-weight: 600;
+        margin-bottom: 0.35rem;
+    }
+
+    .field ::deep input {
+        background: #fff;
+        border: 1px solid #c6ccd4;
+        border-radius: 4px;
+        color: var(--ink);
+        font: inherit;
+        font-size: 0.9375rem;
+        padding: 0.5rem 0.625rem;
+        width: 100%;
+    }
+
+    .field ::deep input:focus-visible {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px rgb(27 110 194 / 0.18);
+        outline: none;
+    }
+
+    /* Set by EditForm once a field has failed validation. */
+    .field ::deep input.invalid {
+        border-color: var(--danger);
+    }
+
+    .field ::deep input::placeholder {
+        color: #9aa3ad;
+    }
+
+    .field ::deep .validation-message {
+        color: var(--danger);
+        display: block;
+        font-size: 0.8125rem;
+        margin-top: 0.35rem;
+    }
+
+.hint {
+    color: var(--ink-soft);
+    font-size: 0.8125rem;
+    margin: 0 0 0.35rem;
+}
+
+/* The currency sign sits inside the field's border so the two read as one control. */
+.money {
+    align-items: stretch;
+    display: flex;
+}
+
+    .money .currency {
+        align-items: center;
+        background: var(--ground);
+        border: 1px solid #c6ccd4;
+        border-radius: 4px 0 0 4px;
+        border-right: 0;
+        color: var(--ink-soft);
+        display: flex;
+        padding: 0 0.625rem;
+    }
+
+    .money ::deep input {
+        border-radius: 0 4px 4px 0;
+        font-variant-numeric: tabular-nums;
+        max-width: 9rem;
+    }
+
+.actions {
+    align-items: center;
+    border-top: 1px solid var(--rule);
+    display: flex;
+    gap: 1.25rem;
+    margin-top: 1.5rem;
+    padding-top: 1.25rem;
+}
+
+    .actions button {
+        background: var(--accent);
+        border: 1px solid var(--accent);
+        border-radius: 4px;
+        color: #fff;
+        cursor: pointer;
+        font: inherit;
+        font-weight: 600;
+        padding: 0.5rem 1rem;
+    }
+
+    .actions button:hover {
+        background: var(--accent-strong);
+        border-color: var(--accent-strong);
+    }
+
+    .actions button:focus-visible {
+        box-shadow: 0 0 0 3px rgb(27 110 194 / 0.3);
+        outline: none;
+    }
+
+    .actions a {
+        color: var(--ink-soft);
+    }
+
+    .actions a:hover {
+        color: var(--ink);
+    }
+
+/* The SKU is shown, not edited. */
+.field .label {
+    color: var(--ink);
+    display: block;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    margin-bottom: 0.35rem;
+}
+
+.fixed-value {
+    color: var(--ink);
+    font-family: ui-monospace, "Cascadia Mono", "SF Mono", Consolas, monospace;
+    font-size: 0.9375rem;
+    margin: 0;
+}
