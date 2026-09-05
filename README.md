@@ -11,7 +11,7 @@ Memoria is extremely flexible and expandable. It can be used as a simple mediato
 - 📘 _[Full documentation](https://lucabriguglia.github.io/Memoria/)_
 - 📣 _[Release Notes](https://lucabriguglia.github.io/Memoria/release-notes.html)_
 - 📚 _[Examples in repository](https://github.com/lucabriguglia/Memoria/tree/main/examples)_
-- 🛒 _[EventShop (ecommerce demo application)](https://github.com/lucabriguglia/EventShop)_
+- 🛒 _[Ecommerce demo app using DCB](https://github.com/lucabriguglia/Memoria/tree/main/examples/Memoria.Examples.Ecommerce.Dcb)_
 
 ## ⭐ Give a star
 
@@ -43,6 +43,7 @@ If you're using this repository for your learning, samples, workshop, or your pr
 ## 🗺️ Roadmap
 
 ### ✅ Recently Completed
+- Ecommerce demo application using DCB
 - Dynamic consistency boundaries in their own packages, so a decision whose boundary spans more than one aggregate is expressible without serialising unrelated writes
 - New `Projection` read-model base class with `SaveProjection`/`GetProjection` snapshot persistence across all store providers (Entity Framework Core, Npgsql, Cosmos DB, and their in-memory variants)
 - New PostgreSQL companion package for the Entity Framework Core store provider that makes `eventPropertyFilter` work correctly against `jsonb` columns (uses the `@>` JSON-containment operator and is GIN-indexable)
@@ -50,9 +51,6 @@ If you're using this repository for your learning, samples, workshop, or your pr
 - New package for in-memory Service Bus for easier testing in projects using Memoria
 - New package for in-memory RabbitMQ for easier testing in projects using Memoria
 - Event property filtering across aggregates and stream queries
-
-### ⏭️ Next
-- Create an ecommerce demo application to showcase Memoria features
 
 ### 🕙 To Follow
 - Option to automatically validate commands
