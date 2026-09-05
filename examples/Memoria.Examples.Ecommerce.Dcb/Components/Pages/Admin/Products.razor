@@ -21,19 +21,51 @@
     <a class="button" href="admin/products/create">Add product</a>
 </div>
 
+@* A plain GET form: searching is a link to a narrower list, so it belongs in the address bar
+   where it can be bookmarked, shared and gone back to. The sort travels in hidden fields so
+   finding something does not silently reorder it. *@
+<form class="search" method="get" action="admin/products">
+    <label class="visually-hidden" for="q">Search products</label>
+    <input id="q" type="search" name="q" value="@search" placeholder="Search name or SKU" autocomplete="off"/>
+    <input type="hidden" name="sort" value="@KeyOf(sort)"/>
+    <input type="hidden" name="dir" value="@(descending ? "desc" : "asc")"/>
+    <button type="submit">Search</button>
+    @if (IsFiltered)
+    {
+        <a href="@Link(sort, descending, 1, clearSearch: true)">Clear</a>
+    }
+</form>
+
 @if (products.Count == 0)
 {
-    <p class="empty">Nothing in the catalogue yet. Add your first product to see it here.</p>
+    <p class="empty">
+        @if (IsFiltered)
+        {
+            <text>No products match &ldquo;@search&rdquo;.</text>
+        }
+        else
+        {
+            <text>Nothing in the catalogue yet. Add your first product to see it here.</text>
+        }
+    </p>
 }
 else
 {
     <table>
         <thead>
         <tr>
-            <th>Name</th>
-            <th>SKU</th>
-            <th class="numeric">Price</th>
-            <th>Created</th>
+            @foreach (var column in Columns)
+            {
+                <th class="@(column.Numeric ? "numeric" : null)" aria-sort="@AriaSort(column.Sort)">
+                    <a href="@SortLink(column.Sort)">
+                        @column.Label
+                        @if (sort == column.Sort)
+                        {
+                            <span class="arrow @(descending ? "down" : "up")" aria-hidden="true"></span>
+                        }
+                    </a>
+                </th>
+            }
         </tr>
         </thead>
         <tbody>
@@ -54,7 +86,7 @@ else
         <div class="pagination">
             @if (CurrentPage > 1)
             {
-                <a href="@PageLink(CurrentPage - 1)">Previous</a>
+                <a href="@Link(sort, descending, CurrentPage - 1)">Previous</a>
             }
             else
             {
@@ -65,7 +97,7 @@ else
 
             @if (CurrentPage < TotalPages)
             {
-                <a href="@PageLink(CurrentPage + 1)">Next</a>
+                <a href="@Link(sort, descending, CurrentPage + 1)">Next</a>
             }
             else
             {
@@ -78,22 +110,66 @@ else
 @code {
     private const int PageSize = 10;
 
+    /// <summary>
+    /// The columns, their query-string keys and their headings — one place, so the header row and
+    /// the sort links cannot disagree about what is sortable.
+    /// </summary>
+    private static readonly Column[] Columns =
+    [
+        new(ProductSort.Name, "name", "Name", Numeric: false),
+        new(ProductSort.Sku, "sku", "SKU", Numeric: false),
+        new(ProductSort.Price, "price", "Price", Numeric: true),
+        new(ProductSort.CreatedDate, "created", "Created", Numeric: false)
+    ];
+
     private IReadOnlyList<ProductListItem> products = [];
 
     private int totalCount;
 
+    private ProductSort sort = ProductSort.CreatedDate;
+
+    private bool descending = true;
+
+    private string? search;
+
     [SupplyParameterFromQuery(Name = "page")]
     private int? Page { get; set; }
+
+    [SupplyParameterFromQuery(Name = "sort")]
+    private string? SortKey { get; set; }
+
+    [SupplyParameterFromQuery(Name = "dir")]
+    private string? Direction { get; set; }
+
+    [SupplyParameterFromQuery(Name = "q")]
+    private string? Query { get; set; }
 
     private int CurrentPage => Page is > 0 ? Page.Value : 1;
 
     private int TotalPages => Math.Max(1, (int)Math.Ceiling(totalCount / (double)PageSize));
 
-    private string Summary => totalCount == 1 ? "1 product in the catalogue." : $"{totalCount} products in the catalogue.";
+    private bool IsFiltered => !string.IsNullOrWhiteSpace(search);
+
+    private string Summary => (IsFiltered, totalCount) switch
+    {
+        (true, 1) => $"1 product matching “{search}”.",
+        (true, var count) => $"{count} products matching “{search}”.",
+        (false, 1) => "1 product in the catalogue.",
+        (false, var count) => $"{count} products in the catalogue."
+    };
 
     protected override async Task OnInitializedAsync()
     {
-        var result = await Dispatcher.Get(new GetProductsQuery(CurrentPage, PageSize));
+        // Anything unrecognised falls back to newest first rather than failing: these values come
+        // from the address bar, where they can be anything at all.
+        var column = Columns.FirstOrDefault(candidate =>
+            string.Equals(candidate.Key, SortKey, StringComparison.OrdinalIgnoreCase));
+
+        sort = column?.Sort ?? ProductSort.CreatedDate;
+        descending = column is null || string.Equals(Direction, "desc", StringComparison.OrdinalIgnoreCase);
+        search = string.IsNullOrWhiteSpace(Query) ? null : Query.Trim();
+
+        var result = await Dispatcher.Get(new GetProductsQuery(CurrentPage, PageSize, sort, descending, search));
 
         if (result.Value is not { } page)
         {
@@ -104,5 +180,39 @@ else
         totalCount = page.TotalCount;
     }
 
-    private static string PageLink(int page) => $"admin/products?page={page}";
+    /// <summary>
+    /// The active column flips direction; any other column starts ascending. Returns to page one,
+    /// because a page number counted in one order means nothing in another.
+    /// </summary>
+    private string SortLink(ProductSort column) =>
+        Link(column, sort == column && !descending, 1);
+
+    /// <summary>
+    /// Every link out of this page carries the whole view — order, page and search term — so none
+    /// of them quietly drops one of the three.
+    /// </summary>
+    private string Link(ProductSort column, bool sortDescending, int page, bool clearSearch = false)
+    {
+        var parts = new List<string> { $"sort={KeyOf(column)}", $"dir={(sortDescending ? "desc" : "asc")}" };
+
+        if (page > 1)
+        {
+            parts.Add($"page={page}");
+        }
+
+        if (!clearSearch && IsFiltered)
+        {
+            parts.Add($"q={Uri.EscapeDataString(search!)}");
+        }
+
+        return $"admin/products?{string.Join("&", parts)}";
+    }
+
+    private static string KeyOf(ProductSort column) =>
+        Columns.First(candidate => candidate.Sort == column).Key;
+
+    private string AriaSort(ProductSort column) =>
+        sort != column ? "none" : descending ? "descending" : "ascending";
+
+    private sealed record Column(ProductSort Sort, string Key, string Label, bool Numeric);
 }
