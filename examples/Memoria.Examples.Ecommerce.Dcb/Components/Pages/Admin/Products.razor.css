@@ -167,3 +167,35 @@ table {
         color: var(--ink-soft);
         font-size: 0.875rem;
     }
+
+.table-footer {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    justify-content: space-between;
+    margin-top: 1.25rem;
+}
+
+.page-size {
+    align-items: center;
+    color: var(--ink-soft);
+    display: flex;
+    font-size: 0.875rem;
+    gap: 0.5rem;
+}
+
+    .page-size select {
+        background: #fff;
+        border: 1px solid #c6ccd4;
+        border-radius: 4px;
+        color: var(--ink);
+        font: inherit;
+        padding: 0.3rem 0.4rem;
+    }
+
+    .page-size select:focus-visible {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px rgb(27 110 194 / 0.18);
+        outline: none;
+    }

@@ -1,0 +1,60 @@
+/* Palette tokens and shared page furniture live in wwwroot/app.css. */
+
+.prose {
+    max-width: 34rem;
+}
+
+    .prose p {
+        margin: 0 0 1rem;
+    }
+
+h2 {
+    color: var(--ink);
+    font-size: 1.0625rem;
+    font-weight: 600;
+    margin: 2rem 0 0.75rem;
+}
+
+code {
+    background: var(--ground);
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    font-family: ui-monospace, "Cascadia Mono", "SF Mono", Consolas, monospace;
+    font-size: 0.8125rem;
+    padding: 0.05rem 0.25rem;
+}
+
+/* A real sequence, so the numbers carry meaning rather than decorating. */
+.steps {
+    counter-reset: step;
+    list-style: none;
+    margin: 0;
+    max-width: 34rem;
+    padding: 0;
+}
+
+    .steps li {
+        counter-increment: step;
+        display: grid;
+        gap: 0 0.75rem;
+        grid-template-columns: 1.5rem 1fr;
+        padding: 0.625rem 0;
+    }
+
+    .steps li::before {
+        color: var(--ink-soft);
+        content: counter(step);
+        font-variant-numeric: tabular-nums;
+        grid-row: span 2;
+        text-align: right;
+    }
+
+    .steps .step-name {
+        color: var(--ink);
+        font-weight: 600;
+    }
+
+    .steps .step-detail {
+        color: var(--ink-soft);
+        font-size: 0.9375rem;
+    }

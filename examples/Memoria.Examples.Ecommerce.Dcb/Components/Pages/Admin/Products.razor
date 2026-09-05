@@ -29,6 +29,7 @@
     <input id="q" type="search" name="q" value="@search" placeholder="Search name or SKU" autocomplete="off"/>
     <input type="hidden" name="sort" value="@KeyOf(sort)"/>
     <input type="hidden" name="dir" value="@(descending ? "desc" : "asc")"/>
+    <input type="hidden" name="size" value="@pageSize"/>
     <button type="submit">Search</button>
     @if (IsFiltered)
     {
@@ -81,34 +82,64 @@ else
         </tbody>
     </table>
 
-    @if (TotalPages > 1)
-    {
+    <div class="table-footer">
         <div class="pagination">
-            @if (CurrentPage > 1)
+            @if (TotalPages > 1)
             {
-                <a href="@Link(sort, descending, CurrentPage - 1)">Previous</a>
-            }
-            else
-            {
-                <span class="disabled">Previous</span>
-            }
+                @if (CurrentPage > 1)
+                {
+                    <a href="@Link(sort, descending, CurrentPage - 1)">Previous</a>
+                }
+                else
+                {
+                    <span class="disabled">Previous</span>
+                }
 
-            <span>Page @CurrentPage of @TotalPages</span>
+                <span>Page @CurrentPage of @TotalPages</span>
 
-            @if (CurrentPage < TotalPages)
-            {
-                <a href="@Link(sort, descending, CurrentPage + 1)">Next</a>
-            }
-            else
-            {
-                <span class="disabled">Next</span>
+                @if (CurrentPage < TotalPages)
+                {
+                    <a href="@Link(sort, descending, CurrentPage + 1)">Next</a>
+                }
+                else
+                {
+                    <span class="disabled">Next</span>
+                }
             }
         </div>
-    }
+
+        @* Its own GET form, so the choice lands in the address bar like the order and the
+           search term. Submitting on change saves a click; the button is the fallback when
+           scripting is off. *@
+        <form class="page-size" method="get" action="admin/products">
+            <label for="size">Rows per page</label>
+            <select id="size" name="size" onchange="this.form.submit()">
+                @foreach (var option in PageSizes)
+                {
+                    <option value="@option" selected="@(option == pageSize)">@option</option>
+                }
+            </select>
+            <input type="hidden" name="sort" value="@KeyOf(sort)"/>
+            <input type="hidden" name="dir" value="@(descending ? "desc" : "asc")"/>
+            @if (IsFiltered)
+            {
+                <input type="hidden" name="q" value="@search"/>
+            }
+            <noscript>
+                <button type="submit">Apply</button>
+            </noscript>
+        </form>
+    </div>
 }
 
 @code {
-    private const int PageSize = 10;
+    private const int DefaultPageSize = 10;
+
+    /// <summary>
+    /// The sizes on offer. Also the allowlist: the value arrives from the address bar, and
+    /// anything outside this set would let a caller ask for the whole table in one query.
+    /// </summary>
+    private static readonly int[] PageSizes = [10, 25, 50, 100];
 
     /// <summary>
     /// The columns, their query-string keys and their headings — one place, so the header row and
@@ -132,8 +163,13 @@ else
 
     private string? search;
 
+    private int pageSize = DefaultPageSize;
+
+    // Bound as text, not as int?: Blazor throws when a query value will not parse into the
+    // declared type, and these come from the address bar where anything can appear. Parsing
+    // them here turns a 500 into a sensible default.
     [SupplyParameterFromQuery(Name = "page")]
-    private int? Page { get; set; }
+    private string? PageNumber { get; set; }
 
     [SupplyParameterFromQuery(Name = "sort")]
     private string? SortKey { get; set; }
@@ -144,9 +180,12 @@ else
     [SupplyParameterFromQuery(Name = "q")]
     private string? Query { get; set; }
 
-    private int CurrentPage => Page is > 0 ? Page.Value : 1;
+    [SupplyParameterFromQuery(Name = "size")]
+    private string? Size { get; set; }
 
-    private int TotalPages => Math.Max(1, (int)Math.Ceiling(totalCount / (double)PageSize));
+    private int CurrentPage => int.TryParse(PageNumber, out var page) && page > 0 ? page : 1;
+
+    private int TotalPages => Math.Max(1, (int)Math.Ceiling(totalCount / (double)pageSize));
 
     private bool IsFiltered => !string.IsNullOrWhiteSpace(search);
 
@@ -168,8 +207,11 @@ else
         sort = column?.Sort ?? ProductSort.CreatedDate;
         descending = column is null || string.Equals(Direction, "desc", StringComparison.OrdinalIgnoreCase);
         search = string.IsNullOrWhiteSpace(Query) ? null : Query.Trim();
+        pageSize = int.TryParse(Size, out var requested) && PageSizes.Contains(requested)
+            ? requested
+            : DefaultPageSize;
 
-        var result = await Dispatcher.Get(new GetProductsQuery(CurrentPage, PageSize, sort, descending, search));
+        var result = await Dispatcher.Get(new GetProductsQuery(CurrentPage, pageSize, sort, descending, search));
 
         if (result.Value is not { } page)
         {
@@ -188,8 +230,8 @@ else
         Link(column, sort == column && !descending, 1);
 
     /// <summary>
-    /// Every link out of this page carries the whole view — order, page and search term — so none
-    /// of them quietly drops one of the three.
+    /// Every link out of this page carries the whole view — order, page, search term and page
+    /// size — so none of them quietly drops one of the four.
     /// </summary>
     private string Link(ProductSort column, bool sortDescending, int page, bool clearSearch = false)
     {
@@ -203,6 +245,11 @@ else
         if (!clearSearch && IsFiltered)
         {
             parts.Add($"q={Uri.EscapeDataString(search!)}");
+        }
+
+        if (pageSize != DefaultPageSize)
+        {
+            parts.Add($"size={pageSize}");
         }
 
         return $"admin/products?{string.Join("&", parts)}";

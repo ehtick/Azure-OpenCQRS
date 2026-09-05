@@ -1,7 +1,66 @@
-﻿@page "/"
+@page "/"
 
-<PageTitle>Home</PageTitle>
+<PageTitle>Memoria Ecommerce DCB</PageTitle>
 
-<h1>Hello, world!</h1>
+<h1>A catalogue built on dynamic consistency boundaries</h1>
+<p class="lede">
+    An example app for Memoria. Products are event sourced with the DCB package and stored in
+    Postgres; the list you browse them in is an ordinary table built from those events.
+</p>
 
-Welcome to your new app.
+<div class="prose">
+    <p>
+        A SKU has to be unique across the whole catalogue, and that is awkward to enforce with
+        streams. A stream per product can tell you whether that product exists, but never whether
+        another one has already claimed the SKU. One stream for the catalogue can tell you, at the
+        cost of putting every product creation in the shop in a single queue.
+    </p>
+    <p>
+        DCB drops the stream and selects events by tag instead. A product is created inside the
+        boundary <code>product:{id} OR sku:{code}</code>, so the decision reads exactly the events
+        that could contradict it — and two people adding products at the same moment only get in
+        each other's way if they picked the same SKU.
+    </p>
+</div>
+
+<h2>How a product gets created</h2>
+<ol class="steps">
+    <li>
+        <span class="step-name">Validate</span>
+        <span class="step-detail">
+            FluentValidation checks the shape of the command — a name, a SKU, a price that is not
+            negative. Nothing here needs the database.
+        </span>
+    </li>
+    <li>
+        <span class="step-name">Read and decide</span>
+        <span class="step-detail">
+            The handler reads where the boundary stands, folds its events into a
+            <code>Product</code> aggregate, and asks it to create. The aggregate refuses if the SKU
+            is taken, which is the one rule that needs the fold.
+        </span>
+    </li>
+    <li>
+        <span class="step-name">Append</span>
+        <span class="step-detail">
+            <code>ProductCreatedEvent</code> is appended on condition that nothing new arrived
+            inside the boundary. A notification then fills the row the products list reads.
+        </span>
+    </li>
+</ol>
+
+<h2>Have a look</h2>
+<ul class="sections">
+    <li>
+        <a href="admin/products">
+            <span class="name">Products</span>
+            <span class="detail">Browse the catalogue, or add a product and try the same SKU twice.</span>
+        </a>
+    </li>
+    <li>
+        <a href="admin">
+            <span class="name">Admin</span>
+            <span class="detail">Everything the shop can be managed from.</span>
+        </a>
+    </li>
+</ul>

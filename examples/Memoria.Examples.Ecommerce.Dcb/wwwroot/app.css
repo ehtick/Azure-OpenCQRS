@@ -131,3 +131,42 @@ h1:focus {
     white-space: nowrap;
     width: 1px;
 }
+/* A list of places to go: name on top, one line saying what is there. Shared by the home page
+   and the admin overview, and cut from the same hairline rules as the products table. */
+.sections {
+    list-style: none;
+    margin: 0;
+    max-width: 40rem;
+    padding: 0;
+}
+
+    .sections li {
+        border-bottom: 1px solid var(--rule);
+    }
+
+    .sections li:first-child {
+        border-top: 1px solid var(--rule);
+    }
+
+    .sections a {
+        display: block;
+        padding: 0.875rem 0;
+        text-decoration: none;
+    }
+
+    .sections a:hover .name {
+        text-decoration: underline;
+    }
+
+    .sections .name {
+        color: var(--accent);
+        display: block;
+        font-weight: 600;
+    }
+
+    .sections .detail {
+        color: var(--ink-soft);
+        display: block;
+        font-size: 0.875rem;
+        margin-top: 0.15rem;
+    }
