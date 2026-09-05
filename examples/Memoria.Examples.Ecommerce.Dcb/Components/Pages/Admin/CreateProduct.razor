@@ -52,11 +52,13 @@
 
     private async Task Submit()
     {
-        var result = await Dispatcher.Send(new CreateProductCommand(Input!.Name, Input.Sku, Input.Price));
+        // SendAndPublish, not Send: the handler returns a ProductCreatedNotification and the
+        // dispatcher publishes it, which is what fills the products list read model.
+        var response = await Dispatcher.SendAndPublish(new CreateProductCommand(Input!.Name, Input.Sku, Input.Price));
 
-        if (result.IsNotSuccess)
+        if (response.CommandResult.IsNotSuccess)
         {
-            failure = result.Failure!.Description;
+            failure = response.CommandResult.Failure!.Description;
             return;
         }
 

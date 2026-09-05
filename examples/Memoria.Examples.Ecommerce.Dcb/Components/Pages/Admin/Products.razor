@@ -1,5 +1,9 @@
 @page "/admin/products"
 @layout AdminLayout
+@using Memoria
+@using Memoria.Examples.Ecommerce.Dcb.Queries
+@using Memoria.Examples.Ecommerce.Dcb.ReadModels
+@inject IDispatcher Dispatcher
 
 <PageTitle>Products</PageTitle>
 
@@ -14,13 +18,14 @@
         <th>Name</th>
         <th>Sku</th>
         <th>Price</th>
+        <th>Created</th>
     </tr>
     </thead>
     <tbody>
     @if (products.Count == 0)
     {
         <tr>
-            <td colspan="3" class="empty">No products yet.</td>
+            <td colspan="4" class="empty">No products yet.</td>
         </tr>
     }
     else
@@ -31,6 +36,7 @@
                 <td>@product.Name</td>
                 <td>@product.Sku</td>
                 <td>@product.Price.ToString("C")</td>
+                <td>@product.CreatedDate.ToLocalTime().ToString("g")</td>
             </tr>
         }
     }
@@ -62,17 +68,29 @@
 @code {
     private const int PageSize = 10;
 
-    // No source yet: the list is always empty.
-    private readonly IReadOnlyList<ProductRow> products = [];
+    private IReadOnlyList<ProductListItem> products = [];
+
+    private int totalCount;
 
     [SupplyParameterFromQuery(Name = "page")]
     private int? Page { get; set; }
 
     private int CurrentPage => Page is > 0 ? Page.Value : 1;
 
-    private int TotalPages => Math.Max(1, (int)Math.Ceiling(products.Count / (double)PageSize));
+    private int TotalPages => Math.Max(1, (int)Math.Ceiling(totalCount / (double)PageSize));
+
+    protected override async Task OnInitializedAsync()
+    {
+        var result = await Dispatcher.Get(new GetProductsQuery(CurrentPage, PageSize));
+
+        if (result.Value is not { } page)
+        {
+            return;
+        }
+
+        products = page.Products;
+        totalCount = page.TotalCount;
+    }
 
     private static string PageLink(int page) => $"admin/products?page={page}";
-
-    private sealed record ProductRow(string Name, string Sku, decimal Price);
 }

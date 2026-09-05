@@ -2,12 +2,17 @@ using FluentValidation;
 using Memoria.Commands;
 using Memoria.EventSourcing.Dcb;
 using Memoria.Examples.Ecommerce.Dcb.Domain;
+using Memoria.Examples.Ecommerce.Dcb.Notifications;
 using Memoria.Results;
 using Memoria.Validation;
 
 namespace Memoria.Examples.Ecommerce.Dcb.Commands;
 
-public record CreateProductCommand(string Name, string Sku, decimal Price) : ICommand;
+/// <summary>
+/// Returns a <see cref="CommandResponse"/> so the handler can hand notifications back to the
+/// dispatcher, which publishes them once the append has committed.
+/// </summary>
+public record CreateProductCommand(string Name, string Sku, decimal Price) : ICommand<CommandResponse>;
 
 /// <summary>
 /// The shape of the command: what can be checked without reading anything.
@@ -30,14 +35,18 @@ public class CreateProductCommandValidator : AbstractValidator<CreateProductComm
 /// <summary>
 /// Validate, then read, decide and append — the three steps of a DCB decision.
 /// </summary>
-public class CreateProductCommandHandler(IDcbDomainService dcb, IValidationService validation)
-    : ICommandHandler<CreateProductCommand>
+public class CreateProductCommandHandler(
+    IDcbDomainService dcb,
+    IValidationService validation,
+    TimeProvider timeProvider)
+    : ICommandHandler<CreateProductCommand, CommandResponse>
 {
-    public async Task<Result> Handle(CreateProductCommand command, CancellationToken cancellationToken = default)
+    public async Task<Result<CommandResponse>> Handle(CreateProductCommand command,
+        CancellationToken cancellationToken = default)
     {
         // Runs CreateProductCommandValidator through the registered validation provider. The
-        // dispatcher can do this itself with Send(command, validateCommand: true); doing it here
-        // makes the handler safe to call either way.
+        // dispatcher can do this itself with SendAndPublish(command, validateCommand: true); doing
+        // it here makes the handler safe to call either way.
         var validationResult = await validation.Validate(command);
         if (validationResult.IsNotSuccess)
         {
@@ -47,6 +56,7 @@ public class CreateProductCommandHandler(IDcbDomainService dcb, IValidationServi
         // 1. The identifier carries the boundary, so the decision and the events it may read cannot
         //    disagree: this product and this SKU, and nothing else in the catalogue.
         var sku = command.Sku.Trim();
+        var name = command.Name.Trim();
         var productId = new ProductId(Guid.CreateVersion7().ToString(), sku);
 
         // 2. Read where the boundary stands before folding it. Reading the position afterwards
@@ -65,7 +75,7 @@ public class CreateProductCommandHandler(IDcbDomainService dcb, IValidationServi
 
         var product = productResult.Value!;
 
-        var refusal = product.Create(productId.Id, command.Name.Trim(), sku, command.Price);
+        var refusal = product.Create(productId.Id, name, sku, command.Price);
         if (refusal is not null)
         {
             return new Failure(ErrorCode.BadRequest, "Cannot create product", refusal);
@@ -73,7 +83,23 @@ public class CreateProductCommandHandler(IDcbDomainService dcb, IValidationServi
 
         // 3. Append on condition that nothing matching the boundary arrived in between — which is
         //    what stops two requests claiming the same SKU at the same moment.
-        return await dcb.SaveAggregate(productId, product,
+        var saveResult = await dcb.SaveAggregate(productId, product,
             new AppendCondition(productId.Boundary, positionResult.Value), cancellationToken);
+
+        if (saveResult.IsNotSuccess)
+        {
+            return saveResult.Failure!;
+        }
+
+        // 4. The event is committed, so the read side may be told. Returned rather than written
+        //    here: the dispatcher publishes it, which keeps the read model out of the decision.
+        return new CommandResponse
+        {
+            Notifications =
+            [
+                new ProductCreatedNotification(productId.Id, name, sku, command.Price,
+                    timeProvider.GetUtcNow())
+            ]
+        };
     }
 }
