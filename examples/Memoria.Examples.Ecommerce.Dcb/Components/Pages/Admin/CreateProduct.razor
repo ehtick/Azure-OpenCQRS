@@ -8,36 +8,50 @@
 
 <PageTitle>New product</PageTitle>
 
+<nav class="breadcrumb" aria-label="Breadcrumb">
+    <a href="admin">Overview</a>
+    <span aria-hidden="true">/</span>
+    <a href="admin/products">Products</a>
+    <span aria-hidden="true">/</span>
+    <span aria-current="page">New product</span>
+</nav>
+
 <h1>New product</h1>
+<p class="lede">Add an item to the catalogue.</p>
 
 <EditForm Model="Input" FormName="create-product" OnValidSubmit="Submit">
     <DataAnnotationsValidator/>
 
-    <label>
-        Name
-        <InputText @bind-Value="Input!.Name"/>
-        <ValidationMessage For="() => Input!.Name"/>
-    </label>
-
-    <label>
-        Sku
-        <InputText @bind-Value="Input!.Sku"/>
-        <ValidationMessage For="() => Input!.Sku"/>
-    </label>
-
-    <label>
-        Price
-        <InputNumber @bind-Value="Input!.Price"/>
-        <ValidationMessage For="() => Input!.Price"/>
-    </label>
-
     @if (failure is not null)
     {
-        <p class="failure">@failure</p>
+        <p class="alert" role="alert">@failure</p>
     }
 
+    <div class="field">
+        <label for="name">Name</label>
+        <p class="hint">Shown to customers in the catalogue.</p>
+        <InputText id="name" @bind-Value="Input!.Name" autofocus/>
+        <ValidationMessage For="() => Input!.Name"/>
+    </div>
+
+    <div class="field">
+        <label for="sku">SKU</label>
+        <p class="hint">Must be unique. No two products can share one.</p>
+        <InputText id="sku" @bind-Value="Input!.Sku" autocomplete="off" spellcheck="false"/>
+        <ValidationMessage For="() => Input!.Sku"/>
+    </div>
+
+    <div class="field">
+        <label for="price">Price</label>
+        <div class="money">
+            <span class="currency" aria-hidden="true">£</span>
+            <InputNumber id="price" @bind-Value="Input!.Price" step="0.01" min="0" placeholder="0.00"/>
+        </div>
+        <ValidationMessage For="() => Input!.Price"/>
+    </div>
+
     <div class="actions">
-        <button type="submit">Create</button>
+        <button type="submit">Create product</button>
         <a href="admin/products">Cancel</a>
     </div>
 </EditForm>
@@ -54,7 +68,7 @@
     {
         // SendAndPublish, not Send: the handler returns a ProductCreatedNotification and the
         // dispatcher publishes it, which is what fills the products list read model.
-        var response = await Dispatcher.SendAndPublish(new CreateProductCommand(Input!.Name, Input.Sku, Input.Price));
+        var response = await Dispatcher.SendAndPublish(new CreateProductCommand(Input!.Name, Input.Sku, Input.Price!.Value));
 
         if (response.CommandResult.IsNotSuccess)
         {
@@ -67,13 +81,14 @@
 
     private sealed class NewProduct
     {
-        [Required]
+        [Required(ErrorMessage = "Enter a name.")]
         public string Name { get; set; } = string.Empty;
 
-        [Required]
+        [Required(ErrorMessage = "Enter a SKU.")]
         public string Sku { get; set; } = string.Empty;
 
-        [Range(0, double.MaxValue, ErrorMessage = "The price cannot be negative.")]
-        public decimal Price { get; set; }
+        [Required(ErrorMessage = "Enter a price.")]
+        [Range(0, double.MaxValue, ErrorMessage = "Enter a price of 0 or more.")]
+        public decimal? Price { get; set; }
     }
 }

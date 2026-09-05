@@ -1,10 +1,20 @@
 @inherits LayoutComponentBase
+@inject NavigationManager Navigation
 
 <header>
     <a class="brand" href="">Ecommerce DCB</a>
     <nav>
         <NavLink href="" Match="NavLinkMatch.All">Home</NavLink>
-        <NavLink href="admin">Admin</NavLink>
+
+        @* <details> rather than a hover menu: it opens on touch and on the keyboard with no
+           script, which matters because these pages render statically. *@
+        <details class="menu">
+            <summary class="@(InAdmin ? "active" : null)">Admin</summary>
+            <div class="submenu">
+                <NavLink href="admin" Match="NavLinkMatch.All">Overview</NavLink>
+                <NavLink href="admin/products">Products</NavLink>
+            </div>
+        </details>
     </nav>
 </header>
 
@@ -17,3 +27,16 @@
     <a href="." class="reload">Reload</a>
     <span class="dismiss">🗙</span>
 </div>
+
+@code {
+
+    /// <summary>
+    /// Marks the menu current while anywhere under /admin, so the section you are in is visible
+    /// without opening it. The panel itself stays shut until asked for, rather than sitting over
+    /// the page.
+    /// </summary>
+    private bool InAdmin => Navigation
+        .ToBaseRelativePath(Navigation.Uri)
+        .StartsWith("admin", StringComparison.OrdinalIgnoreCase);
+
+}

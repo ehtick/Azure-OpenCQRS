@@ -1,57 +1,73 @@
-.page-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-}
-
-.button {
-    background: #1b6ec2;
-    border-radius: 4px;
-    color: #fff;
-    padding: 0.4rem 0.9rem;
-    text-decoration: none;
-}
-
-    .button:hover {
-        background: #175ca2;
-    }
+/* Palette tokens and shared page furniture live in wwwroot/app.css. */
 
 table {
     border-collapse: collapse;
     width: 100%;
 }
 
-    table th, table td {
-        border-bottom: 1px solid #e0e0e0;
-        padding: 0.5rem 0.75rem;
+    table th {
+        border-bottom: 1px solid var(--rule);
+        color: var(--ink-soft);
+        font-size: 0.8125rem;
+        font-weight: 600;
+        padding: 0 0.75rem 0.5rem;
         text-align: left;
     }
 
-    table th {
-        color: #666;
-        font-size: 0.85rem;
-        text-transform: uppercase;
+    table td {
+        border-bottom: 1px solid var(--rule);
+        padding: 0.625rem 0.75rem;
     }
 
-    table td.empty {
-        color: #777;
-        padding: 1.5rem 0.75rem;
-        text-align: center;
+    table tr > :first-child {
+        padding-left: 0;
     }
+
+    table tr > :last-child {
+        padding-right: 0;
+    }
+
+    table .name {
+        font-weight: 600;
+    }
+
+    /* An identifier, not prose: the monospace face makes a mistyped character visible. */
+    table .sku {
+        font-family: ui-monospace, "Cascadia Mono", "SF Mono", Consolas, monospace;
+        font-size: 0.875rem;
+    }
+
+    table .numeric {
+        font-variant-numeric: tabular-nums;
+        text-align: right;
+    }
+
+    table .muted {
+        color: var(--ink-soft);
+    }
+
+.empty {
+    border: 1px dashed var(--rule);
+    border-radius: 6px;
+    color: var(--ink-soft);
+    margin: 0;
+    padding: 2.5rem 1rem;
+    text-align: center;
+}
 
 .pagination {
     align-items: center;
-    color: #666;
+    color: var(--ink-soft);
     display: flex;
+    font-size: 0.875rem;
     gap: 1rem;
-    margin-top: 1rem;
+    margin-top: 1.25rem;
 }
 
     .pagination a {
-        color: #1b6ec2;
+        color: var(--accent);
     }
 
     .pagination .disabled {
-        color: #bbb;
+        color: #b9c0c8;
     }
