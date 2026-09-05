@@ -1,3 +1,41 @@
+header {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    padding: 0.75rem 1.5rem;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+    header .brand {
+        font-weight: 600;
+        font-size: 1.1rem;
+        text-decoration: none;
+        color: inherit;
+    }
+
+    header nav {
+        display: flex;
+        gap: 1rem;
+    }
+
+        header nav ::deep a {
+            color: #444;
+            text-decoration: none;
+        }
+
+        header nav ::deep a:hover {
+            text-decoration: underline;
+        }
+
+        header nav ::deep a.active {
+            color: #1b6ec2;
+            font-weight: 600;
+        }
+
+main {
+    padding: 1.5rem;
+}
+
 #blazor-error-ui {
     color-scheme: light only;
     background: lightyellow;
