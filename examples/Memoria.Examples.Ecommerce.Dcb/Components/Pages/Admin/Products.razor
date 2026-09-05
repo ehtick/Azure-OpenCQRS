@@ -24,6 +24,11 @@
 @* A plain GET form: searching is a link to a narrower list, so it belongs in the address bar
    where it can be bookmarked, shared and gone back to. The sort travels in hidden fields so
    finding something does not silently reorder it. *@
+@if (error is not null)
+{
+    <p class="alert" role="alert">@error</p>
+}
+
 <form class="search" method="get" action="admin/products">
     <label class="visually-hidden" for="q">Search products</label>
     <input id="q" type="search" name="q" value="@search" placeholder="Search name or SKU" autocomplete="off"/>
@@ -67,6 +72,7 @@ else
                     </a>
                 </th>
             }
+            <th><span class="visually-hidden">Actions</span></th>
         </tr>
         </thead>
         <tbody>
@@ -77,6 +83,9 @@ else
                 <td class="sku">@product.Sku</td>
                 <td class="numeric">@product.Price.ToString("C")</td>
                 <td class="muted">@product.CreatedDate.ToLocalTime().ToString("g")</td>
+                <td class="actions">
+                    <a class="delete" href="@DeleteLink(product.ProductId)">Delete</a>
+                </td>
             </tr>
         }
         </tbody>
@@ -163,6 +172,8 @@ else
 
     private string? search;
 
+    private string? error;
+
     private int pageSize = DefaultPageSize;
 
     // Bound as text, not as int?: Blazor throws when a query value will not parse into the
@@ -182,6 +193,9 @@ else
 
     [SupplyParameterFromQuery(Name = "size")]
     private string? Size { get; set; }
+
+    [SupplyParameterFromQuery(Name = "error")]
+    private string? DeleteError { get; set; }
 
     private int CurrentPage => int.TryParse(PageNumber, out var page) && page > 0 ? page : 1;
 
@@ -207,6 +221,7 @@ else
         sort = column?.Sort ?? ProductSort.CreatedDate;
         descending = column is null || string.Equals(Direction, "desc", StringComparison.OrdinalIgnoreCase);
         search = string.IsNullOrWhiteSpace(Query) ? null : Query.Trim();
+        error = string.IsNullOrWhiteSpace(DeleteError) ? null : DeleteError;
         pageSize = int.TryParse(Size, out var requested) && PageSizes.Contains(requested)
             ? requested
             : DefaultPageSize;
@@ -257,6 +272,13 @@ else
 
     private static string KeyOf(ProductSort column) =>
         Columns.First(candidate => candidate.Sort == column).Key;
+
+    /// <summary>
+    /// Deleting asks first. The confirmation page is told where to come back to, so the order,
+    /// page, search and size all survive the round trip — whether it is confirmed or cancelled.
+    /// </summary>
+    private string DeleteLink(string productId) =>
+        $"admin/products/{productId}/delete?returnUrl={Uri.EscapeDataString("/" + Link(sort, descending, CurrentPage))}";
 
     private string AriaSort(ProductSort column) =>
         sort != column ? "none" : descending ? "descending" : "ascending";

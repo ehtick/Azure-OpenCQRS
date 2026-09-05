@@ -1,0 +1,69 @@
+/* Palette tokens and shared page furniture live in wwwroot/app.css. */
+
+.summary {
+    border-top: 1px solid var(--rule);
+    display: grid;
+    gap: 0;
+    grid-template-columns: 7rem 1fr;
+    margin: 0 0 1.5rem;
+    max-width: 30rem;
+}
+
+    .summary dt {
+        border-bottom: 1px solid var(--rule);
+        color: var(--ink-soft);
+        font-size: 0.8125rem;
+        font-weight: 600;
+        padding: 0.625rem 0;
+    }
+
+    .summary dd {
+        border-bottom: 1px solid var(--rule);
+        margin: 0;
+        padding: 0.625rem 0;
+    }
+
+    .summary .sku {
+        font-family: ui-monospace, "Cascadia Mono", "SF Mono", Consolas, monospace;
+        font-size: 0.875rem;
+    }
+
+    .summary .numeric {
+        font-variant-numeric: tabular-nums;
+    }
+
+.actions {
+    align-items: center;
+    display: flex;
+    gap: 1.25rem;
+}
+
+    /* Solid red: this is the one button on the page that destroys something. */
+    .actions button {
+        background: var(--danger);
+        border: 1px solid var(--danger);
+        border-radius: 4px;
+        color: #fff;
+        cursor: pointer;
+        font: inherit;
+        font-weight: 600;
+        padding: 0.5rem 1rem;
+    }
+
+    .actions button:hover {
+        background: #952020;
+        border-color: #952020;
+    }
+
+    .actions button:focus-visible {
+        box-shadow: 0 0 0 3px rgb(179 33 33 / 0.3);
+        outline: none;
+    }
+
+    .actions a {
+        color: var(--ink-soft);
+    }
+
+    .actions a:hover {
+        color: var(--ink);
+    }

@@ -1,0 +1,80 @@
+@page "/admin/products/{ProductId}/delete"
+@layout AdminLayout
+@using Memoria
+@using Memoria.Examples.Ecommerce.Dcb.Queries
+@using Memoria.Examples.Ecommerce.Dcb.ReadModels
+@inject IDispatcher Dispatcher
+
+<PageTitle>Delete product</PageTitle>
+
+<nav class="breadcrumb" aria-label="Breadcrumb">
+    <a href="admin">Overview</a>
+    <span aria-hidden="true">/</span>
+    <a href="@BackLink">Products</a>
+    <span aria-hidden="true">/</span>
+    <span aria-current="page">Delete</span>
+</nav>
+
+@if (product is null)
+{
+    <h1>Product not found</h1>
+    <p class="lede">It may already have been deleted.</p>
+    <p><a href="@BackLink">Back to products</a></p>
+}
+else
+{
+    <h1>Delete @product.Name?</h1>
+    <p class="lede">
+        The product comes out of the catalogue and its SKU becomes available again. This cannot be
+        undone.
+    </p>
+
+    <dl class="summary">
+        <dt>Name</dt>
+        <dd>@product.Name</dd>
+        <dt>SKU</dt>
+        <dd class="sku">@product.Sku</dd>
+        <dt>Price</dt>
+        <dd class="numeric">@product.Price.ToString("C")</dd>
+    </dl>
+
+    <form method="post" action="admin/products/delete" class="actions">
+        <AntiforgeryToken/>
+        <input type="hidden" name="productId" value="@ProductId"/>
+        <input type="hidden" name="returnUrl" value="@BackLink"/>
+        <button type="submit">Delete product</button>
+        <a href="@BackLink">Cancel</a>
+    </form>
+}
+
+@code {
+    private const string ProductsList = "/admin/products";
+
+    // 92 is the backslash, written as a code point so no editor or shell can eat it. Some
+    // browsers read a leading slash-backslash the way they read a leading double slash.
+    private const char BackSlash = (char)92;
+
+    private ProductListItem? product;
+
+    [Parameter]
+    public string ProductId { get; set; } = string.Empty;
+
+    [SupplyParameterFromQuery(Name = "returnUrl")]
+    private string? ReturnUrl { get; set; }
+
+    /// <summary>
+    /// Where Cancel and the post go back to: the view the delete was started from, but only when it
+    /// is a path on this site. It arrives in the address bar, so it is not to be trusted with a host.
+    /// </summary>
+    private string BackLink =>
+        ReturnUrl is { Length: > 1 } url && url[0] == '/' && url[1] != '/' && url[1] != BackSlash
+            ? url
+            : ProductsList;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var result = await Dispatcher.Get(new GetProductQuery(ProductId));
+
+        product = result.Value;
+    }
+}

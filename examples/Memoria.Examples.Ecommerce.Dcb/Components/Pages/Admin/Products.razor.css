@@ -199,3 +199,31 @@ table {
         box-shadow: 0 0 0 3px rgb(27 110 194 / 0.18);
         outline: none;
     }
+
+table td.actions {
+    text-align: right;
+    width: 1%;
+}
+
+    /* A quiet control until you go near it: destructive, but not the point of the row. */
+    table td.actions .delete {
+        border: 1px solid transparent;
+        border-radius: 4px;
+        color: var(--ink-soft);
+        display: inline-block;
+        font-size: 0.875rem;
+        padding: 0.25rem 0.5rem;
+        text-decoration: none;
+    }
+
+    table td.actions .delete:hover {
+        background: #fdf3f3;
+        border-color: #f0d5d5;
+        color: var(--danger);
+    }
+
+    table td.actions .delete:focus-visible {
+        border-color: var(--danger);
+        box-shadow: 0 0 0 3px rgb(179 33 33 / 0.2);
+        outline: none;
+    }

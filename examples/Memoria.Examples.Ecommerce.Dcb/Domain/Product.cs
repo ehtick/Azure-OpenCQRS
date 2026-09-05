@@ -13,10 +13,10 @@ namespace Memoria.Examples.Ecommerce.Dcb.Domain;
 /// events, so the aggregate belongs to no stream and is folded from the tags its identifier names.
 /// </para>
 /// <para>
-/// The boundary is <c>product:{id} OR sku:{sku}</c>, which is the reason to use DCB here at all. A
-/// stream per product could tell you whether <em>this</em> product exists but never whether the SKU
-/// is already taken by another one, and a single catalogue stream would serialise every product
-/// creation in the shop. Reading both tags means two products contend only when they share a SKU.
+/// It is folded from two different boundaries, and that is the point. Creating a product reads
+/// <c>product:{id} OR sku:{code}</c>, so the fold can see whether another product already claimed
+/// the SKU. Deleting one reads <c>product:{id}</c> alone, because that decision depends on nothing
+/// else.
 /// </para>
 /// </remarks>
 [AggregateType("Product")]
@@ -30,7 +30,16 @@ public class Product : DcbAggregateRoot
 
     public decimal Price { get; private set; }
 
-    public override Type[]? EventTypeFilter { get; } = [typeof(ProductCreatedEvent)];
+    public override Type[]? EventTypeFilter { get; } =
+    [
+        typeof(ProductCreatedEvent),
+        typeof(ProductDeletedEvent)
+    ];
+
+    /// <summary>
+    /// The product this fold is about, taken from the boundary rather than from a constructor.
+    /// </summary>
+    private string ProductCode => Tags.Single(tag => tag.Key == "product").Value;
 
     /// <summary>
     /// Creates the product, or explains why it cannot be created.
@@ -52,6 +61,25 @@ public class Product : DcbAggregateRoot
         return null;
     }
 
+    /// <summary>
+    /// Removes the product from the catalogue, or explains why it cannot be removed.
+    /// </summary>
+    /// <remarks>
+    /// The tags are given explicitly because this fold's boundary is the product alone, and the
+    /// event has to be readable from two places: this product's history, and the SKU's. Without the
+    /// SKU tag a later creation reusing the code would fold the old <c>ProductCreated</c>, find the
+    /// SKU taken, and refuse — the deletion would be invisible to the very decision it should free.
+    /// </remarks>
+    public string? Delete()
+    {
+        if (!Exists) return "That product is not in the catalogue.";
+
+        Add(new ProductDeletedEvent(ProductCode, Sku),
+            new Tag("product", ProductCode), new Tag("sku", Sku));
+
+        return null;
+    }
+
     protected override bool Apply<T>(T @event)
     {
         switch (@event)
@@ -63,6 +91,10 @@ public class Product : DcbAggregateRoot
                 Price = created.Price;
                 return true;
 
+            case ProductDeletedEvent:
+                Exists = false;
+                return true;
+
             default:
                 return false;
         }
@@ -70,13 +102,29 @@ public class Product : DcbAggregateRoot
 }
 
 /// <summary>
-/// Identifies the product and carries the boundary it is folded from.
+/// Identifies the product itself: one tag, holding everything ever recorded about it.
 /// </summary>
 /// <remarks>
-/// A product's SKU is fixed at creation in this demo, so the boundary stays stable for a given
-/// <see cref="Id"/> — which is what snapshots rely on.
+/// Enough for any decision that depends only on this product — deleting it, renaming it, repricing
+/// it. Creating one needs more, which is what <see cref="ProductCreationId"/> is for.
 /// </remarks>
-public class ProductId(string productId, string sku) : IDcbAggregateId<Product>
+public class ProductId(string productId) : IDcbAggregateId<Product>
+{
+    public string Id { get; } = productId;
+
+    public TagQuery Boundary { get; } = TagQuery.AnyOf(new Tag("product", productId));
+}
+
+/// <summary>
+/// Identifies the decision to create a product, and carries the wider boundary that decision is
+/// folded from.
+/// </summary>
+/// <remarks>
+/// The SKU is in the boundary because creating is the decision that has to see whether another
+/// product already claimed it. A product's SKU is fixed at creation in this demo, so the boundary
+/// stays stable for a given <see cref="Id"/> — which is what snapshots rely on.
+/// </remarks>
+public class ProductCreationId(string productId, string sku) : IDcbAggregateId<Product>
 {
     public string Id { get; } = productId;
 

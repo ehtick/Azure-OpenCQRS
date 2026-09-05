@@ -170,3 +170,14 @@ h1:focus {
         font-size: 0.875rem;
         margin-top: 0.15rem;
     }
+
+/* Something went wrong and the page is saying what. */
+.alert {
+    background: #fdf3f3;
+    border-left: 3px solid var(--danger);
+    border-radius: 2px;
+    color: var(--danger);
+    margin: 0 0 1.5rem;
+    max-width: 34rem;
+    padding: 0.6rem 0.75rem;
+}

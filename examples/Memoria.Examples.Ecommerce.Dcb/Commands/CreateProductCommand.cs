@@ -57,7 +57,7 @@ public class CreateProductCommandHandler(
         //    disagree: this product and this SKU, and nothing else in the catalogue.
         var sku = command.Sku.Trim();
         var name = command.Name.Trim();
-        var productId = new ProductId(Guid.CreateVersion7().ToString(), sku);
+        var productId = new ProductCreationId(Guid.CreateVersion7().ToString(), sku);
 
         // 2. Read where the boundary stands before folding it. Reading the position afterwards
         //    would let an event slip in between and count as seen when it was not.

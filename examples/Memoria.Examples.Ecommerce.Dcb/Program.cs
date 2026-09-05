@@ -1,10 +1,13 @@
 using Memoria.EventSourcing.Dcb.Extensions;
 using Memoria.EventSourcing.Dcb.Store.EntityFrameworkCore;
 using Memoria.EventSourcing.Dcb.Store.EntityFrameworkCore.Extensions;
+using Memoria;
+using Memoria.Examples.Ecommerce.Dcb.Commands;
 using Memoria.Examples.Ecommerce.Dcb.Components;
 using Memoria.Examples.Ecommerce.Dcb.Data;
 using Memoria.Extensions;
 using Memoria.Validation.FluentValidation.Extensions;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 
@@ -62,6 +65,28 @@ app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages:
 app.UseHttpsRedirection();
 
 app.UseAntiforgery();
+
+// A plain form post per row rather than a Blazor form: several delete buttons on one page
+// would each need their own uniquely named EditForm, and this keeps the list statically
+// rendered. Antiforgery still applies — the form carries the token via <AntiforgeryToken/>.
+app.MapPost("/admin/products/delete", async (
+    IDispatcher dispatcher,
+    [FromForm] string productId,
+    [FromForm] string? returnUrl) =>
+{
+    var response = await dispatcher.SendAndPublish(new DeleteProductCommand(productId));
+
+    var target = string.IsNullOrWhiteSpace(returnUrl) ? "/admin/products" : returnUrl;
+
+    if (response.CommandResult.IsNotSuccess)
+    {
+        var separator = target.Contains('?') ? "&" : "?";
+        target += $"{separator}error={Uri.EscapeDataString(response.CommandResult.Failure!.Description ?? "Could not delete the product.")}";
+    }
+
+    // Local: the return address arrives on the form, so it may not send anyone off-site.
+    return Results.LocalRedirect(target);
+});
 
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
