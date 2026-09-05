@@ -5,6 +5,19 @@
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
         <BlazorDisableThrowNavigationException>true</BlazorDisableThrowNavigationException>
+        <UserSecretsId>memoria-examples-ecommerce-dcb</UserSecretsId>
     </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\src\Memoria.EventSourcing.Dcb.Store.EntityFrameworkCore\Memoria.EventSourcing.Dcb.Store.EntityFrameworkCore.csproj" />
+        <ProjectReference Include="..\..\src\Memoria.EventSourcing.Dcb\Memoria.EventSourcing.Dcb.csproj" />
+        <ProjectReference Include="..\..\src\Memoria.EventSourcing\Memoria.EventSourcing.csproj" />
+        <ProjectReference Include="..\..\src\Memoria.Validation.FluentValidation\Memoria.Validation.FluentValidation.csproj" />
+        <ProjectReference Include="..\..\src\Memoria\Memoria.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.0" />
+    </ItemGroup>
 
 </Project>

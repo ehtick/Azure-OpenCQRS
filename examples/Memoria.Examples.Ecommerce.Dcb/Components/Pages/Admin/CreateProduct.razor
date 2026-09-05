@@ -1,6 +1,77 @@
 @page "/admin/products/create"
 @layout AdminLayout
+@using System.ComponentModel.DataAnnotations
+@using Memoria
+@using Memoria.Examples.Ecommerce.Dcb.Commands
+@inject IDispatcher Dispatcher
+@inject NavigationManager Navigation
 
 <PageTitle>New product</PageTitle>
 
 <h1>New product</h1>
+
+<EditForm Model="Input" FormName="create-product" OnValidSubmit="Submit">
+    <DataAnnotationsValidator/>
+
+    <label>
+        Name
+        <InputText @bind-Value="Input!.Name"/>
+        <ValidationMessage For="() => Input!.Name"/>
+    </label>
+
+    <label>
+        Sku
+        <InputText @bind-Value="Input!.Sku"/>
+        <ValidationMessage For="() => Input!.Sku"/>
+    </label>
+
+    <label>
+        Price
+        <InputNumber @bind-Value="Input!.Price"/>
+        <ValidationMessage For="() => Input!.Price"/>
+    </label>
+
+    @if (failure is not null)
+    {
+        <p class="failure">@failure</p>
+    }
+
+    <div class="actions">
+        <button type="submit">Create</button>
+        <a href="admin/products">Cancel</a>
+    </div>
+</EditForm>
+
+@code {
+    private string? failure;
+
+    [SupplyParameterFromForm]
+    private NewProduct? Input { get; set; }
+
+    protected override void OnInitialized() => Input ??= new NewProduct();
+
+    private async Task Submit()
+    {
+        var result = await Dispatcher.Send(new CreateProductCommand(Input!.Name, Input.Sku, Input.Price));
+
+        if (result.IsNotSuccess)
+        {
+            failure = result.Failure!.Description;
+            return;
+        }
+
+        Navigation.NavigateTo("admin/products");
+    }
+
+    private sealed class NewProduct
+    {
+        [Required]
+        public string Name { get; set; } = string.Empty;
+
+        [Required]
+        public string Sku { get; set; } = string.Empty;
+
+        [Range(0, double.MaxValue, ErrorMessage = "The price cannot be negative.")]
+        public decimal Price { get; set; }
+    }
+}
