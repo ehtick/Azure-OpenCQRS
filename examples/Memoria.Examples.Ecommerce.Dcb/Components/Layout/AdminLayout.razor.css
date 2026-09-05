@@ -1,0 +1,21 @@
+.admin-nav {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+    .admin-nav ::deep a {
+        color: #444;
+        text-decoration: none;
+    }
+
+    .admin-nav ::deep a:hover {
+        text-decoration: underline;
+    }
+
+    .admin-nav ::deep a.active {
+        color: #1b6ec2;
+        font-weight: 600;
+    }

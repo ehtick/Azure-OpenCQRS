@@ -1,0 +1,78 @@
+@page "/admin/products"
+@layout AdminLayout
+
+<PageTitle>Products</PageTitle>
+
+<div class="page-header">
+    <h1>Products</h1>
+    <a class="button" href="admin/products/create">Add product</a>
+</div>
+
+<table>
+    <thead>
+    <tr>
+        <th>Name</th>
+        <th>Sku</th>
+        <th>Price</th>
+    </tr>
+    </thead>
+    <tbody>
+    @if (products.Count == 0)
+    {
+        <tr>
+            <td colspan="3" class="empty">No products yet.</td>
+        </tr>
+    }
+    else
+    {
+        @foreach (var product in products)
+        {
+            <tr>
+                <td>@product.Name</td>
+                <td>@product.Sku</td>
+                <td>@product.Price.ToString("C")</td>
+            </tr>
+        }
+    }
+    </tbody>
+</table>
+
+<div class="pagination">
+    @if (CurrentPage > 1)
+    {
+        <a href="@PageLink(CurrentPage - 1)">Previous</a>
+    }
+    else
+    {
+        <span class="disabled">Previous</span>
+    }
+
+    <span>Page @CurrentPage of @TotalPages</span>
+
+    @if (CurrentPage < TotalPages)
+    {
+        <a href="@PageLink(CurrentPage + 1)">Next</a>
+    }
+    else
+    {
+        <span class="disabled">Next</span>
+    }
+</div>
+
+@code {
+    private const int PageSize = 10;
+
+    // No source yet: the list is always empty.
+    private readonly IReadOnlyList<ProductRow> products = [];
+
+    [SupplyParameterFromQuery(Name = "page")]
+    private int? Page { get; set; }
+
+    private int CurrentPage => Page is > 0 ? Page.Value : 1;
+
+    private int TotalPages => Math.Max(1, (int)Math.Ceiling(products.Count / (double)PageSize));
+
+    private static string PageLink(int page) => $"admin/products?page={page}";
+
+    private sealed record ProductRow(string Name, string Sku, decimal Price);
+}
