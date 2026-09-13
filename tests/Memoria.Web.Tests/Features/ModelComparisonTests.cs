@@ -103,7 +103,8 @@ public class ModelComparisonTests
 
         comparison.LastVersion.Should().Be(8);
         comparison.Range.Should().Be(new CompareRange(7, 8));
-        comparison.Sequences.Should().Be((13L, 14L));
+        comparison.From!.Sequence.Should().Be(13);
+        comparison.To!.Sequence.Should().Be(14);
         comparison.Error.Should().BeNull();
         comparison.Rows.Should().ContainSingle().Which.Should().BeEquivalentTo(
             new DiffRow("Count", "int", "3", "5", Change.Changed, []));
@@ -144,8 +145,25 @@ public class ModelComparisonTests
         var comparison = await ModelComparison.Of(History(), store, Request("3", "7"));
 
         comparison.Range.Should().Be(new CompareRange(3, 7));
-        comparison.Sequences.Should().Be((9L, 13L));
+        comparison.From!.Sequence.Should().Be(9);
+        comparison.To!.Sequence.Should().Be(13);
         comparison.Rows.Single().Change.Should().Be(Change.Unchanged);
+    }
+
+    /// <summary>
+    /// The event that produced each version travels with it — its type and when it was appended —
+    /// so the tab can say what each version is in the words the events tab uses, without a third
+    /// read to find out.
+    /// </summary>
+    [Fact]
+    public async Task Carries_the_event_that_produced_each_version()
+    {
+        var store = Folding((9, Counting(1)), (13, Counting(1)));
+
+        var comparison = await ModelComparison.Of(History(), store, Request("3", "7"));
+
+        comparison.From.Should().BeEquivalentTo(new FoldPoint(3, 9, Event(9)));
+        comparison.To.Should().BeEquivalentTo(new FoldPoint(7, 13, Event(13)));
     }
 
     /// <summary>
@@ -159,7 +177,8 @@ public class ModelComparisonTests
 
         var comparison = await ModelComparison.Of(History(), store, Request("0", "1"));
 
-        comparison.Sequences.Should().Be((0L, 7L));
+        comparison.From.Should().BeEquivalentTo(new FoldPoint(0, 0, null));
+        comparison.To.Should().BeEquivalentTo(new FoldPoint(1, 7, Event(7)));
         comparison.Rows.Single().Change.Should().Be(Change.Changed);
     }
 

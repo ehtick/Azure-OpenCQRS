@@ -83,17 +83,19 @@
                at all — and under the form, which is where it is put right. *@
             <p class="alert" role="alert">@Comparison.Error</p>
         }
-        else if (Comparison is { Range: { } range, Sequences: { } sequences })
+        else if (Comparison is { Range: { } range, From: { } from, To: { } to })
         {
-            @* Which event each version is, in the words the events tab uses: a version is the
-               model's own count, and the sequence is where in the stream the event that produced it
-               sits. Said here once, so the columns below can be headed by the number that climbs
-               by one. *@
-            <p class="lede">
-                Version @range.From of the @Noun — folded up to sequence @sequences.From — against
-                version @range.To, folded up to sequence @sequences.To. Folded here and not written:
-                the stored snapshot is left as it is.
-            </p>
+            @* What each version is, side by side, straight under the form that chose them: the
+               facts the info tab lists about the stored row, listed here about the two folds
+               instead — the version, where in the stream the fold stopped, and the event that
+               produced it. Two lists rather than one with two columns, so each reads as the info
+               tab does and the eye can run down either. Nothing is said between the form and the
+               cards: the cards are the answer, and a sentence restating the two numbers above them
+               was read twice. *@
+            <div class="compare-facts">
+                @Facts(from)
+                @Facts(to)
+            </div>
 
             @if (Comparison.Rows.Count == 0)
             {
@@ -166,6 +168,51 @@
     [Parameter]
     [EditorRequired]
     public Func<CompareRange, string> Link { get; set; } = _ => string.Empty;
+
+    /// <summary>
+    /// One version as the info tab would list it: the version, the sequence its fold stopped at,
+    /// and the event that produced it — its type, named as the events tab names one, and when it
+    /// was appended.
+    /// </summary>
+    /// <remarks>
+    /// Version zero has no event: it is the model before anything happened to it, and the two rows
+    /// about the event say so rather than standing empty.
+    /// </remarks>
+    private RenderFragment<FoldPoint> Facts => point =>
+        @<dl class="facts">
+            <dt>Version</dt>
+            <dd>@point.Version</dd>
+
+            <dt>Sequence</dt>
+            <dd>@point.Sequence</dd>
+
+            <dt>Event type</dt>
+            <dd>
+                @if (point.Event is { } produced)
+                {
+                    <code>@DomainTypeDescriber.LabelOfKey(produced.Type)</code>
+                }
+                else
+                {
+                    <span class="missing">before anything happened</span>
+                }
+            </dd>
+
+            @* As the store holds it, offset and all, rather than brought to the reader's clock the
+               way the tables date a row: this card is the store's account of the event, and a
+               reader matching it against the database wants the value the database has. *@
+            <dt>Created</dt>
+            <dd>
+                @if (point.Event is { } appended)
+                {
+                    @appended.Written.ToString("O")
+                }
+                else
+                {
+                    <span class="missing">—</span>
+                }
+            </dd>
+        </dl>;
 
     /// <summary>
     /// The rows: a value from each version and the way they differ, with the insides of any value

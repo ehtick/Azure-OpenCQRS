@@ -1722,6 +1722,16 @@ h2:focus {
         width: 6.5rem;
     }
 
+    /* The two versions' facts, side by side, each in the card the info tab lists the row's facts
+       in: the earlier on the left and the later on the right, the way the table below sets their
+       values. Two columns while there is room for two cards and one under the other when there is
+       not, at the width a card's label column plus a type name needs. */
+    .compare-facts {
+        display: grid;
+        gap: 1rem;
+        grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
+    }
+
     /* The two steps beside the form, pushed to the row's far end: they move the pair the form
        holds, so they belong on its row, and set apart from its button so a step is not read as a
        second way of submitting. */
