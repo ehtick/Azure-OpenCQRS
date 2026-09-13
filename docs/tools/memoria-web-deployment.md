@@ -118,6 +118,258 @@ EXPOSE 8080
 ENTRYPOINT ["dotnet", "Memoria.Web.dll"]
 ```
 
+## Deploy it from the repository
+
+The repository carries one deployment of its own: [`deploy-memoria-web.yml`](https://github.com/lucabriguglia/Memoria/blob/main/.github/workflows/deploy-memoria-web.yml)
+publishes the application and pushes it to an Azure App Service. It runs only when someone with
+write access starts it from the Actions tab, and it names nothing of the Azure it deploys to — the
+tenant, the subscription, the identity and the app all come from the GitHub Environment picked when
+it is started. Fork the repository, fill in your own Environment, and the same file deploys to your
+own Azure. It is one worked example of hosting the tool, not a recommendation of where; any host
+that meets [the requirements above](#what-the-host-has-to-provide) is as good.
+
+### What Azure needs
+
+An App Service for Linux on the .NET 10 runtime, a registration at the provider operators sign in
+through, a Key Vault for the two values that are secrets, and an identity GitHub can sign in as.
+No step stores a password anywhere it can be read back.
+
+```bash
+az group create --name memoria-web --location westeurope
+az appservice plan create --name memoria-web --resource-group memoria-web --is-linux --sku B1
+az webapp create --name <app> --resource-group memoria-web --plan memoria-web --runtime "DOTNETCORE:10.0"
+```
+
+Keep the plan at one instance — see [Run one instance](#run-one-instance). Then the settings. They
+all live on the App Service, as application settings, and none of them in the repository or in
+GitHub: they are what makes this deployment *this* one. Three are about the App Service; the rest
+are the same ones any host gets — see [Configuration](memoria-web-configuration.md). Two of them are
+secrets and are set as references to a Key Vault, [below](#where-the-secrets-live), rather than as
+their values.
+
+| Setting                                  | Value                                   | Why                                                                       |
+| ---------------------------------------- | --------------------------------------- | ------------------------------------------------------------------------- |
+| `ASPNETCORE_FORWARDEDHEADERS_ENABLED`    | `true`                                  | App Service terminates TLS in front of the application — see [HTTPS](#https) |
+| `Extensions__Directory`                  | `/home/data/extensions`                 | `/home` is the one path App Service keeps across deployments and restarts |
+| `WEBSITE_RUN_FROM_PACKAGE`               | `1`                                     | The published files are mounted read-only, so nothing can be written next to them |
+| `Database__Provider`                     | `Npgsql`, `SqlServer` or `Cosmos`       | Only when the connection string does not say which engine it is for      |
+| `Authentication__Oidc__Authority`        | your provider's issuer                  | See [Signing in through Entra ID](#signing-in-through-entra-id), or your own provider |
+| `Authentication__Oidc__ClientId`         | what the tool is registered as          | Public by design; the provider shows it to every operator who signs in    |
+| `Authorization__Roles__*`                | the claim values that grant each role   | Policy, not secret — see [Roles](memoria-web-configuration.md#roles)      |
+| `Authentication__Oidc__ClientSecret`     | a Key Vault reference                   | What the tool proves its registration with                                |
+| `ConnectionStrings__Memoria`             | a Key Vault reference                   | Unless it carries no password — see [below](#a-connection-string-with-no-password) |
+
+```bash
+az webapp config appsettings set --name <app> --resource-group memoria-web --settings \
+  ASPNETCORE_FORWARDEDHEADERS_ENABLED=true \
+  Extensions__Directory=/home/data/extensions \
+  WEBSITE_RUN_FROM_PACKAGE=1 \
+  Authentication__Oidc__Authority=https://login.example.com/realms/memoria \
+  Authentication__Oidc__ClientId=memoria-web \
+  Authorization__Roles__Administrator=memoria-admins
+```
+
+Without the first, the address the sign-in asks the provider to send the operator back to is built
+as `http://` and refused. Without the second, uploads land beside the application and the next
+deployment removes them.
+
+### Signing in through Entra ID
+
+Any provider that publishes a discovery document will do — see
+[Signing operators in](#signing-operators-in) — and Microsoft Entra ID is the one the subscription
+already has. Registering the tool there produces the authority, the client id and the client secret
+the settings above need, and the app roles that make some operators more than Readers.
+
+**Register the tool** as a confidential web client, with both addresses the tool sends operators
+back to. Entra checks the post-sign-out address against the same list as the sign-in one, so both
+go in as redirect URIs:
+
+```bash
+az ad app create --display-name memoria-web --sign-in-audience AzureADMyOrg \
+  --web-redirect-uris https://<app>.azurewebsites.net/signin-oidc \
+                      https://<app>.azurewebsites.net/signout-callback-oidc \
+  --query appId -o tsv
+```
+
+The `appId` it prints is `Authentication__Oidc__ClientId`. `AzureADMyOrg` admits accounts from this
+tenant only; a tool that reads a production store has no reason to accept anyone else's. If
+operators reach the tool through a custom domain, register that domain's two addresses as well —
+Entra compares character for character.
+
+**Issue the secret**, straight into the file the vault step below reads, so it is never on the
+screen or in the shell's history:
+
+```bash
+az ad app credential reset --id <appId> --display-name memoria-web --years 1 \
+  --query password -o tsv > client-secret.txt
+```
+
+Entra secrets expire — two years at most — and an expired one fails every sign-in with an error
+from Entra, not from the tool. Note the date; rotating it is one `credential reset` and one
+`keyvault secret set`, and the tool picks the new value up on its next restart.
+
+**The authority** is the tenant's v2.0 issuer:
+
+```bash
+az account show --query tenantId -o tsv
+```
+
+```
+Authentication__Oidc__Authority=https://login.microsoftonline.com/<tenantId>/v2.0
+```
+
+**Define the roles** as app roles on the registration. Entra sends the `value` of every app role
+an operator holds in the `roles` claim of the ID token, which is the claim the tool reads by
+default, so no `RoleClaimType` and no extra scope is needed. The values are what the settings map:
+
+```bash
+cat > app-roles.json <<'EOF'
+[
+  { "allowedMemberTypes": ["User"], "displayName": "Administrator", "value": "memoria-admins",
+    "description": "Installs, removes and rereads uploaded assemblies: runs code on the host.", "isEnabled": true },
+  { "allowedMemberTypes": ["User"], "displayName": "Updater", "value": "memoria-updaters",
+    "description": "Refreshes a snapshot that has fallen behind.", "isEnabled": true }
+]
+EOF
+az ad app update --id <appId> --app-roles @app-roles.json
+az ad sp create --id <appId>
+```
+
+```
+Authorization__Roles__Administrator=memoria-admins
+Authorization__Roles__Updater=memoria-updaters
+```
+
+Then **assign people to the roles**. That is done on the service principal the last command
+created, in the portal: **Entra ID → Enterprise applications → memoria-web → Users and groups →
+Add user/group**, pick the operator or a group they are in, pick the role. A group works as well as
+a person, and is the usual choice: membership of the group is then the whole of who may upload an
+assembly. Nobody needs assigning to be a Reader.
+
+**Decide who may sign in at all.** As registered, every account in the tenant can sign in and is a
+Reader. If only the assigned operators should get that far, require an assignment:
+
+```bash
+az ad sp update --id <appId> --set appRoleAssignmentRequired=true
+```
+
+Anyone else is then turned away by Entra before the tool sees them. Give Readers a role of their own
+if you take this route — an app role with any value the settings do not map grants nothing beyond
+Reader, and lets them in.
+
+The tool asks Entra for `openid profile email` by default, which is enough: the name shown in the
+log lines comes from `profile`, and the roles ride along without being asked for. Sign-out ends
+both sessions, the tool's cookie and Entra's, and lands on the post-sign-out address registered
+above.
+
+### Where the secrets live
+
+The client secret and the connection string go into a Key Vault, and the App Service reads them
+from there through an identity of its own. The application is none the wiser: it still finds
+`Authentication:Oidc:ClientSecret` and `ConnectionStrings:Memoria` in its configuration. What
+changes is who can see the values. Anyone who can read the App Service's settings — the deploy
+identity included — sees a reference, not a secret; rotation is one write to the vault; and the
+vault logs every read.
+
+```bash
+az keyvault create --name <vault> --resource-group memoria-web --location westeurope \
+  --enable-rbac-authorization true
+az keyvault secret set --vault-name <vault> --name oidc-client-secret --file client-secret.txt
+az keyvault secret set --vault-name <vault> --name memoria-connection-string --file connection-string.txt
+```
+
+`--file` rather than `--value`, so the secret is not in the shell's history; delete the files after.
+Then give the App Service an identity and let it read the vault:
+
+```bash
+az webapp identity assign --name <app> --resource-group memoria-web        # prints its principalId
+az role assignment create --assignee <principalId> --role "Key Vault Secrets User" \
+  --scope /subscriptions/<subscription>/resourceGroups/memoria-web/providers/Microsoft.KeyVault/vaults/<vault>
+```
+
+**Key Vault Secrets User** reads secret values and nothing else — it cannot list the vault's other
+contents, create, or delete. Finally, the two settings, as references:
+
+```bash
+az webapp config appsettings set --name <app> --resource-group memoria-web --settings \
+  'Authentication__Oidc__ClientSecret=@Microsoft.KeyVault(VaultName=<vault>;SecretName=oidc-client-secret)' \
+  'ConnectionStrings__Memoria=@Microsoft.KeyVault(VaultName=<vault>;SecretName=memoria-connection-string)'
+```
+
+A reference without a version, as above, follows the secret's current version: rotate it in the
+vault and the App Service picks the new value up on its next restart, or within a day of its own
+accord. The settings blade in the portal shows each reference with a green tick when the App
+Service can resolve it and a red cross with the reason when it cannot — a missing role assignment,
+a vault name typed wrong. Check it after the first deployment; a reference that does not resolve
+reaches the application as the literal `@Microsoft.KeyVault(…)` string, which the application
+reports as a provider it cannot connect to, not as a missing secret.
+
+#### A connection string with no password
+
+Against Azure SQL the connection string need not be a secret at all. Give the App Service's
+identity — the one just created — a user in the database, read-only as
+[Pointing it at production data](#pointing-it-at-production-data) recommends:
+
+```sql
+CREATE USER [<app>] FROM EXTERNAL PROVIDER;
+ALTER ROLE db_datareader ADD MEMBER [<app>];
+```
+
+and let the driver obtain its own token:
+
+```
+Server=tcp:<server>.database.windows.net,1433;Database=memoria;Authentication=Active Directory Default;
+```
+
+That string holds nothing worth protecting, so it is a plain application setting rather than a
+vault reference, and there is one secret in the vault instead of two. Azure Database for PostgreSQL
+can authenticate the same identity, but the Npgsql driver expects the token to be handed to it as
+the password and the tool does not do that today, so a Postgres connection string keeps its
+password and stays in the vault.
+
+### Who deploys
+
+The identity GitHub signs in as is an app registration (or a user-assigned managed identity) with a
+**federated credential** that trusts this repository's Environment, so GitHub proves who it is with
+a token Azure checks against `repo:<owner>/Memoria:environment:<environment>` rather than with a
+stored secret. Give it **Website Contributor** on the App Service — enough to deploy, not enough to
+read the vault or touch anything else in the subscription.
+
+```bash
+az ad app create --display-name memoria-web-deploy
+az ad app federated-credential create --id <appId> --parameters '{
+  "name": "github-production",
+  "issuer": "https://token.actions.githubusercontent.com",
+  "subject": "repo:<owner>/Memoria:environment:production",
+  "audiences": ["api://AzureADTokenExchange"]
+}'
+az ad sp create --id <appId>
+az role assignment create --assignee <appId> --role "Website Contributor" \
+  --scope /subscriptions/<subscription>/resourceGroups/memoria-web/providers/Microsoft.Web/sites/<app>
+```
+
+### What GitHub needs
+
+An Environment — `production` is the workflow's default, and the name is what the federated
+credential's subject has to match — holding:
+
+| Name                    | Kind     | Value                                                        |
+| ----------------------- | -------- | ------------------------------------------------------------ |
+| `AZURE_TENANT_ID`       | secret   | The tenant the app registration lives in                     |
+| `AZURE_SUBSCRIPTION_ID` | secret   | The subscription the App Service lives in                    |
+| `AZURE_CLIENT_ID`       | secret   | The app registration's application (client) id               |
+| `AZURE_WEBAPP_NAME`     | variable | The App Service's name                                       |
+
+Add required reviewers to the Environment if a deployment should need a second person. Then
+**Actions → Deploy Memoria Web → Run workflow**, pick the Environment, and the run publishes
+`src/Memoria.Web` in Release, signs in with the federated credential, and pushes the output. The
+run's summary links to the deployed address when it is done. Two runs against the same Environment
+queue rather than race.
+
+The workflow is only the deploy. Creating the App Service, its settings and its identity is the
+one-off above, done by hand or by whatever provisions the rest of your Azure; the workflow's
+identity deliberately cannot do it.
+
 ## Signing operators in
 
 The application signs operators in itself, through whichever OpenID Connect provider it is pointed
