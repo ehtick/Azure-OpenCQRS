@@ -39,6 +39,16 @@ The assemblies are read from bytes rather than from their path, and the registra
 from scratch on every upload, removal and refresh. Nothing restarts, and a type you removed from a
 rebuilt assembly stops being offered rather than lingering from the previous load.
 
+The Settings page lists what each archive brought. A **Types** mark on each row of the installed
+archives table opens every assembly file in that zip and, under each, the domain types registered
+from it — and a file that registered nothing says so on a line of its own, which is the case worth
+noticing: a dependency the domain needs, or an assembly that did not load.
+
+A type carrying `[Obsolete]` is marked as such wherever it is named, and says the attribute's own
+message wherever it is opened. Retired is not the same as old: a type with a later version beside it
+is old and the version says so; a retired type is one nothing should write through any more, and the
+attribute is the only place the domain says that.
+
 ## What it shows
 
 The two consistency models sit side by side from the home page, and each is laid out the same way:
@@ -67,9 +77,13 @@ shared and stepped back through.
 
 ![Aggregate data: rows narrowed by stream, aggregate and identifier](../images/memoria-web/aggregate-data.png)
 
-Opening a row reaches a detail page with five tabs: **Info** (how the row is identified and where its
+Opening a row reaches a detail page with six tabs: **Info** (how the row is identified and where its
 snapshot stands), **State** (the model folded), **Json** (the stored payload itself), **Events** (what
-it applied, or what its boundary holds), and **Update**.
+it applied, or what its boundary holds), **Compare** (two versions of the model, side by side), and
+**Update**. Across from the heading, **View Type** opens the row's declared type over it — the same
+four views the Types pages show, info, state, events and identifiers — so a stored row can be
+matched against what its type declares without leaving it. Like every other view here it opens by
+address, so it can be linked to and the browser's back button closes it.
 
 **State** and **Json** show the same payload two ways. State reads it through the model's own
 properties; Json shows the text the store holds, laid out one value per line and coloured by kind,
@@ -85,6 +99,28 @@ Every table of events offers the same thing per row — the two **Events → Dat
 row was read into, a **Json** column opens what the store actually wrote in a pop-up over the table,
 with the same Copy button. It is a link like every other view here, so it can be bookmarked and is
 closed by the browser's back button as well as by the sheet's own close.
+
+On a model's **Events** tab, every row also starts with a mark saying whether the stored snapshot
+has applied it: a tick when it has, a clock when it has not yet. The mark is read off the snapshot's
+own record of the latest sequence or position it folded, so an event at or below that place is in
+the snapshot and one above it is not — and with no snapshot stored, none is. Text typed into the
+filter above the table is marked wherever the table matched it.
+
+**Info** says where the snapshot stands against its history. When the stored version is below the
+number of events the model is folded from, the version carries the same clock and a sentence saying
+how far behind it is, with a link to **Update**, which would fold the rest in.
+
+**Compare** lays two versions of the model over each other. A version is the model's own count of
+applied events, so it climbs by one down the Events tab where a sequence or a position counts the
+whole stream or log — and each row's **Compare** link opens the version that event produced against
+the one before it, so a history is walked one event at a time. The tab folds the model in memory at
+each version, through the store's up-to-sequence or up-to-position read, and writes nothing. Two
+cards say what each version is: the version, the sequence or position it was folded up to, the event
+that produced it, and when it was appended, as the store holds it. Under them, the State tab's rows
+with a value from each version and a mark on every row where the two differ — changed, added or
+removed — nested rows kept aligned by path. A form takes any two versions, bounded by the last, and
+two links step the pair one version up or down. A compared version the stored snapshot has not
+reached says so beside its number, with the same link to **Update**.
 
 ![An aggregate folded from its events, on the State tab](../images/memoria-web/aggregate-details.png)
 
