@@ -168,7 +168,7 @@ else
                            the stream is a row the log has moved on from since it was written. *@
                         @if (Lag is { } lag)
                         {
-                            <SnapshotWarning Lag="lag"/>
+                            <SnapshotWarning Text="@lag.Text"/>
                         }
                     </dd>
 
@@ -597,7 +597,7 @@ else
         @* Two folds of the stream through this row's identifier, laid over each other as one
            table. Drawn by the panel the projection page draws the same thing with; what is this
            page's to say is which model, where the form comes back to, and what carries the row. *@
-        <ComparePanel Identity="Identity" Comparison="Comparison" Noun="aggregate"
+        <ComparePanel Identity="Identity" Comparison="Comparison" Noun="aggregate" StoredVersion="Stored?.Version"
                       Action="@($"streamed/aggregates/detail#tab-{CompareTab}")"
                       Link="@(pair => DetailLink(CompareTab, Descending, Page, from: pair.From, to: pair.To))">
             <Carried>

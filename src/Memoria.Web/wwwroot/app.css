@@ -1732,6 +1732,15 @@ h2:focus {
         grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
     }
 
+        /* The warning beside a card's version, on a line of its own under the number rather than
+           run on after it as the info tab sets its lag: a card is half the width, and a sentence
+           started beside a digit wrapped into a ragged block that read as part of the value. */
+        .compare-facts .facts dd .behind {
+            display: block;
+            margin-left: 0;
+            margin-top: 0.35rem;
+        }
+
     /* The two steps beside the form, pushed to the row's far end: they move the pair the form
        holds, so they belong on its row, and set apart from its button so a step is not read as a
        second way of submitting. */

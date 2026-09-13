@@ -27,19 +27,21 @@
            dot. *@
         <path d="M10 14.2h.01"/>
     </svg>
-    @Lag.Text
+    @Text
 </span>
 
 @code {
 
-    /// <summary>How far behind the stored row is, and the sentence that says so.</summary>
+    /// <summary>The sentence to set beside the value.</summary>
     /// <remarks>
-    /// A lag rather than the two numbers it is worked out from: whether there is anything to warn
-    /// about is <see cref="SnapshotLag.Of"/>'s answer, so a page that has one of these has already
-    /// established that it has something to say — and this draws it without deciding it again.
+    /// The sentence rather than the numbers it is worked out from: whether there is anything to
+    /// warn about is <see cref="SnapshotLag.Of"/>'s answer on an info tab and
+    /// <see cref="UnappliedVersion.Of"/>'s on a compare tab, so a page that has one of these has
+    /// already established that it has something to say — and this draws it without deciding it
+    /// again.
     /// </remarks>
     [Parameter]
     [EditorRequired]
-    public SnapshotLag Lag { get; set; } = new(Version: 0, Events: 0);
+    public string Text { get; set; } = string.Empty;
 
 }

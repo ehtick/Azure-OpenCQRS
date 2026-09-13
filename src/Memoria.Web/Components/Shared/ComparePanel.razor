@@ -162,6 +162,13 @@
     public RenderFragment? Carried { get; set; }
 
     /// <summary>
+    /// The version the stored snapshot is at, or null when no snapshot is stored: what a compared
+    /// version is held against to say whether the row has actually reached it.
+    /// </summary>
+    [Parameter]
+    public int? StoredVersion { get; set; }
+
+    /// <summary>
     /// The address of this tab comparing a given pair, for the steps beside the form. The page's
     /// to build, since only it knows what else the address carries.
     /// </summary>
@@ -181,7 +188,18 @@
     private RenderFragment<FoldPoint> Facts => point =>
         @<dl class="facts">
             <dt>Version</dt>
-            <dd>@point.Version</dd>
+            <dd>
+                @point.Version
+
+                @* Said where the number it is about is read, and only when there is something to
+                   say: a version past the stored one is folded here and written nowhere, and a
+                   reader matching this card against the row in the database should know the row
+                   stops short of it. *@
+                @if (UnappliedVersion.Of(point.Version, StoredVersion) is { } unapplied)
+                {
+                    <SnapshotWarning Text="@unapplied"/>
+                }
+            </dd>
 
             <dt>Sequence</dt>
             <dd>@point.Sequence</dd>
