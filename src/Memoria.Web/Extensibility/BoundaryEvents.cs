@@ -158,14 +158,13 @@ public static class BoundaryEvents
     /// counted from one.
     /// </summary>
     /// <remarks>
-    /// Over every row rather than the page's, and by position rather than by the page's order: a
-    /// model's versions count its applied events in the order the store folds them, which is
-    /// position order, and narrowing or paging hides rows without renumbering the ones left. The
+    /// Over every row rather than the page's, and in the order the rows arrive rather than the
+    /// page's: the store hands a boundary over in position order, which is the order the fold
+    /// applies it in, and narrowing or paging hides rows without renumbering the ones left. The
     /// whole history is already in hand, so this costs nothing the page has not paid.
     /// </remarks>
     private static IReadOnlyDictionary<long, int> Versions(IReadOnlyList<DcbEventEntity> rows) =>
-        rows.OrderBy(row => row.Position)
-            .Select((row, index) => (row.Position, Version: index + 1))
+        rows.Select((row, index) => (row.Position, Version: index + 1))
             .ToDictionary(placed => placed.Position, placed => placed.Version);
 
     /// <summary>

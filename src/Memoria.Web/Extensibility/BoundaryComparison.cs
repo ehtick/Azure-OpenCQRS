@@ -53,7 +53,9 @@ public static class BoundaryComparison
             return new ModelComparison(null, null, null, null, [], history.Error);
         }
 
-        var rows = history.Rows.OrderBy(row => row.Position).ToList();
+        // In position order as the store hands them over, which is the order the fold applies them
+        // in: a version is a place in that order, and no re-sorting is needed to find it.
+        var rows = history.Rows;
         var reading = CompareRange.Of(request.From, request.To, rows.Count);
 
         if (reading.Range is not { } range)

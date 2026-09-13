@@ -1,9 +1,8 @@
 using Memoria.EventSourcing.Filtering;
+using Memoria.EventSourcing.Store.EntityFrameworkCore.Entities;
 using Memoria.Web.Data;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
-
-using Memoria.EventSourcing.Store.EntityFrameworkCore.Entities;
 
 namespace Memoria.Web.Extensibility;
 
