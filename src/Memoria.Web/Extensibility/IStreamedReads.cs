@@ -25,6 +25,31 @@ public interface IStreamedReads
         StreamedEventFilter filter, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Counts the events a narrowing leaves, across every page of them, without reading any.
+    /// </summary>
+    /// <param name="filter">What to narrow to. Its order, page and size are not read.</param>
+    /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
+    /// <remarks>
+    /// The one thing a page of one would also answer, at the cost of a row nobody wanted: a
+    /// model's last version is its count of events, and the place of a row in a narrowed table is
+    /// a count of the events below it.
+    /// </remarks>
+    Task<EventCount> Count(StreamedEventFilter filter, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Reads the one event at a place in the narrowed log, in the order asked for, without counting
+    /// the rest.
+    /// </summary>
+    /// <param name="filter">What to narrow to and in what order. Its page and size are not read.</param>
+    /// <param name="index">The place, from zero.</param>
+    /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
+    /// <remarks>
+    /// The other thing a page of one would answer, at the cost of a count nobody wanted: a version
+    /// is placed in a model's history by the event at that index, oldest first.
+    /// </remarks>
+    Task<PlacedStreamEvent> At(StreamedEventFilter filter, int index, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Reads one page of the snapshots, of either kind of model.
     /// </summary>
     /// <param name="filter">Which kind, what to narrow to, in what order, and which page of it.</param>
@@ -69,6 +94,16 @@ public sealed record StreamedModelAddress(StreamedModelKind Kind, string StreamI
 /// <param name="Snapshot">What is stored there, or null when nothing is.</param>
 /// <param name="Error">Why the store could not be read, or null when it was.</param>
 public sealed record ReadStreamModel(StoredStreamModel? Snapshot, string? Error);
+
+/// <summary>How many events a narrowing leaves, or why they could not be counted.</summary>
+/// <param name="Total">The count, or null when the log could not be read.</param>
+/// <param name="Error">Why it could not be, or null when it was.</param>
+public sealed record EventCount(int? Total, string? Error);
+
+/// <summary>The one event at a place in the narrowed log, or why it could not be read.</summary>
+/// <param name="Event">The event, or null when there is none at that place or the log could not be read.</param>
+/// <param name="Error">Why the log could not be read, or null when it was — a place past the end is not an error.</param>
+public sealed record PlacedStreamEvent(StoredStreamEvent? Event, string? Error);
 
 /// <summary>
 /// What one page of the log is narrowed to.

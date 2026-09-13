@@ -155,6 +155,54 @@ public sealed class CosmosStreamedReads(CosmosClient client, string databaseName
             cancellationToken);
 
     /// <inheritdoc />
+    public async Task<EventCount> Count(
+        StreamedEventFilter filter, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var container = client.GetContainer(databaseName, containerName);
+
+            return new EventCount(await Count(container, Narrowing.For(filter), cancellationToken), Error: null);
+        }
+        catch (Exception exception)
+        {
+            return new EventCount(null, exception.Message);
+        }
+    }
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// The same ordered query a page is read with, asked for one document at an offset and no
+    /// count — so a place past the end is an empty answer rather than a fault.
+    /// </remarks>
+    public async Task<PlacedStreamEvent> At(
+        StreamedEventFilter filter, int index, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var container = client.GetContainer(databaseName, containerName);
+
+            var (documents, _) = await Ordered(
+                container, Narrowing.For(filter), filter with { Size = 1 }, new PlacedPage(1, 1, index), cancellationToken);
+
+            var document = documents.FirstOrDefault();
+
+            return new PlacedStreamEvent(
+                document is null
+                    ? null
+                    : new StoredStreamEvent(
+                        document.StreamId,
+                        document.Id,
+                        BoundaryEvents.Read(document.Sequence, document.EventType, document.Data, document.CreatedDate)),
+                Error: null);
+        }
+        catch (Exception exception)
+        {
+            return new PlacedStreamEvent(null, exception.Message);
+        }
+    }
+
+    /// <inheritdoc />
     /// <remarks>
     /// Aggregates and projections are one container here as they are two tables relationally, told
     /// apart by <c>documentType</c> — and they do not name their type in the same property, so which

@@ -121,6 +121,37 @@ public class CosmosStreamedReadsFilterTests : IAsyncLifetime
         string? streamPattern = null, string? eventType = null, string? text = null) =>
         new(streamPattern, eventType, text, Descending: true, Page: 1, Size: 50);
 
+    // The two questions the compare tab asks that a page answers wastefully: how many events a
+    // model has, which is a count with no rows wanted, and which event sits at a place in its
+    // history, which is one row with no count wanted. Each is one query rather than two.
+
+    [Fact]
+    public async Task GivenAFilter_WhenTheEventsAreCounted_ThenOnlyTheTotalComesBack()
+    {
+        var counted = await _reads.Count(Filter(streamPattern: "order-0001"));
+
+        counted.Error.Should().BeNull();
+        counted.Total.Should().Be(4);
+    }
+
+    [Fact]
+    public async Task GivenAPlace_WhenTheEventThereIsRead_ThenThatOneRowComesBackInTheOrderAsked()
+    {
+        var stream = Filter(streamPattern: "order-0001") with { Descending = false };
+
+        var third = await _reads.At(stream, index: 2);
+        var newest = await _reads.At(stream with { Descending = true }, index: 0);
+        var beyond = await _reads.At(stream, index: 40);
+
+        using var scope = new AssertionScope();
+
+        third.Error.Should().BeNull();
+        third.Event!.Event.Position.Should().Be(2);
+        newest.Event!.Event.Position.Should().Be(3);
+        beyond.Event.Should().BeNull();
+        beyond.Error.Should().BeNull();
+    }
+
     /// <summary>
     /// The event before a given one in a stream is the newest of those below its sequence. What the
     /// compare column asks for, one row at a time, to say which of a model's own events a row

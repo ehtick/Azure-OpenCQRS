@@ -31,6 +31,34 @@ public sealed class EfStreamedReads(StreamedStoreDbContext context) : IStreamedR
             cancellationToken);
 
     /// <inheritdoc />
+    public Task<EventCount> Count(
+        StreamedEventFilter filter, CancellationToken cancellationToken = default) =>
+        StreamedEvents.Count(
+            context,
+            filter.StreamPattern,
+            filter.EventType,
+            filter.Text,
+            filter.EventTypes,
+            filter.Properties,
+            filter.BeforeSequence,
+            cancellationToken);
+
+    /// <inheritdoc />
+    public Task<PlacedStreamEvent> At(
+        StreamedEventFilter filter, int index, CancellationToken cancellationToken = default) =>
+        StreamedEvents.At(
+            context,
+            filter.StreamPattern,
+            filter.EventType,
+            filter.Text,
+            filter.Descending,
+            index,
+            filter.EventTypes,
+            filter.Properties,
+            filter.BeforeSequence,
+            cancellationToken);
+
+    /// <inheritdoc />
     public Task<StoredStreamSnapshots> Snapshots(
         StreamedSnapshotFilter filter, CancellationToken cancellationToken = default) =>
         StreamedSnapshots.Page(

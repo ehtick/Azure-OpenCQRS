@@ -39,8 +39,8 @@ public class EventVersionsTests
 
         foreach (var (before, count) in answers)
         {
-            reads.Events(Arg.Is<StreamedEventFilter>(filter => filter.BeforeSequence == before), Arg.Any<CancellationToken>())
-                .Returns(Task.FromResult(new StoredStreamEvents([], count, 1, 1, null)));
+            reads.Count(Arg.Is<StreamedEventFilter>(filter => filter.BeforeSequence == before), Arg.Any<CancellationToken>())
+                .Returns(Task.FromResult(new EventCount(count, null)));
         }
 
         return reads;
@@ -112,16 +112,16 @@ public class EventVersionsTests
 
         versions.Should().Equal(new Dictionary<long, int> { [10] = 4, [14] = 8 });
 
-        await reads.Received(1).Events(
+        await reads.Received(1).Count(
             Arg.Is<StreamedEventFilter>(filter =>
                 filter.StreamPattern == "customer:c-1" &&
                 filter.EventTypes!.SequenceEqual(new[] { "OrderPlaced:1" }) &&
                 filter.Properties!["orderId"] == "o-1" &&
                 filter.EventType == null &&
                 filter.Text == null &&
-                filter.Size == 1 &&
                 filter.BeforeSequence == 10),
             Arg.Any<CancellationToken>());
+        reads.ReceivedCalls().Should().HaveCount(2, "a count is all a row's place needs, not a page");
     }
 
     [Fact]
@@ -129,8 +129,8 @@ public class EventVersionsTests
     {
         var reads = Substitute.For<IStreamedReads>();
 
-        reads.Events(Arg.Any<StreamedEventFilter>(), Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult(new StoredStreamEvents([], 0, 1, 1, "The store could not be reached.")));
+        reads.Count(Arg.Any<StreamedEventFilter>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(new EventCount(null, "The store could not be reached.")));
 
         var versions = await EventVersions.Of(reads, Model, Page([10, 14], total: 2, page: 1, size: 10), descending: false, narrowed: true);
 

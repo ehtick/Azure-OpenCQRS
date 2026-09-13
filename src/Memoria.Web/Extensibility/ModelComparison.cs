@@ -21,16 +21,22 @@ public sealed record ComparisonRequest(
     string? To);
 
 /// <summary>
-/// One version of a model as a point in its history: the version, the sequence it was folded up
-/// to, and the event that produced it.
+/// One version of a model as a point in its history: the version, the place in the log it was
+/// folded up to, and what is known of the event that produced it.
 /// </summary>
 /// <param name="Version">The version, which is the model's own count of its events.</param>
-/// <param name="Sequence">The sequence the fold stopped at: the event's, or zero for version zero.</param>
-/// <param name="Event">
-/// The model's event that produced this version, or null for version zero, which is the model
-/// before anything happened to it and has no event of its own.
+/// <param name="Sequence">
+/// The place the fold stopped at — a sequence in a stream, or a position in the one DCB log — or
+/// zero for version zero.
 /// </param>
-public sealed record FoldPoint(int Version, long Sequence, StoredEvent? Event);
+/// <param name="Type">The binding key the event that produced this version was stored under, or null for version zero.</param>
+/// <param name="Written">When that event was appended, or null for version zero.</param>
+/// <remarks>
+/// What the cards say of a version and nothing more: the type and the date, not the payload,
+/// so a history can be read as headers without the payloads that make it heavy. Version zero is
+/// the model before anything happened to it and has no event of its own.
+/// </remarks>
+public sealed record FoldPoint(int Version, long Sequence, string? Type, DateTimeOffset? Written);
 
 /// <summary>
 /// Two versions of one model laid over each other: which they are, what each was folded up to, and
@@ -65,16 +71,16 @@ public sealed record ModelComparison(
     /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
     /// <remarks>
     /// Only once the identifier is known to have been rebuilt: the panel says why when it was not,
-    /// and there is nothing to ask the store for. The model's own history is counted first — one
-    /// row, newest first, narrowed the way the events tab is — because the count is the last
-    /// version, which a pair is checked against and which an address naming no pair compares by
-    /// default. A count that failed says nothing rather than nothing found: a history the store
-    /// could not read is not an empty one, and the range reader is told the difference.
+    /// and there is nothing to ask the store for. The model's own history is counted first —
+    /// narrowed the way the events tab is — because the count is the last version, which a pair
+    /// is checked against and which an address naming no pair compares by default. A count that
+    /// failed says nothing rather than nothing found: a history the store could not read is not an
+    /// empty one, and the range reader is told the difference.
     /// <para>
-    /// A version is then placed in the history by reading the model's event at that place, oldest
-    /// first, one row: the store folds up to a sequence, and a version's sequence is the one thing
-    /// it does not know. The event read is kept, so the tab can say what each version is without
-    /// reading it again.
+    /// A version is then placed in the history by reading the model's event at that index, oldest
+    /// first: the store folds up to a sequence, and a version's sequence is the one thing it does
+    /// not know. Each is the read made for it — a count with no rows, a row with no count — rather
+    /// than a page of one, which would be both at twice the cost.
     /// </para>
     /// </remarks>
     public static async Task<ModelComparison> Of(
@@ -90,19 +96,19 @@ public sealed record ModelComparison(
             return None;
         }
 
-        StreamedEventFilter History(int page, bool descending) => new(
+        var history = new StreamedEventFilter(
             StreamPattern: request.StreamId,
             EventType: null,
             Text: null,
-            Descending: descending,
-            Page: page,
+            Descending: false,
+            Page: 1,
             Size: 1)
         {
             EventTypes = request.EventTypes,
             Properties = identity.Claim
         };
 
-        var counted = await reads.Events(History(1, descending: true), cancellationToken);
+        var counted = await reads.Count(history, cancellationToken);
 
         long? lastVersion = counted.Error is null ? counted.Total : null;
 
@@ -125,13 +131,13 @@ public sealed record ModelComparison(
         {
             if (version == 0)
             {
-                return new FoldPoint(0, 0, null);
+                return new FoldPoint(0, 0, null, null);
             }
 
-            var placed = await reads.Events(History(version, descending: false), cancellationToken);
+            var placed = await reads.At(history, version - 1, cancellationToken);
 
-            return placed.Error is null && placed.Events.FirstOrDefault() is { } found
-                ? new FoldPoint(version, found.Event.Position, found.Event)
+            return placed.Error is null && placed.Event is { } found
+                ? new FoldPoint(version, found.Event.Position, found.Event.Type, found.Event.Written)
                 : null;
         }
 

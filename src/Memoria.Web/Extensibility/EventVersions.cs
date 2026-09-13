@@ -61,11 +61,13 @@ public static class EventVersions
                 continue;
             }
 
-            var below = await reads.Events(new StreamedEventFilter(
+            // A count and nothing else: the row's place is how many of the model's events sit
+            // below it, and a page of one would fetch a row nobody wanted to learn the same number.
+            var below = await reads.Count(new StreamedEventFilter(
                 model.StreamPattern,
                 EventType: null,
                 Text: null,
-                Descending: true,
+                Descending: false,
                 Page: 1,
                 Size: 1)
             {
@@ -74,12 +76,12 @@ public static class EventVersions
                 BeforeSequence = position
             }, cancellationToken);
 
-            if (below.Error is not null)
+            if (below.Total is not { } counted)
             {
                 continue;
             }
 
-            versions[position] = below.Total + 1;
+            versions[position] = counted + 1;
         }
 
         return versions;

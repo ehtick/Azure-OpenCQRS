@@ -161,6 +161,65 @@ public class SqliteStreamedReadsTests : IAsyncLifetime
         page.Events.Should().ContainSingle().Which.Event.Position.Should().Be(2);
     }
 
+    // The two questions the compare tab asks that a page answers wastefully: how many events a model
+    // has, which is a count with no rows wanted, and which event sits at a place in its history,
+    // which is one row with no count wanted. Each is one round trip rather than two.
+
+    [Fact]
+    public async Task GivenAFilter_WhenTheEventsAreCounted_ThenOnlyTheTotalComesBack()
+    {
+        await using var context = Read();
+
+        var counted = await new EfStreamedReads(context).Count(Filter() with { StreamPattern = "customer:c-0000" });
+
+        counted.Error.Should().BeNull();
+        counted.Total.Should().Be(4);
+    }
+
+    [Fact]
+    public async Task GivenABound_WhenTheEventsAreCounted_ThenOnlyThoseBelowItAreCounted()
+    {
+        await using var context = Read();
+
+        var counted = await new EfStreamedReads(context).Count(
+            Filter() with { StreamPattern = "customer:c-0000", BeforeSequence = 2 });
+
+        counted.Total.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task GivenAPlace_WhenTheEventThereIsRead_ThenThatOneRowComesBackInTheOrderAsked()
+    {
+        await using var context = Read();
+        var reads = new EfStreamedReads(context);
+        var stream = Filter(descending: false) with { StreamPattern = "customer:c-0000" };
+
+        var third = await reads.At(stream, index: 2);
+        var newest = await reads.At(stream with { Descending = true }, index: 0);
+
+        using var scope = new AssertionScope();
+
+        third.Error.Should().BeNull();
+        third.Event!.Event.Position.Should().Be(2, "the stream's sequences run from zero and the third is at index two");
+        newest.Event!.Event.Position.Should().Be(3);
+    }
+
+    /// <summary>
+    /// A place past the end is an answer rather than a fault: there is no such event, and the
+    /// reader who asked can say so without a count to compare against.
+    /// </summary>
+    [Fact]
+    public async Task GivenAPlacePastTheEnd_WhenTheEventThereIsRead_ThenNothingComesBackWithoutError()
+    {
+        await using var context = Read();
+
+        var beyond = await new EfStreamedReads(context).At(
+            Filter(descending: false) with { StreamPattern = "customer:c-0000" }, index: 40);
+
+        beyond.Error.Should().BeNull();
+        beyond.Event.Should().BeNull();
+    }
+
     [Fact]
     public async Task GivenASqliteStore_WhenAscendingIsAsked_ThenTheOldestComeFirst()
     {

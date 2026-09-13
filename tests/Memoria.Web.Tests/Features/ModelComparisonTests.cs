@@ -20,6 +20,11 @@ namespace Memoria.Web.Tests.Features;
 /// the fold up to 7, version eight the fold up to 14. A version is the model's own count, so the
 /// six earlier sequences — another model's — do not move it.
 /// </para>
+/// <para>
+/// Asked with the two reads made for it: a count, which is one round trip with no rows, and the
+/// event at a place in the history, which is one row with no count. A page of one would answer
+/// either, at twice the cost.
+/// </para>
 /// </summary>
 public class ModelComparisonTests
 {
@@ -32,6 +37,8 @@ public class ModelComparisonTests
 
     private const int Versions = 8;
 
+    private static readonly DateTimeOffset Written = new(2026, 5, 6, 11, 15, 0, TimeSpan.Zero);
+
     /// <summary>The sequence a version of this model was folded up to.</summary>
     private static long SequenceOf(int version) => 6 + version;
 
@@ -39,37 +46,40 @@ public class ModelComparisonTests
         new(typeof(SampleCountingAggregate), Identity, StreamId: "sample-1", EventTypes: null, from, to);
 
     private static StoredEvent Event(long position) =>
-        new(position, "Sample:1", DateTimeOffset.UnixEpoch, "{}", [], null, []);
-
-    private static StoredStreamEvents One(long position, int total) =>
-        new([new StoredStreamEvent("sample-1", $"sample-1:{position}", Event(position))], total, 1, total, null);
+        new(position, "Sample:1", Written.AddMinutes(position), "{}", [], null, []);
 
     /// <summary>
-    /// A history of the model's events, answering the count newest-first and the single event at
-    /// any page of one ascending — which is how a version is turned into a sequence.
+    /// A history of the model's events: a count, and the event at any place in it oldest first —
+    /// which is how a version is turned into a sequence.
     /// </summary>
     private static IStreamedReads History(int? versions = Versions)
     {
         var reads = Substitute.For<IStreamedReads>();
 
-        reads.Events(Arg.Any<StreamedEventFilter>(), Arg.Any<CancellationToken>())
+        reads.Count(Arg.Any<StreamedEventFilter>(), Arg.Any<CancellationToken>())
+            .Returns(_ => Task.FromResult(versions is { } known
+                ? new EventCount(known, null)
+                : new EventCount(null, "The store could not be reached.")));
+
+        reads.At(Arg.Any<StreamedEventFilter>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
             .Returns(call =>
             {
-                var filter = call.Arg<StreamedEventFilter>();
+                var index = call.ArgAt<int>(1);
 
                 if (versions is null)
                 {
-                    return Task.FromResult(new StoredStreamEvents([], 0, 1, 1, "The store could not be reached."));
+                    return Task.FromResult(new PlacedStreamEvent(null, "The store could not be reached."));
                 }
 
-                if (versions == 0 || filter.Page > versions)
+                if (index >= versions)
                 {
-                    return Task.FromResult(new StoredStreamEvents([], 0, 1, 1, null));
+                    return Task.FromResult(new PlacedStreamEvent(null, null));
                 }
 
-                var position = filter.Descending ? SequenceOf(versions.Value) : SequenceOf(filter.Page);
+                var position = SequenceOf(index + 1);
 
-                return Task.FromResult(One(position, versions.Value));
+                return Task.FromResult(new PlacedStreamEvent(
+                    new StoredStreamEvent("sample-1", $"sample-1:{position}", Event(position)), null));
             });
 
         return reads;
@@ -113,7 +123,7 @@ public class ModelComparisonTests
     /// <summary>
     /// The model's own history is what is counted: the same stream, types and properties the
     /// events tab is read with, so on a shared stream the count is this model's and not the
-    /// stream's.
+    /// stream's — and counted, not paged.
     /// </summary>
     [Fact]
     public async Task Counts_the_models_own_history()
@@ -123,31 +133,35 @@ public class ModelComparisonTests
 
         await ModelComparison.Of(reads, Folding((9, Counting(1)), (13, Counting(2))), request);
 
-        await reads.Received().Events(
+        await reads.Received(1).Count(
             Arg.Is<StreamedEventFilter>(filter =>
                 filter.StreamPattern == "sample-1" &&
-                filter.Descending &&
-                filter.Size == 1 &&
                 filter.EventTypes!.SequenceEqual(new[] { "Sample:1" }) &&
                 filter.Properties != null),
             Arg.Any<CancellationToken>());
+        await reads.DidNotReceive().Events(Arg.Any<StreamedEventFilter>(), Arg.Any<CancellationToken>());
     }
 
     /// <summary>
     /// A version is the model's own count, so the fold for version three stops at the model's third
-    /// event — sequence 9 here — and not at sequence 3, which is another model's.
+    /// event — sequence 9 here — and not at sequence 3, which is another model's. Placed by asking
+    /// for the event at that index, oldest first, rather than for a page of one.
     /// </summary>
     [Fact]
     public async Task Folds_each_version_up_to_the_sequence_of_the_models_own_event()
     {
+        var reads = History();
         var store = Folding((9, Counting(1)), (13, Counting(1)));
 
-        var comparison = await ModelComparison.Of(History(), store, Request("3", "7"));
+        var comparison = await ModelComparison.Of(reads, store, Request("3", "7"));
 
         comparison.Range.Should().Be(new CompareRange(3, 7));
         comparison.From!.Sequence.Should().Be(9);
         comparison.To!.Sequence.Should().Be(13);
         comparison.Rows.Single().Change.Should().Be(Change.Unchanged);
+
+        await reads.Received(1).At(Arg.Is<StreamedEventFilter>(filter => !filter.Descending), 2, Arg.Any<CancellationToken>());
+        await reads.Received(1).At(Arg.Is<StreamedEventFilter>(filter => !filter.Descending), 6, Arg.Any<CancellationToken>());
     }
 
     /// <summary>
@@ -162,8 +176,8 @@ public class ModelComparisonTests
 
         var comparison = await ModelComparison.Of(History(), store, Request("3", "7"));
 
-        comparison.From.Should().BeEquivalentTo(new FoldPoint(3, 9, Event(9)));
-        comparison.To.Should().BeEquivalentTo(new FoldPoint(7, 13, Event(13)));
+        comparison.From.Should().Be(new FoldPoint(3, 9, "Sample:1", Written.AddMinutes(9)));
+        comparison.To.Should().Be(new FoldPoint(7, 13, "Sample:1", Written.AddMinutes(13)));
     }
 
     /// <summary>
@@ -177,8 +191,8 @@ public class ModelComparisonTests
 
         var comparison = await ModelComparison.Of(History(), store, Request("0", "1"));
 
-        comparison.From.Should().BeEquivalentTo(new FoldPoint(0, 0, null));
-        comparison.To.Should().BeEquivalentTo(new FoldPoint(1, 7, Event(7)));
+        comparison.From.Should().Be(new FoldPoint(0, 0, null, null));
+        comparison.To!.Sequence.Should().Be(7);
         comparison.Rows.Single().Change.Should().Be(Change.Changed);
     }
 

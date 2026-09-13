@@ -207,9 +207,9 @@
 
             <dt>Event type</dt>
             <dd>
-                @if (point.Event is { } produced)
+                @if (point.Type is { } produced)
                 {
-                    <code>@DomainTypeDescriber.LabelOfKey(produced.Type)</code>
+                    <code>@DomainTypeDescriber.LabelOfKey(produced)</code>
                 }
                 else
                 {
@@ -222,9 +222,9 @@
                reader matching it against the database wants the value the database has. *@
             <dt>Created</dt>
             <dd>
-                @if (point.Event is { } appended)
+                @if (point.Written is { } appended)
                 {
-                    @appended.Written.ToString("O")
+                    @appended.ToString("O")
                 }
                 else
                 {

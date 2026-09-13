@@ -1,5 +1,4 @@
 using Memoria.EventSourcing.Dcb;
-using Memoria.EventSourcing.Dcb.Store.EntityFrameworkCore.Entities;
 
 namespace Memoria.Web.Extensibility;
 
@@ -23,8 +22,8 @@ public sealed record BoundaryComparisonRequest(Type Model, object? Identifier, s
 /// <remarks>
 /// The difference from the streamed comparison is where the counting happens. A streamed page
 /// reads its history a page at a time, so it counts and places versions through store reads; a
-/// DCB page reads the whole boundary for its events tab, so the history is in hand and a version
-/// is arithmetic over it: the last version is the count, and version N is the Nth row's position.
+/// DCB page has the shape of its whole boundary in hand as headers, so a version is arithmetic
+/// over that list: the last version is the count, and version N is the Nth header's position.
 /// Only the two folds go to the store.
 /// </remarks>
 public static class BoundaryComparison
@@ -32,7 +31,7 @@ public static class BoundaryComparison
     /// <summary>
     /// Folds the model at each of the two versions and compares the results.
     /// </summary>
-    /// <param name="history">The model's whole history in position order, or why it could not be read.</param>
+    /// <param name="history">The headers of the model's whole history in position order, or why they could not be read.</param>
     /// <param name="service">The DCB domain service, which does the folding.</param>
     /// <param name="request">Which model, named how, at which versions.</param>
     /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
@@ -67,8 +66,8 @@ public static class BoundaryComparison
         // has already kept within the count.
         FoldPoint Place(int version) =>
             version == 0
-                ? new FoldPoint(0, 0, null)
-                : new FoldPoint(version, rows[version - 1].Position, Read(rows[version - 1]));
+                ? new FoldPoint(0, 0, null, null)
+                : new FoldPoint(version, rows[version - 1].Position, rows[version - 1].EventType, rows[version - 1].CreatedDate);
 
         var from = Place(range.From);
         var to = Place(range.To);
@@ -86,8 +85,4 @@ public static class BoundaryComparison
                 DomainTypeDescriber.ReadState(before.Model!),
                 DomainTypeDescriber.ReadState(after.Model!)), null);
     }
-
-    /// <summary>The row as the events tab reads one, so the cards name and date it the same way.</summary>
-    private static StoredEvent Read(DcbEventEntity row) =>
-        BoundaryEvents.Read(row.Position, row.EventType, row.Data, row.CreatedDate);
 }

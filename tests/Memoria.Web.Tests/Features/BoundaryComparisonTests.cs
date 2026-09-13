@@ -12,8 +12,8 @@ namespace Memoria.Web.Tests.Features;
 /// <summary>
 /// The compare tab's one question on a DCB page, asked of the boundary's history and the store's
 /// folds together: which two versions, folded up to which positions, differing where. The history
-/// is in hand — the page reads the whole boundary for its events tab — so counting and placing
-/// versions is arithmetic over that list, and only the folds go to the store.
+/// is in hand as headers — position, type and date, no payloads — so counting and placing versions
+/// is arithmetic over that list, and only the folds go to the store.
 /// <para>
 /// The model here has eight events at positions 7 to 14 of the one log: version one is the fold
 /// up to 7, version eight the fold up to 14.
@@ -25,16 +25,10 @@ public class BoundaryComparisonTests
 
     private static readonly DateTimeOffset Written = new(2026, 5, 6, 11, 15, 0, TimeSpan.Zero);
 
-    private static DcbEventEntity Row(long position) => new()
-    {
-        Position = position,
-        EventType = "Sample:1",
-        Data = "{}",
-        CreatedDate = Written.AddMinutes(position)
-    };
+    private static DcbEventHeader Header(long position) => new(position, "Sample:1", Written.AddMinutes(position));
 
     private static BoundaryHistory History(int events = 8) =>
-        new(Enumerable.Range(1, events).Select(n => Row(6 + n)).ToList(), Error: null);
+        new(Enumerable.Range(1, events).Select(n => Header(6 + n)).ToList(), Error: null);
 
     private static BoundaryComparisonRequest Request(string? from, string? to) =>
         new(typeof(SampleCountingDcbAggregate), AggregateId, from, to);
@@ -92,7 +86,7 @@ public class BoundaryComparisonTests
 
     /// <summary>
     /// The event that produced each version travels with it — its type and when it was appended —
-    /// read as the events tab reads a row, so the cards say what each version is.
+    /// straight off the header, so the cards say what each version is without a payload being read.
     /// </summary>
     [Fact]
     public async Task Carries_the_event_that_produced_each_version()
@@ -101,9 +95,8 @@ public class BoundaryComparisonTests
 
         var comparison = await BoundaryComparison.Of(History(), store, Request("3", "7"));
 
-        comparison.From!.Version.Should().Be(3);
-        comparison.From.Event.Should().BeEquivalentTo(new { Position = 9L, Type = "Sample:1", Written = Written.AddMinutes(9) });
-        comparison.To!.Event.Should().BeEquivalentTo(new { Position = 13L, Type = "Sample:1", Written = Written.AddMinutes(13) });
+        comparison.From.Should().Be(new FoldPoint(3, 9, "Sample:1", Written.AddMinutes(9)));
+        comparison.To.Should().Be(new FoldPoint(7, 13, "Sample:1", Written.AddMinutes(13)));
     }
 
     [Fact]
@@ -113,7 +106,7 @@ public class BoundaryComparisonTests
 
         var comparison = await BoundaryComparison.Of(History(), store, Request("0", "1"));
 
-        comparison.From.Should().BeEquivalentTo(new FoldPoint(0, 0, null));
+        comparison.From.Should().Be(new FoldPoint(0, 0, null, null));
         comparison.To!.Sequence.Should().Be(7);
         comparison.Rows.Single().Change.Should().Be(Change.Changed);
     }

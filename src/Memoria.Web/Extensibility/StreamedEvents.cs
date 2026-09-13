@@ -3,6 +3,8 @@ using Memoria.Web.Data;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 
+using Memoria.EventSourcing.Store.EntityFrameworkCore.Entities;
+
 namespace Memoria.Web.Extensibility;
 
 /// <summary>
@@ -81,105 +83,14 @@ public static class StreamedEvents
     {
         try
         {
-            var stored = context.Events.AsNoTracking();
-
-            if (beforeSequence is { } bound)
-            {
-                // Below rather than at or below: what is asked is which event a row follows, and
-                // the row itself is not the answer.
-                stored = stored.Where(appended => appended.Sequence < bound);
-            }
-
-            if (!string.IsNullOrWhiteSpace(streamPattern))
-            {
-                // Like rather than a prefix comparison, because a stream's values are not always at
-                // the end of its id: one built from two of them writes something after the first,
-                // and the pattern has a hole in the middle to match it.
-                stored = stored.Where(appended => EF.Functions.Like(appended.StreamId, streamPattern));
-            }
-
-            if (!string.IsNullOrWhiteSpace(eventType))
-            {
-                stored = stored.Where(appended => appended.EventType == eventType);
-            }
-
-            if (eventTypes is { Count: > 0 })
-            {
-                // The keys the model applies, held against the key the row was written under. A
-                // model's own filter is a list of CLR types; what the store holds is what each of
-                // them is bound as, which is the only thing a row and a type have in common.
-                var applied = eventTypes.ToList();
-
-                stored = stored.Where(appended => applied.Contains(appended.EventType));
-            }
-
-            if (properties is { Count: > 0 })
-            {
-                foreach (var (name, value) in properties)
-                {
-                    // The needle the store's own fold looks for, built the same way: the property
-                    // name and the value as JSON would have written them, matched against the
-                    // payload as text. Reproduced rather than shared because the store reaches it
-                    // through a provider-specific filter chosen at registration, and this reads a
-                    // column it was handed.
-                    var needle = $"{JsonConvert.ToString(name)}:{EventPropertyFilterValue.ToJsonLiteral(value)}";
-
-                    stored = stored.Where(appended => appended.Data.Contains(needle));
-                }
-            }
-
-            if (!string.IsNullOrWhiteSpace(text))
-            {
-                // Lowered on both sides rather than with a provider's case-insensitive operator, so
-                // this reads the same against SQL Server as it does against Postgres. Contains
-                // rather than the Like the stream pattern is matched by: this text was typed by
-                // someone, and % and _ are ordinary characters they may well be looking for, so
-                // Contains leaves the provider to escape them rather than reading them as
-                // wildcards.
-                var wanted = text.Trim().ToLower();
-
-                // The row's own key as well as the stream it names and the payload it carries. The
-                // stream is looked in separately even though the key is built out of it: how the
-                // store puts a key together is its business, and a filter that leaned on that would
-                // quietly stop finding streams if it ever changed.
-                stored = stored.Where(appended =>
-                    appended.StreamId.ToLower().Contains(wanted) ||
-                    appended.Id.ToLower().Contains(wanted) ||
-                    appended.Data.ToLower().Contains(wanted));
-            }
+            var stored = Narrow(context, streamPattern, eventType, text, eventTypes, properties, beforeSequence);
 
             var total = await stored.CountAsync(cancellationToken);
             var placed = InstanceQuery.Place(page, total, size);
 
-            var ordered = descending
-                ? stored.OrderByDescending(appended => appended.CreatedDate)
-                    .ThenBy(appended => appended.StreamId)
-                    .ThenByDescending(appended => appended.Sequence)
-                : stored.OrderBy(appended => appended.CreatedDate)
-                    .ThenBy(appended => appended.StreamId)
-                    .ThenBy(appended => appended.Sequence);
+            var ordered = Ordered(stored, descending);
 
-            var rows = await ordered
-                .Skip(placed.Skip)
-                .Take(size)
-                .Select(appended => new
-                {
-                    appended.Id, appended.StreamId, appended.Sequence, appended.EventType,
-                    appended.Data, appended.CreatedDate
-                })
-                .ToListAsync(cancellationToken);
-
-            // The same reading the DCB log and a boundary's events go through, so a row says the
-            // same thing wherever it is met — including a row whose type the uploaded assemblies no
-            // longer describe, which is listed rather than dropped. The sequence goes where a
-            // position goes: both are the number that says where in the log a row sits, counted
-            // within a stream here and across the whole log there.
-            var read = rows
-                .Select(row => new StoredStreamEvent(
-                    row.StreamId,
-                    row.Id,
-                    BoundaryEvents.Read(row.Sequence, row.EventType, row.Data, row.CreatedDate)))
-                .ToList();
+            var read = await ReadRows(ordered, placed.Skip, size, cancellationToken);
 
             return new StoredStreamEvents(read, total, placed.Page, placed.TotalPages, Error: null);
         }
@@ -187,6 +98,187 @@ public static class StreamedEvents
         {
             return new StoredStreamEvents([], Total: 0, Page: 1, TotalPages: 1, Error: exception.Message);
         }
+    }
+
+    /// <summary>
+    /// Counts the events a narrowing leaves, across every page of them, without reading any.
+    /// </summary>
+    public static async Task<EventCount> Count(
+        StreamedStoreDbContext context,
+        string? streamPattern,
+        string? eventType,
+        string? text,
+        IReadOnlyList<string>? eventTypes = null,
+        IReadOnlyDictionary<string, string>? properties = null,
+        long? beforeSequence = null,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var stored = Narrow(context, streamPattern, eventType, text, eventTypes, properties, beforeSequence);
+
+            return new EventCount(await stored.CountAsync(cancellationToken), Error: null);
+        }
+        catch (Exception exception)
+        {
+            return new EventCount(null, exception.Message);
+        }
+    }
+
+    /// <summary>
+    /// Reads the one event at a place in the narrowed log, in the order asked for, without counting
+    /// the rest. A place past the end is nothing rather than a fault.
+    /// </summary>
+    public static async Task<PlacedStreamEvent> At(
+        StreamedStoreDbContext context,
+        string? streamPattern,
+        string? eventType,
+        string? text,
+        bool descending,
+        int index,
+        IReadOnlyList<string>? eventTypes = null,
+        IReadOnlyDictionary<string, string>? properties = null,
+        long? beforeSequence = null,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var stored = Narrow(context, streamPattern, eventType, text, eventTypes, properties, beforeSequence);
+            var read = await ReadRows(Ordered(stored, descending), index, take: 1, cancellationToken);
+
+            return new PlacedStreamEvent(read.FirstOrDefault(), Error: null);
+        }
+        catch (Exception exception)
+        {
+            return new PlacedStreamEvent(null, exception.Message);
+        }
+    }
+
+    /// <summary>
+    /// The events a narrowing leaves, as a query the three reads share: paged, counted, or one
+    /// row at a place.
+    /// </summary>
+    private static IQueryable<EventEntity> Narrow(
+        StreamedStoreDbContext context,
+        string? streamPattern,
+        string? eventType,
+        string? text,
+        IReadOnlyList<string>? eventTypes,
+        IReadOnlyDictionary<string, string>? properties,
+        long? beforeSequence)
+    {
+        var stored = context.Events.AsNoTracking();
+
+        if (beforeSequence is { } bound)
+        {
+            // Below rather than at or below: what is asked is which event a row follows, and
+            // the row itself is not the answer.
+            stored = stored.Where(appended => appended.Sequence < bound);
+        }
+
+        if (!string.IsNullOrWhiteSpace(streamPattern))
+        {
+            // Like rather than a prefix comparison, because a stream's values are not always at
+            // the end of its id: one built from two of them writes something after the first,
+            // and the pattern has a hole in the middle to match it.
+            stored = stored.Where(appended => EF.Functions.Like(appended.StreamId, streamPattern));
+        }
+
+        if (!string.IsNullOrWhiteSpace(eventType))
+        {
+            stored = stored.Where(appended => appended.EventType == eventType);
+        }
+
+        if (eventTypes is { Count: > 0 })
+        {
+            // The keys the model applies, held against the key the row was written under. A
+            // model's own filter is a list of CLR types; what the store holds is what each of
+            // them is bound as, which is the only thing a row and a type have in common.
+            var applied = eventTypes.ToList();
+
+            stored = stored.Where(appended => applied.Contains(appended.EventType));
+        }
+
+        if (properties is { Count: > 0 })
+        {
+            foreach (var (name, value) in properties)
+            {
+                // The needle the store's own fold looks for, built the same way: the property
+                // name and the value as JSON would have written them, matched against the
+                // payload as text. Reproduced rather than shared because the store reaches it
+                // through a provider-specific filter chosen at registration, and this reads a
+                // column it was handed.
+                var needle = $"{JsonConvert.ToString(name)}:{EventPropertyFilterValue.ToJsonLiteral(value)}";
+
+                stored = stored.Where(appended => appended.Data.Contains(needle));
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(text))
+        {
+            // Lowered on both sides rather than with a provider's case-insensitive operator, so
+            // this reads the same against SQL Server as it does against Postgres. Contains
+            // rather than the Like the stream pattern is matched by: this text was typed by
+            // someone, and % and _ are ordinary characters they may well be looking for, so
+            // Contains leaves the provider to escape them rather than reading them as
+            // wildcards.
+            var wanted = text.Trim().ToLower();
+
+            // The row's own key as well as the stream it names and the payload it carries. The
+            // stream is looked in separately even though the key is built out of it: how the
+            // store puts a key together is its business, and a filter that leaned on that would
+            // quietly stop finding streams if it ever changed.
+            stored = stored.Where(appended =>
+                appended.StreamId.ToLower().Contains(wanted) ||
+                appended.Id.ToLower().Contains(wanted) ||
+                appended.Data.ToLower().Contains(wanted));
+        }
+
+
+        return stored;
+    }
+
+    /// <summary>The narrowed events in the order a page is read in, newest or oldest first.</summary>
+    private static IOrderedQueryable<EventEntity> Ordered(IQueryable<EventEntity> stored, bool descending) =>
+        descending
+            ? stored.OrderByDescending(appended => appended.CreatedDate)
+                .ThenBy(appended => appended.StreamId)
+                .ThenByDescending(appended => appended.Sequence)
+            : stored.OrderBy(appended => appended.CreatedDate)
+                .ThenBy(appended => appended.StreamId)
+                .ThenBy(appended => appended.Sequence);
+
+    /// <summary>
+    /// Reads a run of ordered rows and gives each the reading the DCB log and a boundary's events
+    /// go through, so a row says the same thing wherever it is met.
+    /// </summary>
+    private static async Task<List<StoredStreamEvent>> ReadRows(
+        IOrderedQueryable<EventEntity> ordered, int skip, int take, CancellationToken cancellationToken)
+    {
+        var rows = await ordered
+            .Skip(skip)
+            .Take(take)
+            .Select(appended => new
+            {
+                appended.Id, appended.StreamId, appended.Sequence, appended.EventType,
+                appended.Data, appended.CreatedDate
+            })
+            .ToListAsync(cancellationToken);
+
+        // The same reading the DCB log and a boundary's events go through, so a row says the
+        // same thing wherever it is met — including a row whose type the uploaded assemblies no
+        // longer describe, which is listed rather than dropped. The sequence goes where a
+        // position goes: both are the number that says where in the log a row sits, counted
+        // within a stream here and across the whole log there.
+        var read = rows
+            .Select(row => new StoredStreamEvent(
+                row.StreamId,
+                row.Id,
+                BoundaryEvents.Read(row.Sequence, row.EventType, row.Data, row.CreatedDate)))
+            .ToList();
+
+
+        return read;
     }
 }
 

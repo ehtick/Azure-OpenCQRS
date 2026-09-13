@@ -169,16 +169,17 @@ public static class BoundaryEvents
             .ToDictionary(placed => placed.Position, placed => placed.Version);
 
     /// <summary>
-    /// Reads a model's whole history: every event in its boundary that it applies, in position
-    /// order, as the store folds them.
+    /// Reads the shape of a model's whole history: the header of every event in its boundary that
+    /// it applies, in position order, as the store folds them.
     /// </summary>
     /// <param name="context">The DCB store's context.</param>
     /// <param name="boundary">The tag query the model's identifier selects its events with.</param>
     /// <param name="applies">The event types the model applies, or null when it applies everything.</param>
     /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
     /// <remarks>
-    /// The same read <see cref="Load"/> pages, handed over whole: the compare tab counts and places
-    /// versions over the list rather than over a page of it. A read that failed says so rather than
+    /// Headers rather than the events <see cref="Load"/> pages: the compare tab counts and places
+    /// versions over the list, and names the two events it lands on, none of which needs a payload
+    /// — and the payloads are what make a boundary heavy. A read that failed says so rather than
     /// answering with an empty history, which would be a different claim.
     /// </remarks>
     public static async Task<BoundaryHistory> History(
@@ -190,7 +191,7 @@ public static class BoundaryEvents
         try
         {
             return new BoundaryHistory(
-                await context.GetEventEntities(boundary, applies, cancellationToken), Error: null);
+                await context.GetEventHeaders(boundary, applies, cancellationToken), Error: null);
         }
         catch (Exception exception)
         {
@@ -304,10 +305,10 @@ public sealed record StoredEvents(
     public IReadOnlyDictionary<long, int> Versions { get; init; } = new Dictionary<long, int>();
 }
 
-/// <summary>A model's whole history, or why it could not be read.</summary>
-/// <param name="Rows">Every event in the boundary the model applies, in position order; empty when the read failed.</param>
+/// <summary>The shape of a model's whole history, or why it could not be read.</summary>
+/// <param name="Rows">The header of every event in the boundary the model applies, in position order; empty when the read failed.</param>
 /// <param name="Error">Why the log could not be read, or null when it was.</param>
-public sealed record BoundaryHistory(IReadOnlyList<DcbEventEntity> Rows, string? Error);
+public sealed record BoundaryHistory(IReadOnlyList<DcbEventHeader> Rows, string? Error);
 
 /// <summary>One event, as the log holds it.</summary>
 /// <param name="Position">Its global position.</param>
