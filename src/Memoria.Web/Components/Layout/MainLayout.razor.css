@@ -179,6 +179,13 @@ footer {
         align-items: center;
         display: flex;
         flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    /* The dot between the copyright and the link after it, faint because it separates rather than
+       says anything. */
+    footer .footer-separator {
+        color: var(--ink-faint);
     }
 
     footer .footer-links {

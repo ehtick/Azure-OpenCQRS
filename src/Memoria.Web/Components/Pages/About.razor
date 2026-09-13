@@ -1,0 +1,122 @@
+@page "/about"
+
+<PageTitle>About</PageTitle>
+
+<nav class="breadcrumb" aria-label="Breadcrumb">
+    <a href="">Home</a>
+    <span aria-hidden="true">/</span>
+    <span aria-current="page">About</span>
+</nav>
+
+<h1>About</h1>
+<p class="lede">
+    Memoria Web is the browser tool of the Memoria framework: it reads a store, and shows the events
+    appended to it and the models built from them. This page is what the tool itself is — the
+    version running, where it came from, and where the rest of the framework is written up.
+</p>
+
+<h2 id="build">Build</h2>
+@* Drawn the way a model's Info tab draws the facts about a stored row — the label beside the
+   value on one card — because that is what these are: the facts about the tool, read the same
+   way. Not reached by a tab, so the heading above it is written rather than clicked, and the panel
+   is named by it just the same. Both values are taken from the assembly rather than written here,
+   so a release changes them without anyone remembering to. *@
+<section class="tab-panel" aria-labelledby="build">
+    <dl class="facts">
+        @* Linked to the release notes as a whole rather than to a heading for this version: the
+           notes are one page, and a link to an anchor that a release note was not given would
+           land at the top of it anyway. *@
+        <dt>Version</dt>
+        <dd><a href="@ReleaseNotes" target="_blank" rel="noopener noreferrer">@Running.Version</a></dd>
+
+        @* The commit the build was stamped with, linked to itself on GitHub — the one thing that
+           tells two builds of the same version apart. A build made outside a checkout has none,
+           and says so rather than linking nowhere. *@
+        <dt>Commit</dt>
+        <dd>
+            @if (Running.Commit is null)
+            {
+                <span class="missing">not stamped on this build</span>
+            }
+            else
+            {
+                <a href="@($"{Repository}/commit/{Running.Commit}")" target="_blank" rel="noopener noreferrer">@Running.ShortCommit</a>
+            }
+        </dd>
+
+        <dt>Licence</dt>
+        <dd><a href="@($"{Repository}/blob/main/LICENSE")" target="_blank" rel="noopener noreferrer">Apache 2.0</a></dd>
+    </dl>
+</section>
+
+<h2 id="documentation">Documentation</h2>
+@* The tiles the overviews are entered by, each a page of the documentation and each opened in a
+   tab of its own, because they leave the tool. The tool's own pages first, then the framework it
+   reads for; the release notes last, because they are what the version above is looked up in. *@
+<ul class="tiles" aria-labelledby="documentation">
+    <li>
+        <a href="@(Docs + "tools/memoria-web.html")" target="_blank" rel="noopener noreferrer">
+            <SectionMark Kind="SectionKind.Documentation"/>
+            <span class="body">
+                <span class="name">Memoria Web</span>
+                <span class="detail">What it is, and what each page shows.</span>
+            </span>
+        </a>
+    </li>
+    <li>
+        <a href="@(Docs + "tools/memoria-web-configuration.html")" target="_blank" rel="noopener noreferrer">
+            <SectionMark Kind="SectionKind.Documentation"/>
+            <span class="body">
+                <span class="name">Configuration</span>
+                <span class="detail">The connection string, and the settings around it.</span>
+            </span>
+        </a>
+    </li>
+    <li>
+        <a href="@(Docs + "tools/memoria-web-deployment.html")" target="_blank" rel="noopener noreferrer">
+            <SectionMark Kind="SectionKind.Documentation"/>
+            <span class="body">
+                <span class="name">Deployment</span>
+                <span class="detail">Running it somewhere other than localhost.</span>
+            </span>
+        </a>
+    </li>
+    <li>
+        <a href="@(Docs + "tools/memoria-web-samples.html")" target="_blank" rel="noopener noreferrer">
+            <SectionMark Kind="SectionKind.Documentation"/>
+            <span class="body">
+                <span class="name">Sample data</span>
+                <span class="detail">Filling a store to try it against.</span>
+            </span>
+        </a>
+    </li>
+    <li>
+        <a href="@Docs" target="_blank" rel="noopener noreferrer">
+            <SectionMark Kind="SectionKind.Documentation"/>
+            <span class="body">
+                <span class="name">Memoria</span>
+                <span class="detail">The framework: the mediator, event sourcing and the stores.</span>
+            </span>
+        </a>
+    </li>
+    <li>
+        <a href="@ReleaseNotes" target="_blank" rel="noopener noreferrer">
+            <SectionMark Kind="SectionKind.Documentation"/>
+            <span class="body">
+                <span class="name">Release notes</span>
+                <span class="detail">What changed in each version.</span>
+            </span>
+        </a>
+    </li>
+</ul>
+
+@code {
+
+    private const string Repository = "https://github.com/lucabriguglia/Memoria";
+    private const string Docs = "https://lucabriguglia.github.io/Memoria/";
+    private const string ReleaseNotes = Docs + "release-notes.html";
+
+    /// <summary>Read once for the page: the assembly does not change while it is loaded.</summary>
+    private static readonly Build Running = Build.OfRunningApplication();
+
+}

@@ -30,5 +30,8 @@ public enum SectionKind
     Projections,
 
     /// <summary>The streams events are held in, which only the streamed model has.</summary>
-    Streams
+    Streams,
+
+    /// <summary>A page of the documentation, which is outside the tool.</summary>
+    Documentation
 }

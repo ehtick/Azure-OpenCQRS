@@ -1,0 +1,16 @@
+/* The two headings, at the size the home page names each model at: a heading over a card or a row
+   of tiles rather than a page's own title. The second stands off from the card above it by the
+   space the card leaves under itself, so the first needs no room of its own. */
+h2 {
+    font-size: var(--text-xl);
+    font-weight: 600;
+    margin: 0 0 0.75rem;
+}
+
+/* The card runs to the width of the tiles under it, so the two sections read as one column rather
+   than a wide card over a narrower row. The tiles cap their own width in the shared stylesheet;
+   this is the same number, said here because the Info tabs the card is borrowed from have nothing
+   under them to line up with. */
+.tab-panel .facts {
+    max-width: 40rem;
+}

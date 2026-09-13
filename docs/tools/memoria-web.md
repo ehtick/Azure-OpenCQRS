@@ -174,6 +174,14 @@ catch up when the browser is reloaded. The Settings page says this under both ta
 Browser preferences — theme, rows per page, whether the ordering note is shown — are the exception.
 They are stored in the browser and the server is never told.
 
+## About
+
+**About**, linked from the footer, is the page about the tool itself: the version running and the
+commit it was built from, each linked to where it is looked up — the release notes and GitHub —
+the licence, and the documentation, this page among it. Both the version and the commit are read
+off the running assembly, so a deployment shows what was actually built rather than what a file
+says it should be.
+
 ## Security
 
 > **The tool has no authentication or authorization today, and uploading is running code.** Anyone

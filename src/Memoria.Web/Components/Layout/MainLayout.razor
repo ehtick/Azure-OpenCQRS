@@ -107,6 +107,12 @@
 <footer>
     <div class="footer-left">
         <span class="copyright">&copy; @DateTime.UtcNow.Year Luca Briguglia</span>
+        @* Down here rather than in the bar: the bar is for the store and the tool's own settings,
+           and this is the page about the tool — the version, the licence, the documentation —
+           which is what a footer is read for. It sits beside the copyright because that is the
+           one line of it already written here. *@
+        <span class="footer-separator" aria-hidden="true">&middot;</span>
+        <a class="footer-link" href="about">About</a>
     </div>
     <div class="footer-links">
         <a class="footer-link" href="https://github.com/lucabriguglia/Memoria" target="_blank" rel="noopener noreferrer">
