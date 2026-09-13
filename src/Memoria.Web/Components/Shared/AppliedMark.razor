@@ -1,0 +1,41 @@
+@* Whether the stored snapshot has applied an event, as one mark on its row: a tick when it has, a
+   clock when it has not yet — the same clock the version warning wears, because it says the same
+   thing about one event that the warning says about the row: the history has moved past what was
+   written. No word beside it, because the column has none above it either; the mark's title and
+   label say it for a pointer and a screen reader.
+
+   One component rather than a copy on each of the four detail pages: an event is applied or not
+   the same way on a streamed model and a DCB one, and a reader should meet the same two marks on
+   either. *@
+<span class="@(Applied ? "applied" : "pending")"
+      role="img"
+      aria-label="@Label"
+      title="@Label">
+    @* Built to the box, stroke and linecap every other mark here is built to. *@
+    <svg class="glyph" viewBox="0 0 20 20" aria-hidden="true" focusable="false"
+         fill="none" stroke="currentColor" stroke-width="1.6"
+         stroke-linecap="round" stroke-linejoin="round">
+        @if (Applied)
+        {
+            <path d="M4 10.5 8.2 14.5 16 6"/>
+        }
+        else
+        {
+            <circle cx="10" cy="10" r="7"/>
+            <path d="M10 6.2V10l2.6 2"/>
+        }
+    </svg>
+</span>
+
+@code {
+
+    /// <summary>Whether the stored snapshot has applied the row's event.</summary>
+    [Parameter]
+    [EditorRequired]
+    public bool Applied { get; set; }
+
+    private string Label => Applied
+        ? "Applied to the stored snapshot"
+        : "Not applied to the stored snapshot yet";
+
+}

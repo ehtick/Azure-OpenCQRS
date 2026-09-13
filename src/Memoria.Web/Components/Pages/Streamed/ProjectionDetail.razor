@@ -447,6 +447,11 @@ else
                     <table class="grid events compared">
                         <thead>
                         <tr>
+                            @* Whether the stored snapshot has applied the row, as a mark and no
+                               word: a column headed "Applied" would say what the mark says, and
+                               the two marks tell the rows apart on their own. A heading for screen
+                               readers only, so the column is still named where it is read out. *@
+                            <th scope="col" class="col-applied"><span class="visually-hidden">Applied</span></th>
                             <th scope="col" class="col-sequence">Sequence</th>
                             <th scope="col" class="col-appended" aria-sort="@(Descending ? "descending" : "ascending")">
                                 @* The only date these have, so the only thing there is to order them by. *@
@@ -475,6 +480,9 @@ else
                         @foreach (var stored in Events.Events)
                         {
                             <tr>
+                                <td class="col-applied">
+                                    <AppliedMark Applied="AppliedEvent.Is(stored.Event.Position, Stored?.Sequence)"/>
+                                </td>
                                 <td>@stored.Event.Position</td>
                                 <td>@stored.Event.Written.ToLocalTime().ToString("g")</td>
                                 @* Name and version as one, the way every list here names a type, so

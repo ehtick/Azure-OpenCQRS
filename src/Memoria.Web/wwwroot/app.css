@@ -1975,12 +1975,37 @@ h2:focus {
 }
 
 .grid.events.compared .col-payload {
-    width: 36%;
+    width: 32%;
 }
 
 .grid.events.compared .col-compare {
     width: 9%;
 }
+
+/* The mark saying whether the stored snapshot has applied the row, first in the row and as narrow
+   as one mark: a status a reader scans down before reading across. Taken from the payload, which
+   is the column with room to spare. */
+.grid.events.compared .col-applied {
+    padding-left: 1rem;
+    padding-right: 0;
+    width: 4%;
+}
+
+    .grid.events.compared .col-applied .glyph {
+        display: block;
+        height: 1rem;
+        width: 1rem;
+    }
+
+    /* Applied in the notice ink, so a tick reads as good news; pending in the caution ink the
+       version warning wears, because it says the same thing about one event. */
+    .grid.events.compared .applied {
+        color: var(--notice-rule);
+    }
+
+    .grid.events.compared .pending {
+        color: var(--caution-rule);
+    }
 
 /* The link in that column, in the shape the steps on the compare tab have, brought down a step to
    sit inside a row rather than beside a form: a control in a table is read at the table's small
