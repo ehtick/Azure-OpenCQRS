@@ -19,29 +19,38 @@
     <svg class="glyph" viewBox="0 0 20 20" aria-hidden="true" focusable="false"
          fill="none" stroke="currentColor" stroke-width="1.6"
          stroke-linecap="round" stroke-linejoin="round">
-        @* A triangle with a mark in it, which is the one drawing that reads as a warning without a
-           word beside it. *@
-        <path d="M10 3.4 17.6 16.6H2.4z"/>
-        <path d="M10 8.2v3.4"/>
-        @* A zero-length stroke with a round cap, which is how the rest of this set would draw a
-           dot. *@
-        <path d="M10 14.2h.01"/>
+        @* A clock, because what both sentences say is that time has moved on past the stored row:
+           the history has grown since it was written, or a version was reached that it has not.
+           Not the triangle with a mark in it that stood here before — that is the drawing of a
+           fault, and the sentence beside it is at pains to say nothing failed. *@
+        <circle cx="10" cy="10" r="7"/>
+        <path d="M10 6.2V10l2.6 2"/>
     </svg>
-    @Text
+    @* The fact, then the way to act on it as a link into the sentence that says what acting would
+       do: a reader told the row is behind is one step from putting it right, and the step is the
+       update tab. In the same ink as the words around it, underlined so it still reads as a way
+       on rather than as emphasis. *@
+    @Note.Text
+    <a href="@UpdateHref">Update the snapshot</a> @Note.Remedy
 </span>
 
 @code {
 
-    /// <summary>The sentence to set beside the value.</summary>
+    /// <summary>The note to set beside the value: the fact, and what updating would do about it.</summary>
     /// <remarks>
-    /// The sentence rather than the numbers it is worked out from: whether there is anything to
-    /// warn about is <see cref="SnapshotLag.Of"/>'s answer on an info tab and
+    /// The note rather than the numbers it is worked out from: whether there is anything to warn
+    /// about is <see cref="SnapshotLag.Of"/>'s answer on an info tab and
     /// <see cref="UnappliedVersion.Of"/>'s on a compare tab, so a page that has one of these has
     /// already established that it has something to say — and this draws it without deciding it
     /// again.
     /// </remarks>
     [Parameter]
     [EditorRequired]
-    public string Text { get; set; } = string.Empty;
+    public SnapshotNote Note { get; set; } = new(string.Empty, string.Empty);
+
+    /// <summary>The address of the page's update tab, which is where the remedy is carried out.</summary>
+    [Parameter]
+    [EditorRequired]
+    public string UpdateHref { get; set; } = string.Empty;
 
 }

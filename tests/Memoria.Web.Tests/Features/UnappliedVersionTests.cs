@@ -18,25 +18,31 @@ public class UnappliedVersionTests
         UnappliedVersion.Of(version: 3, storedVersion: 5).Should().BeNull();
     }
 
+    /// <summary>
+    /// Said in two parts, as the lag is: the fact, and what following the update link would do
+    /// about it.
+    /// </summary>
     [Fact]
     public void Says_a_version_past_the_stored_one_is_not_applied_yet()
     {
         var note = UnappliedVersion.Of(version: 7, storedVersion: 5);
 
-        note.Should().Contain("not been applied").And.Contain("version 5");
+        note!.Text.Should().Contain("not been applied").And.Contain("version 5");
+        note.Remedy.Should().Be("to fold it in.");
     }
 
     /// <summary>
     /// The row may not exist at all: a stream with events nobody has folded into a snapshot yet.
     /// Then no version has been applied, and the note says so rather than comparing against a
-    /// number there is not.
+    /// number there is not — and the remedy is to write one, not to bring one up to date.
     /// </summary>
     [Fact]
     public void Says_no_snapshot_is_stored_when_there_is_none()
     {
         var note = UnappliedVersion.Of(version: 1, storedVersion: null);
 
-        note.Should().Contain("No snapshot");
+        note!.Text.Should().Contain("No snapshot");
+        note.Remedy.Should().Be("to write one.");
     }
 
     /// <summary>

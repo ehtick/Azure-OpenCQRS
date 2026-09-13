@@ -168,6 +168,11 @@
     [Parameter]
     public int? StoredVersion { get; set; }
 
+    /// <summary>The address of the page's update tab, for the note beside a version the row has not reached.</summary>
+    [Parameter]
+    [EditorRequired]
+    public string UpdateHref { get; set; } = string.Empty;
+
     /// <summary>
     /// The address of this tab comparing a given pair, for the steps beside the form. The page's
     /// to build, since only it knows what else the address carries.
@@ -197,7 +202,7 @@
                    stops short of it. *@
                 @if (UnappliedVersion.Of(point.Version, StoredVersion) is { } unapplied)
                 {
-                    <SnapshotWarning Text="@unapplied"/>
+                    <SnapshotWarning Note="unapplied" UpdateHref="@UpdateHref"/>
                 }
             </dd>
 

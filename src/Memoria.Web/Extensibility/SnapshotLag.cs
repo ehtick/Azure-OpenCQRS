@@ -51,8 +51,22 @@ public sealed record SnapshotLag(int Version, int Events)
     /// One event is written as a word and the sentence agrees with it. This is read as prose beside
     /// the number it is about, and a digit repeated there with "events" after it would read as the
     /// page having failed to say something rather than as the thing it says.
+    /// <para>
+    /// In two parts, because the warning draws the way to act on it between them: the fact first,
+    /// then the link to the update tab, then what following it would do.
+    /// </para>
     /// </remarks>
-    public string Text => Behind == 1
-        ? "Behind its history by one event. Updating this snapshot would fold it in."
-        : $"Behind its history by {Behind} events. Updating this snapshot would fold them in.";
+    public SnapshotNote Note => Behind == 1
+        ? new SnapshotNote("Behind its history by one event.", "to fold it in.")
+        : new SnapshotNote($"Behind its history by {Behind} events.", "to fold them in.");
 }
+
+/// <summary>
+/// A note set beside a version, in two parts around the link that acts on it: the fact, and what
+/// following the link would do about it.
+/// </summary>
+/// <param name="Text">The fact, as a sentence.</param>
+/// <param name="Remedy">
+/// What updating the snapshot would do, as the clause that reads on from "Update the snapshot".
+/// </param>
+public sealed record SnapshotNote(string Text, string Remedy);

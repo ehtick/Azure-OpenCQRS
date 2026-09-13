@@ -18,12 +18,15 @@ public static class UnappliedVersion
     /// </summary>
     /// <param name="version">The version compared.</param>
     /// <param name="storedVersion">The stored snapshot's version, or null when no snapshot is stored.</param>
-    public static string? Of(int version, int? storedVersion) => (version, storedVersion) switch
+    public static SnapshotNote? Of(int version, int? storedVersion) => (version, storedVersion) switch
     {
         (0, _) => null,
-        (_, null) => "No snapshot is stored yet, so this version exists only in the fold drawn here.",
-        (_, { } stored) when version > stored =>
-            $"This version has not been applied to the stored snapshot, which is at version {stored}. Updating the snapshot would fold it in.",
+        (_, null) => new SnapshotNote(
+            "No snapshot is stored yet, so this version exists only in the fold drawn here.",
+            "to write one."),
+        (_, { } stored) when version > stored => new SnapshotNote(
+            $"This version has not been applied to the stored snapshot, which is at version {stored}.",
+            "to fold it in."),
         _ => null
     };
 }

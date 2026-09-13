@@ -745,6 +745,15 @@ h2:focus {
         width: 0.95em;
     }
 
+    /* The way to act on the warning, set inside its sentence: in the sentence's own ink rather
+       than the accent every other link wears, so the note stays one colour, and underlined so it
+       still reads as a way on rather than as a word given weight. */
+    .behind a {
+        color: inherit;
+        text-decoration: underline;
+        text-underline-offset: 0.15em;
+    }
+
 /* A type the domain has retired, said two ways: a mark after its name wherever types are listed,
    and a line under its name once it is opened, in the words the attribute retired it with. The
    caution ink for both, for the reason the snapshot warning wears it — nothing failed and nothing

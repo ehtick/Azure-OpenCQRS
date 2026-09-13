@@ -152,7 +152,7 @@ else
                            row the log has moved on from since it was written. *@
                         @if (Lag is { } lag)
                         {
-                            <SnapshotWarning Text="@lag.Text"/>
+                            <SnapshotWarning Note="lag.Note" UpdateHref="@TabLink(UpdateTab)"/>
                         }
                     </dd>
 

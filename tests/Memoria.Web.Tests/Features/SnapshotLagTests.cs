@@ -52,11 +52,15 @@ public class SnapshotLagTests
         lag.Behind.Should().Be(4);
     }
 
+    /// <summary>
+    /// Said in two parts: the fact, and what following the update link would do about it — the
+    /// warning draws the link between them, so the remedy reads on from it.
+    /// </summary>
     [Fact]
     public void Says_how_many_events_were_never_folded_in()
     {
-        SnapshotLag.Of(version: 3, events: 7)!.Text
-            .Should().Be("Behind its history by 4 events. Updating this snapshot would fold them in.");
+        SnapshotLag.Of(version: 3, events: 7)!.Note.Should().Be(
+            new SnapshotNote("Behind its history by 4 events.", "to fold them in."));
     }
 
     /// <summary>
@@ -66,7 +70,7 @@ public class SnapshotLagTests
     [Fact]
     public void Names_a_single_missing_event_in_the_singular()
     {
-        SnapshotLag.Of(version: 3, events: 4)!.Text
-            .Should().Be("Behind its history by one event. Updating this snapshot would fold it in.");
+        SnapshotLag.Of(version: 3, events: 4)!.Note.Should().Be(
+            new SnapshotNote("Behind its history by one event.", "to fold it in."));
     }
 }
