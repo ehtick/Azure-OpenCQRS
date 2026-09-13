@@ -1,0 +1,410 @@
+@page "/dcb/events/detail"
+@using Memoria.EventSourcing.Dcb.Store.EntityFrameworkCore
+@using Memoria.Web.Extensibility
+@using Microsoft.AspNetCore.WebUtilities
+@inject DomainTypeRegistry Types
+@inject IDcbDbContext StoreContext
+@inject NavigationManager Navigation
+
+<PageTitle>@Heading @Title</PageTitle>
+
+<nav class="breadcrumb" aria-label="Breadcrumb">
+    <a href="">Home</a>
+    <span aria-hidden="true">/</span>
+    <a href="dcb">DCB</a>
+    <span aria-hidden="true">/</span>
+    <a href="dcb/events">Events</a>
+    <span aria-hidden="true">/</span>
+    @* The list this row was opened from, narrowed to the event's type when a registered one
+       claims it, so the step back arrives where the click came from. *@
+    <a href="@BackToList">Data</a>
+    <span aria-hidden="true">/</span>
+    @* What the page is, rather than which row reached it. The trail says where this sits; the
+       heading says what kind of thing is open, and the browser tab carries the position so two of
+       these are told apart where they have to be. *@
+    <span aria-current="page">Detail</span>
+</nav>
+
+@if (Position is null)
+{
+    <h1>@Heading</h1>
+    <p class="alert" role="alert">
+        That address names no event: it carries no position, or one that is not a number. Start
+        again from <a href="dcb/events/data">events</a>.
+    </p>
+}
+else
+{
+    @* Named as every list here names a type: what the log wrote the row under, and the version of
+       that binding. Two versions of one name are two events, and the heading has to say which. *@
+    <div class="page-header">
+        <h1>@Heading</h1>
+
+        @* Across from the name, because it is about the name: the heading says what this row was
+           written as, and this is the way to what that type actually declares. Not among the tabs
+           under it — those are three views of this one stored row, and the type is true of every
+           row of it. Only when something uploaded describes the type: a key nothing registered
+           claims has no declaration to open, and a button leading to an empty sheet would be worse
+           than none. The mark is the one the types pages are entered by everywhere else. *@
+        @if (EventType is not null)
+        {
+            <a class="button-mark quiet" href="@ViewTypeLink(TypeView.InfoTab)">
+                <SectionMark Kind="SectionKind.Types"/>
+                View Type
+            </a>
+        }
+    </div>
+
+    @* The store failing to answer for the event at all, which leaves both the facts and the state
+       without their values — so it is said once, above the tabs, rather than in each. *@
+    @if (Error is not null)
+    {
+        <p class="alert" role="alert">@Error</p>
+    }
+
+    @* Views of one event, switched by the address rather than by script: each tab is a link, so a
+       view can be linked to and gone back to, and the page stays statically rendered like the rest
+       of them. Marked with aria-current for the same reason the breadcrumb is — these are places
+       to go, not scripted tabs. The three a model's page opens with, and no more: an event has no
+       history of its own to list, nothing to compare, and nothing to update. *@
+    <nav class="tabs" aria-label="Event views">
+        <a id="tab-@InfoTab" href="@TabLink(InfoTab)"
+           aria-current="@(Tab == InfoTab ? "page" : null)">Info</a>
+        <a id="tab-@StateTab" href="@TabLink(StateTab)"
+           aria-current="@(Tab == StateTab ? "page" : null)">State</a>
+        <a id="tab-@JsonTab" href="@TabLink(JsonTab)"
+           aria-current="@(Tab == JsonTab ? "page" : null)">Json</a>
+    </nav>
+
+    @* Each panel is named by the tab that reaches it, so the label is written once and a reader
+       arriving by fragment is told which of them they landed in. *@
+    @if (Tab == InfoTab)
+    {
+        <section class="tab-panel" aria-labelledby="tab-@InfoTab">
+            @if (Stored is null)
+            {
+                <p class="empty">@Missing</p>
+            }
+            else
+            {
+                @* The store's account of the row and nothing out of the payload: where it sits,
+                   what it was written under, what reaches it, and when. The same facts the list
+                   this page was opened from leads with, in the same order, so a reader can match
+                   this page against the row they clicked. *@
+                <dl class="facts">
+                    @* What the row was appended under, and the only thing it can be reached by: a
+                       DCB event belongs to no stream, so its tags are what a boundary finds it
+                       through — which is why they come first, where a streamed event's page puts
+                       the stream. Listed the way the log's own page lists them. A row with none is
+                       said to have none rather than left blank: the log allows it, and a blank
+                       reads as a fact that failed to fill rather than as an event nothing can
+                       reach. *@
+                    <dt>Tags</dt>
+                    <dd>
+                        @if (Stored.Tags.Count == 0)
+                        {
+                            <span class="missing">it was appended under no tag</span>
+                        }
+                        else
+                        {
+                            <code>@string.Join(", ", Stored.Tags)</code>
+                        }
+                    </dd>
+
+                    @* The key the row was written under, said the way a version is said rather
+                       than as the store joins it. Before the position, as a model's page puts its
+                       type before its version: what the row is, then where it sits. *@
+                    <dt>Type</dt>
+                    <dd><code>@DomainTypeDescriber.LabelOfKey(Stored.Type)</code></dd>
+
+                    @* Where the row sits in the log and what makes it unique — a DCB event is
+                       written into one log rather than into a stream of its own, so it has one
+                       number and no id beside it. *@
+                    <dt>Position</dt>
+                    <dd>@Stored.Position</dd>
+
+                    <dt>Appended</dt>
+                    <dd>@Stored.Written.ToLocalTime().ToString("g")</dd>
+
+                    @* Audit is a store concern the application may leave switched off, so a row
+                       nobody is named against is an ordinary row rather than a broken one. *@
+                    <dt>Appended by</dt>
+                    <dd>
+                        @if (Stored.WrittenBy is { Length: > 0 } writtenBy)
+                        {
+                            @writtenBy
+                        }
+                        else
+                        {
+                            <span class="missing">not attributed</span>
+                        }
+                    </dd>
+                </dl>
+            }
+        </section>
+    }
+    else if (Tab == StateTab)
+    {
+        <section class="tab-panel" aria-labelledby="tab-@StateTab">
+            @if (Error is not null)
+            {
+                @* Said above the tabs already; nothing to add here but the absence. *@
+                <p class="missing">There is no state to show.</p>
+            }
+            else if (Stored is null)
+            {
+                <p class="empty">@Missing</p>
+            }
+            else if (Stored.Error is not null)
+            {
+                @* The row is there and its payload will not open — a type nothing uploaded
+                   describes, or text the type cannot read. Its own line rather than the page alert
+                   above, which is the store failing to answer at all. The Json tab still shows what
+                   was written. *@
+                <p class="alert" role="alert">@Stored.Error</p>
+            }
+            else if (Stored.State.Count == 0)
+            {
+                <p class="missing">It carries nothing of its own.</p>
+            }
+            else
+            {
+                @* The same rows the types page lists the event's shape in, with the column this
+                   page has something to put in. *@
+                <table class="grid">
+                    <thead>
+                    <tr>
+                        <th scope="col">Property</th>
+                        <th scope="col">Type</th>
+                        <th scope="col">Value</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    @StateRows((Stored.State, 0))
+                    </tbody>
+                </table>
+            }
+        </section>
+    }
+    else if (Tab == JsonTab)
+    {
+        @* The payload as the log wrote it, laid out to be read. The state tab reads the same
+           payload through the event's own properties; this shows the text those were read from, so
+           a payload the type cannot open, or one holding more than the type declares, is still
+           there to look at. *@
+        <section class="tab-panel" aria-labelledby="tab-@JsonTab">
+            @if (Error is not null)
+            {
+                <p class="missing">There is no payload to show.</p>
+            }
+            else if (Stored is null)
+            {
+                <p class="empty">@Missing</p>
+            }
+            else
+            {
+                @* The same card the pop-up over an event table holds, because it is the same
+                   question about the same row: what the log actually wrote. *@
+                <JsonPanel Data="@Stored.Data"/>
+            }
+        </section>
+    }
+
+    @* What the row was written as, opened over whichever tab was being read. Last in the markup
+       because it covers the page rather than sitting anywhere in it, and drawn only when the
+       address asks for it — so the page underneath is the page a reader left. *@
+    @if (ViewedType is { } viewed)
+    {
+        <TypeDialog Description="viewed"
+                    Kind="ModelKind.Event"
+                    Store="ModelStore.Dcb"
+                    Tab="@View"
+                    TabLink="ViewTypeLink"
+                    CloseLink="@TabLink(Tab)"/>
+    }
+}
+
+@code {
+
+    /// <summary>
+    /// Where in the log the row sits, which is what makes it unique, or null when the address
+    /// carries none or carries something that is not a number.
+    /// </summary>
+    private long? Position { get; set; }
+
+    private StoredEvent? Stored { get; set; }
+
+    /// <summary>The log failing to answer at all, which is not the same as a payload it cannot read.</summary>
+    private string? Error { get; set; }
+
+    /// <summary>
+    /// The registered type the stored key reads back into, or null when nothing uploaded claims it
+    /// — or when there is no row to read a key off.
+    /// </summary>
+    /// <remarks>
+    /// Looked for among the events some DCB model applies, which is the list the section's own
+    /// pages list and narrow by, so the type this page names is one those pages can be narrowed
+    /// to. Matched on the key rather than on the class, because the key is what the row holds.
+    /// </remarks>
+    private Type? EventType =>
+        Stored is null
+            ? null
+            : Types.Current.DcbEvents.FirstOrDefault(@event =>
+                DomainTypeDescriber.BindingOf(@event)?.Key == Stored.Type);
+
+    /// <summary>
+    /// The views the page offers, named as they appear in the address. Which one is showing is the
+    /// address's to say, so a view can be linked to, bookmarked, and gone back to.
+    /// </summary>
+    private const string InfoTab = "info";
+
+    private const string StateTab = "state";
+
+    private const string JsonTab = "json";
+
+    private string Tab { get; set; } = InfoTab;
+
+    /// <summary>
+    /// What the page is, for the heading and the title. Unlike the pages that list, this one is
+    /// about one stored event, so the heading is what that event was written as rather than the
+    /// name of a section — and the bare word when there is no row to read it off.
+    /// </summary>
+    private string Heading =>
+        Stored is null ? "Event" : DomainTypeDescriber.LabelOfKey(Stored.Type);
+
+    /// <summary>
+    /// Which one, for the browser tab: the position, which is what tells two of these apart where
+    /// the heading cannot.
+    /// </summary>
+    private string Title => Position?.ToString() ?? string.Empty;
+
+    /// <summary>
+    /// Nothing at the position, said once for the three tabs that would each otherwise say it.
+    /// A fact about the log rather than a failure: the row was there when the link was made.
+    /// </summary>
+    private const string Missing =
+        "No event is stored at that position. It may have been removed since this link was made.";
+
+    /// <summary>
+    /// Back to the list this row was opened from, narrowed the way it was: to the event's type,
+    /// when a registered one claims it.
+    /// </summary>
+    private string BackToList =>
+        EventType is { } registered
+            ? $"dcb/events/data?type={Uri.EscapeDataString(registered.FullName ?? registered.Name)}"
+            : "dcb/events/data";
+
+    /// <summary>
+    /// What addresses the row itself: its position. The view is appended by whatever varies it.
+    /// </summary>
+    private string Address => $"dcb/events/detail?position={Position}";
+
+    /// <summary>
+    /// One address for the whole page, so a link only changes what it means to change.
+    /// </summary>
+    /// <param name="tab">Which of the views to show.</param>
+    /// <param name="view">Which view of the declared type to open over it, or null for none.</param>
+    private string DetailLink(string tab, string? view = null) =>
+        $"{Address}&tab={tab}" +
+        (view is { Length: > 0 } ? $"&view={view}" : string.Empty);
+
+    private string TabLink(string tab) => DetailLink(tab);
+
+    /// <summary>
+    /// Which view of the declared type is open over the page, or nothing when none is.
+    /// </summary>
+    /// <remarks>
+    /// Named only when it is open, which is what makes every other link on the page close it: a
+    /// reader who moves the page underneath has left the type behind, and carrying it along would
+    /// leave a panel hanging over a row it is no longer about.
+    /// </remarks>
+    [SupplyParameterFromQuery(Name = "view")]
+    private string? RequestedView { get; set; }
+
+    /// <summary>Which of the type's views to show once it is open.</summary>
+    private string View => TypeView.Match(RequestedView);
+
+    /// <summary>
+    /// The type this row was written as, described, or null when the address is not asking for it
+    /// or nothing registered claims the key. Described only when it is asked for: it walks the
+    /// type's whole shape, and a page reading one stored row has no other use for it.
+    /// </summary>
+    private DomainTypeDescription? ViewedType =>
+        !string.IsNullOrWhiteSpace(RequestedView) && EventType is { } registered
+            ? DomainTypeDescriber.DescribeEvent(registered)
+            : null;
+
+    /// <summary>
+    /// The page as it stands with one of the type's views open over it, landing on the panel.
+    /// </summary>
+    private string ViewTypeLink(string view) =>
+        DetailLink(Tab, view) + $"#{TypeDialog.Anchor}";
+
+    /// <summary>
+    /// What the stored event holds, a row each, with the insides of any value one holds in rows
+    /// under it.
+    /// </summary>
+    /// <remarks>
+    /// The same rows the types page lists the event's shape in, with the column this page has
+    /// something to put in. A nested property keeps its own row so that its value stays under the
+    /// value column, which is the column a reader came to this page for.
+    /// </remarks>
+    private RenderFragment<(IReadOnlyList<DomainPropertyValue> Properties, int Depth)> StateRows =>
+        rows =>
+        @<text>
+            @foreach (var property in rows.Properties)
+            {
+                <tr class="@Under(rows.Depth)">
+                    <td>@property.Name</td>
+                    <td><code>@property.TypeName</code></td>
+                    @* A value holding a shape has nothing of its own to show — what it holds is on
+                       the rows below — so the cell is left as empty rather than as unread. *@
+                    <td>@(property.Value ?? (property.Children.Count > 0 ? string.Empty : "—"))</td>
+                </tr>
+
+                @if (property.Children.Count > 0)
+                {
+                    @StateRows((property.Children, rows.Depth + 1))
+                }
+            }
+        </text>;
+
+    /// <summary>
+    /// How far under something a row sits, as a class rather than a measurement, so how wide a step
+    /// is stays the stylesheet's to say. A row at the top is not under anything and carries none.
+    /// </summary>
+    private static string? Under(int depth) => depth == 0 ? null : $"under-{Math.Min(depth, 3)}";
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var query = QueryHelpers.ParseQuery(new Uri(Navigation.Uri).Query);
+
+        string? Value(string name) =>
+            query.TryGetValue(name, out var found) ? found.LastOrDefault() : null;
+
+        // Matched against the ones the page has, so an unknown name in the address opens the one
+        // it opens with rather than a blank page.
+        Tab = (Value("tab") ?? string.Empty).ToLowerInvariant() switch
+        {
+            StateTab => StateTab,
+            JsonTab => JsonTab,
+            _ => InfoTab,
+        };
+
+        // The log's own number rather than anything matched against what is registered: a row
+        // written under a type no uploaded assembly claims is still the log's own row, and the one
+        // worth opening.
+        Position = long.TryParse(Value("position"), out var position) ? position : null;
+
+        if (Position is not { } at)
+        {
+            return;
+        }
+
+        var read = await AppendedEvents.One(StoreContext, at);
+
+        Stored = read.Event;
+        Error = read.Error;
+    }
+
+}

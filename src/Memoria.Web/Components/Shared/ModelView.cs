@@ -1,13 +1,18 @@
 namespace Memoria.Web.Components.Shared;
 
 /// <summary>
-/// Which of the two models a view is of, whichever store it was folded by.
+/// Which kind of declared type a view is of, whichever store it was written by.
 /// </summary>
 /// <remarks>
 /// The store's own enums say the same thing twice over — one for the streamed tables and one for
 /// the DCB one — because each of them also answers questions only its store asks. A view of a
 /// declared type asks none of those: it wants the noun to write and the attribute the binding is
 /// read off, and both of those are the same on either side.
+/// <para>
+/// An event is the third kind, because the page about one stored event opens its declared type
+/// the way the page about a stored model does. It has fewer views than a model — nothing addresses
+/// it and it applies nothing — and the view that draws it leaves those two out.
+/// </para>
 /// </remarks>
 public enum ModelKind
 {
@@ -15,7 +20,10 @@ public enum ModelKind
     Aggregate,
 
     /// <summary>A read model, producing none.</summary>
-    Projection
+    Projection,
+
+    /// <summary>What both are folded from.</summary>
+    Event
 }
 
 /// <summary>
@@ -41,16 +49,24 @@ public enum ModelStore
 /// </summary>
 public static class ModelViews
 {
-    /// <summary>The word a model of this kind is called by in prose.</summary>
-    public static string Noun(this ModelKind kind) =>
-        kind == ModelKind.Projection ? "projection" : "aggregate";
+    /// <summary>The word a type of this kind is called by in prose.</summary>
+    public static string Noun(this ModelKind kind) => kind switch
+    {
+        ModelKind.Projection => "projection",
+        ModelKind.Event => "event",
+        _ => "aggregate"
+    };
 
     /// <summary>
-    /// The attribute a model of this kind has to carry to be stored at all, for the view that says
+    /// The attribute a type of this kind has to carry to be stored at all, for the view that says
     /// a type without one is bound to nothing.
     /// </summary>
-    public static string Attribute(this ModelKind kind) =>
-        kind == ModelKind.Projection ? "[ProjectionType]" : "[AggregateType]";
+    public static string Attribute(this ModelKind kind) => kind switch
+    {
+        ModelKind.Projection => "[ProjectionType]",
+        ModelKind.Event => "[EventType]",
+        _ => "[AggregateType]"
+    };
 
     /// <summary>
     /// What a store folds a model from, in the word that store uses for it.

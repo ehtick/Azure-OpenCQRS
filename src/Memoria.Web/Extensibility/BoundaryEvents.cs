@@ -257,14 +257,24 @@ public static class BoundaryEvents
     /// <para>
     /// The tags are among those facts, and are kept whatever the payload turns out to be for the
     /// same reason: they are what the log wrote the row under, and a row nothing here can read back
-    /// is exactly the one a reader wants the tags of.
+    /// is exactly the one a reader wants the tags of. So is who appended it, for the read that
+    /// asks.
     /// </para>
     /// </remarks>
+    /// <param name="writtenBy">
+    /// Who appended it, or null when nobody is named against the row or the read did not ask.
+    /// </param>
     public static StoredEvent Read(long position, string eventType, string data, DateTimeOffset written,
-        IReadOnlyList<string>? tags = null)
-    {
-        var under = tags ?? [];
+        IReadOnlyList<string>? tags = null, string? writtenBy = null) =>
+        Opened(position, eventType, data, written, tags ?? []) with { WrittenBy = writtenBy };
 
+    /// <summary>
+    /// The row with its payload opened, or with why it would not open: everything about it but who
+    /// appended it, which holds whatever became of the payload and is put on afterwards.
+    /// </summary>
+    private static StoredEvent Opened(long position, string eventType, string data, DateTimeOffset written,
+        IReadOnlyList<string> under)
+    {
         if (!TypeBindings.EventTypeBindings.TryGetValue(eventType, out var clrType))
         {
             return new StoredEvent(position, eventType, written, data, [],
@@ -336,6 +346,14 @@ public sealed record StoredEvent(
     string? Error,
     IReadOnlyList<string> Tags)
 {
+    /// <summary>
+    /// Gets who appended it, or null when nobody is named against the row — or when the read did
+    /// not ask. Audit is a store concern an application may leave switched off, so a row nobody
+    /// is named against is an ordinary row; and only the read behind the page about one event
+    /// asks, since no table draws a column of it.
+    /// </summary>
+    public string? WrittenBy { get; init; }
+
     /// <summary>Gets the name half of the key: what the type is written under.</summary>
     public string Name => DomainTypeDescriber.SplitKey(Type).Name;
 

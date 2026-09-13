@@ -2583,6 +2583,28 @@ h2:focus {
         outline: none;
     }
 
+/* An event row opens too, but two of its cells hold a control of their own rather than the row's
+   link: the payload's fold and the Json mark. Those keep the padding an ordinary cell has, since
+   there is no anchor of the row's in them to carry it — and the mark keeps its own shape, which the
+   rule above would otherwise stretch into a block the width of the cell in the row's ink. */
+.grid.events tr.clickable td.col-payload {
+    padding: 0.5rem 0.75rem;
+}
+
+.grid.events tr.clickable td.marked {
+    padding: 0.5rem 1rem;
+}
+
+    .grid.events tr.clickable td .icon-link {
+        color: var(--ink-soft);
+        display: inline-flex;
+        padding: 0.25rem;
+    }
+
+        .grid.events tr.clickable td .icon-link:hover {
+            color: var(--accent);
+        }
+
 /* And the card's own edge on the outermost columns, for the same reason: these were zero from when
    the table ran to the page's edge and had no card around it to stand clear of. Left at zero the
    first column's text sat against the card's left border while every other row's cleared it. */

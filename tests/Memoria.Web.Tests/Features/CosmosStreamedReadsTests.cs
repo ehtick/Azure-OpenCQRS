@@ -95,7 +95,8 @@ public class CosmosStreamedReadsTests : IAsyncLifetime
                 EventType = index % 2 == 0 ? "OrderPlacedEvent:1" : "OrderShippedEvent:1",
                 Sequence = index / 10,
                 Data = $"{{\"orderReference\":\"ORD-{index}\"}}",
-                CreatedDate = _start.AddHours(index)
+                CreatedDate = _start.AddHours(index),
+                CreatedBy = "seeder"
             }, new PartitionKey(streamId));
         }
 
@@ -183,5 +184,38 @@ public class CosmosStreamedReadsTests : IAsyncLifetime
         newest.StreamId.Should().Be("c-0009", "event fifty-nine was written to the tenth stream");
         newest.Id.Should().Be("c-0009:5");
         newest.Event.Type.Should().Be("OrderShippedEvent:1");
+    }
+
+    /// <summary>
+    /// The one read that names its partition: an address carries the stream, which is what the
+    /// container is partitioned by, so this reaches one document without crossing partitions.
+    /// </summary>
+    [Fact]
+    public async Task GivenAStoredEvent_WhenItIsReadByItsKey_ThenTheWholeRowComesBack()
+    {
+        var read = await _reads.Event(new StreamedEventAddress("c-0003", "c-0003:2"));
+
+        using var scope = new AssertionScope();
+
+        read.Error.Should().BeNull();
+        read.Event.Should().NotBeNull();
+        read.Event!.StreamId.Should().Be("c-0003");
+        read.Event.Id.Should().Be("c-0003:2");
+        read.Event.Event.Position.Should().Be(2);
+        read.Event.Event.Type.Should().Be("OrderShippedEvent:1", "event twenty-three is odd-numbered, so it was shipped");
+        read.Event.Event.Data.Should().Be("{\"orderReference\":\"ORD-23\"}");
+        read.Event.Event.Written.Should().Be(_start.AddHours(23));
+        read.Event.Event.WrittenBy.Should().Be("seeder", "the page about one event says who appended it");
+    }
+
+    [Fact]
+    public async Task GivenNoEventUnderAKey_WhenItIsRead_ThenThereIsNoRowAndNoError()
+    {
+        var read = await _reads.Event(new StreamedEventAddress("c-0003", "c-0003:40"));
+
+        using var scope = new AssertionScope();
+
+        read.Error.Should().BeNull();
+        read.Event.Should().BeNull();
     }
 }

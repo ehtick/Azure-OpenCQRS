@@ -179,40 +179,61 @@ else
             <tbody>
             @foreach (var stored in Events.Events)
             {
-                <tr>
-                    <td>@stored.Position</td>
-                    <td>@stored.Written.ToLocalTime().ToString("g")</td>
+                var link = DetailLink(stored.Position);
+
+                @* The whole row is the target, as it is on the lists of stored models: every cell
+                   that reads a value carries the same link, and only the first is reachable by
+                   keyboard or read out — the rest repeat it. Every row opens, because every row is
+                   the log's own: a type nothing uploaded describes is exactly the row worth
+                   opening. The two cells that hold a control of their own, the payload's fold and
+                   the Json mark, stay as they are — a link laid under them would take the clicks
+                   meant for them — and the stylesheet keeps their padding where the row moves the
+                   rest onto the anchors. *@
+                <tr class="clickable">
+                    <td><a href="@link">@stored.Position</a></td>
+                    <td>
+                        <a href="@link" tabindex="-1" aria-hidden="true">
+                            @stored.Written.ToLocalTime().ToString("g")
+                        </a>
+                    </td>
                     @* Name and version as one, the way every list here names a type, so a type met
                        in the log and the same type met on its own page read alike. A key the store
                        wrote that cannot be taken apart is left whole rather than half-read. *@
-                    <td><code>@DomainTypeDescriber.LabelOfKey(stored.Type)</code></td>
                     <td>
-                        @* Every tag on the row, joined the way a boundary's are. A row with none is
-                           said to have none rather than left blank: the log allows it — an append
-                           carries whatever tags it was given — and a blank cell reads as a column
-                           that failed to fill rather than as an event nothing can reach. *@
-                        @if (stored.Tags.Count == 0)
-                        {
-                            <span class="missing">—</span>
-                        }
-                        else
-                        {
-                            @* One tag at a time rather than the joined string, so what was typed
-                               is marked within a tag, the way the store matched it, and never
-                               across the comma between two. *@
-                            <code>
-                                @for (var i = 0; i < stored.Tags.Count; i++)
-                                {
-                                    if (i > 0)
-                                    {
-                                        <text>, </text>
-                                    }
-                                    <Highlighted Text="@stored.Tags[i]" Needle="@Text"/>
-                                }
-                            </code>
-                        }
+                        <a href="@link" tabindex="-1" aria-hidden="true">
+                            <code>@DomainTypeDescriber.LabelOfKey(stored.Type)</code>
+                        </a>
                     </td>
                     <td>
+                        <a href="@link" tabindex="-1" aria-hidden="true">
+                            @* Every tag on the row, joined the way a boundary's are. A row with
+                               none is said to have none rather than left blank: the log allows it
+                               — an append carries whatever tags it was given — and a blank cell
+                               reads as a column that failed to fill rather than as an event
+                               nothing can reach. *@
+                            @if (stored.Tags.Count == 0)
+                            {
+                                <span class="missing">—</span>
+                            }
+                            else
+                            {
+                                @* One tag at a time rather than the joined string, so what was
+                                   typed is marked within a tag, the way the store matched it, and
+                                   never across the comma between two. *@
+                                <code>
+                                    @for (var i = 0; i < stored.Tags.Count; i++)
+                                    {
+                                        if (i > 0)
+                                        {
+                                            <text>, </text>
+                                        }
+                                        <Highlighted Text="@stored.Tags[i]" Needle="@Text"/>
+                                    }
+                                </code>
+                            }
+                        </a>
+                    </td>
+                    <td class="col-payload">
                         @if (stored.Error is not null)
                         {
                             <span class="missing">@stored.Error</span>
@@ -454,6 +475,13 @@ else
             ? link
             : $"{link}&text={Uri.EscapeDataString(Text!)}";
     }
+
+    /// <summary>
+    /// Through to one row on its own, by the position that names it in the log — the log's own
+    /// number rather than anything registered, so a row written under a type no uploaded assembly
+    /// claims still opens, and is the row worth opening.
+    /// </summary>
+    private static string DetailLink(long position) => $"dcb/events/detail?position={position}";
 
     /// <summary>
     /// Which row's payload is open over the page, by the position that names it in the log, or null

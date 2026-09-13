@@ -40,6 +40,26 @@ public static class DomainTypeDescriber
             PropertiesOf(type));
 
     /// <summary>
+    /// Describes one event, in the shape a model is described in.
+    /// </summary>
+    /// <param name="type">The event type to describe.</param>
+    /// <remarks>
+    /// The same record as <see cref="Describe"/> fills, so the one view that draws a declared type
+    /// draws an event too — with the two lists a model fills left empty by definition: nothing
+    /// addresses an event and an event applies nothing. Nothing is constructed to find that out,
+    /// which is why this is not <see cref="Describe"/> handed an empty list of identifiers: that
+    /// builds the type to read the event filter a model has and an event does not.
+    /// </remarks>
+    public static DomainTypeDescription DescribeEvent(Type type) =>
+        new(
+            type,
+            BindingOf(type),
+            type.Assembly.GetName().Name ?? "unknown",
+            Identifiers: [],
+            EventTypes: [],
+            PropertiesOf(type));
+
+    /// <summary>
     /// The identifiers that address one model.
     /// </summary>
     /// <param name="type">The model they would address.</param>

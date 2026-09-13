@@ -298,6 +298,47 @@ public sealed class CosmosStreamedReads(CosmosClient client, string databaseName
         }
     }
 
+    /// <inheritdoc />
+    /// <remarks>
+    /// One query and one partition, like <see cref="Model"/>: an address names the stream, which is
+    /// what the container is partitioned by. The discriminator is still asked for, because the
+    /// three document types share a partition and an id built from different things, so a key of
+    /// the right shape can land on a snapshot — see the collision the store itself detects.
+    /// </remarks>
+    public async Task<ReadStreamEvent> Event(
+        StreamedEventAddress address, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var container = client.GetContainer(databaseName, containerName);
+
+            var query = new QueryDefinition(
+                    "SELECT * FROM c WHERE c.documentType = @documentType " +
+                    "AND c.streamId = @streamId AND c.id = @id")
+                .WithParameter("@documentType", DocumentType.Event)
+                .WithParameter("@streamId", address.StreamId)
+                .WithParameter("@id", address.Id);
+
+            var documents = await Read<EventDocument>(container, query, cancellationToken);
+
+            var document = documents.FirstOrDefault();
+
+            return new ReadStreamEvent(
+                document is null
+                    ? null
+                    : new StoredStreamEvent(
+                        document.StreamId,
+                        document.Id,
+                        BoundaryEvents.Read(document.Sequence, document.EventType, document.Data,
+                            document.CreatedDate, writtenBy: document.CreatedBy)),
+                Error: null);
+        }
+        catch (Exception exception)
+        {
+            return new ReadStreamEvent(Event: null, exception.Message);
+        }
+    }
+
     /// <summary>
     /// One snapshot read whole: what <see cref="SnapshotDocument"/> carries, and the payload and
     /// audit properties a page about a single model shows besides.

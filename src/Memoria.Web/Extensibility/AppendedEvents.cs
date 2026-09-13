@@ -136,4 +136,57 @@ public static class AppendedEvents
             return new StoredEvents([], Total: 0, Page: 1, TotalPages: 1, Error: exception.Message);
         }
     }
+
+    /// <summary>
+    /// Reads the one event at an exact position, tags and all, or nothing when there is none there.
+    /// </summary>
+    /// <param name="context">The DCB store.</param>
+    /// <param name="position">Where in the log the row sits, which is what makes it unique.</param>
+    /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
+    /// <remarks>
+    /// The read a page about a single event is built on: no narrowing, no order and no count,
+    /// because a position reaches one row or none. Nothing at it is no row and no error — a stale
+    /// link to a row since gone is a fact about the log rather than a failure to read it.
+    /// <para>
+    /// The tags come with the row and in the same order the log's own page lists them, so a tag met
+    /// on the list and met again on the page about the row is in the same place both times.
+    /// </para>
+    /// </remarks>
+    public static async Task<ReadEvent> One(
+        IDcbDbContext context,
+        long position,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var row = await context.DcbEvents.AsNoTracking()
+                .Where(appended => appended.Position == position)
+                .Select(appended => new
+                {
+                    appended.Position,
+                    appended.EventType,
+                    appended.Data,
+                    appended.CreatedDate,
+                    appended.CreatedBy,
+                    Tags = appended.Tags.Select(tag => tag.Tag).OrderBy(tag => tag).ToList()
+                })
+                .FirstOrDefaultAsync(cancellationToken);
+
+            return new ReadEvent(
+                row is null
+                    ? null
+                    : BoundaryEvents.Read(row.Position, row.EventType, row.Data, row.CreatedDate, row.Tags,
+                        row.CreatedBy),
+                Error: null);
+        }
+        catch (Exception exception)
+        {
+            return new ReadEvent(Event: null, exception.Message);
+        }
+    }
 }
+
+/// <summary>The outcome of reading one event out of the DCB log.</summary>
+/// <param name="Event">What is stored at that position, or null when nothing is.</param>
+/// <param name="Error">Why the log could not be read, or null when it was.</param>
+public sealed record ReadEvent(StoredEvent? Event, string? Error);

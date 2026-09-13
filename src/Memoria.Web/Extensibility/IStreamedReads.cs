@@ -74,7 +74,40 @@ public interface IStreamedReads
     /// </remarks>
     Task<ReadStreamModel> Model(
         StreamedModelAddress address, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Reads the one event stored under an exact address, payload and all.
+    /// </summary>
+    /// <param name="address">In which stream, under which key.</param>
+    /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
+    /// <remarks>
+    /// The event counterpart of <see cref="Model"/>, for the page about a single event: no
+    /// narrowing, no order and no count, because an address reaches one row or none. Nothing
+    /// stored under it answers with no row and no error — a stale link to a row since gone is a
+    /// fact about the store rather than a failure to read it.
+    /// </remarks>
+    Task<ReadStreamEvent> Event(
+        StreamedEventAddress address, CancellationToken cancellationToken = default);
 }
+
+/// <summary>
+/// Where one stored event is, exactly: the stream it was appended to and the key the store wrote
+/// it under.
+/// </summary>
+/// <param name="StreamId">The stream, as the store holds it.</param>
+/// <param name="Id">The key, as <c>streamId:sequence</c>.</param>
+/// <remarks>
+/// Both, although the key is built out of the stream: how the store joins the two is its business,
+/// and a page reaching one event arrives holding a row that carries both. A relational store keys
+/// the row by the id alone and a Cosmos container by the pair, so carrying both is what lets either
+/// answer with one read.
+/// </remarks>
+public sealed record StreamedEventAddress(string StreamId, string Id);
+
+/// <summary>The outcome of reading one event.</summary>
+/// <param name="Event">What is stored there, or null when nothing is.</param>
+/// <param name="Error">Why the store could not be read, or null when it was.</param>
+public sealed record ReadStreamEvent(StoredStreamEvent? Event, string? Error);
 
 /// <summary>
 /// Where one stored model is, exactly: the two ids the store keys it by, and which of the two

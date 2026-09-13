@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using FluentAssertions;
 using FluentAssertions.Execution;
@@ -75,12 +76,33 @@ public class SqliteStreamedReadsTests : IAsyncLifetime
     private StreamedStoreDbContext Read() =>
         new(Options(ConnectionString), TimeProvider.System, Substitute.For<IHttpContextAccessor>());
 
+    /// <summary>Who the store will say appended every row: the name the seeder signs in under.</summary>
+    private const string Seeder = "seeder";
+
+    /// <summary>
+    /// A request signed in as the seeder, because the store stamps the author itself: the audit
+    /// interceptor overwrites whatever a caller put on <c>CreatedBy</c> with the name identifier of
+    /// the authenticated user, or null when there is none.
+    /// </summary>
+    private static IHttpContextAccessor SignedInAs(string nameIdentifier)
+    {
+        var accessor = Substitute.For<IHttpContextAccessor>();
+
+        accessor.HttpContext.Returns(new DefaultHttpContext
+        {
+            User = new ClaimsPrincipal(new ClaimsIdentity(
+                [new Claim(ClaimTypes.NameIdentifier, nameIdentifier)], "test"))
+        });
+
+        return accessor;
+    }
+
     public async Task InitializeAsync()
     {
         _start = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
 
         await using var seed = new SeedContext(Options(ConnectionString), new SteppingClock(_start),
-            Substitute.For<IHttpContextAccessor>());
+            SignedInAs(Seeder));
 
         await seed.Database.EnsureCreatedAsync();
 
@@ -294,5 +316,63 @@ public class SqliteStreamedReadsTests : IAsyncLifetime
         page.Error.Should().BeNull();
         page.Total.Should().Be(3);
         page.Snapshots[0].StoreId.Should().Be("account-c-0002:1", "the newest first");
+    }
+
+    // The one read a page about a single event is built on: the row under an exact key, payload
+    // and all, with no count and no order — an address reaches one row or none.
+
+    [Fact]
+    public async Task GivenAStoredEvent_WhenItIsReadByItsKey_ThenTheWholeRowComesBack()
+    {
+        await using var context = Read();
+
+        var read = await new EfStreamedReads(context).Event(
+            new StreamedEventAddress("customer:c-0001", "customer:c-0001:2"));
+
+        using var scope = new AssertionScope();
+
+        read.Error.Should().BeNull();
+        read.Event.Should().NotBeNull();
+        read.Event!.StreamId.Should().Be("customer:c-0001");
+        read.Event.Id.Should().Be("customer:c-0001:2");
+        read.Event.Event.Position.Should().Be(2, "the key names the third event of the second stream");
+        read.Event.Event.Type.Should().Be("OrderPlacedEvent:1");
+        read.Event.Event.Data.Should().Be("{\"reference\":\"ORD-7\"}", "index seven is the one at sequence two of stream one");
+        read.Event.Event.Written.Should().Be(_start.AddHours(7));
+        read.Event.Event.WrittenBy.Should().Be(Seeder, "the page about one event says who appended it");
+    }
+
+    /// <summary>
+    /// Nothing under a key is a fact about the store rather than a failure to read it: a stale link
+    /// to a row since gone should say there is no such event, not that the store is broken.
+    /// </summary>
+    [Fact]
+    public async Task GivenNoEventUnderAKey_WhenItIsRead_ThenThereIsNoRowAndNoError()
+    {
+        await using var context = Read();
+
+        var read = await new EfStreamedReads(context).Event(
+            new StreamedEventAddress("customer:c-0001", "customer:c-0001:40"));
+
+        using var scope = new AssertionScope();
+
+        read.Error.Should().BeNull();
+        read.Event.Should().BeNull();
+    }
+
+    /// <summary>
+    /// The stream is part of the address, not only the key: the key is built out of the stream, but
+    /// how the store builds it is its business, and a row is only the one asked for when both agree.
+    /// </summary>
+    [Fact]
+    public async Task GivenAKeyOfAnotherStream_WhenItIsRead_ThenNothingComesBack()
+    {
+        await using var context = Read();
+
+        var read = await new EfStreamedReads(context).Event(
+            new StreamedEventAddress("customer:c-0000", "customer:c-0001:2"));
+
+        read.Error.Should().BeNull();
+        read.Event.Should().BeNull();
     }
 }

@@ -239,18 +239,42 @@ else
             <tbody>
             @foreach (var stored in Events.Events)
             {
-                <tr>
+                var link = DetailLink(stored);
+
+                @* The whole row is the target, as it is on the lists of stored models: every cell
+                   that reads a value carries the same link, and only the first is reachable by
+                   keyboard or read out — the rest repeat it. Every row opens, because every row is
+                   the store's own: a type nothing uploaded describes is exactly the row worth
+                   opening. The two cells that hold a control of their own, the payload's fold and
+                   the Json mark, stay as they are — a link laid under them would take the clicks
+                   meant for them — and the stylesheet keeps their padding where the row moves the
+                   rest onto the anchors. *@
+                <tr class="clickable">
                     @* The three places the filter looks — this cell, the next, and the payload —
                        mark what was typed wherever they carry it, so a row says why it was kept. *@
-                    <td><code><Highlighted Text="@stored.StreamId" Needle="@Text"/></code></td>
-                    <td><code><Highlighted Text="@stored.Id" Needle="@Text"/></code></td>
-                    <td>@stored.Event.Position</td>
-                    <td>@stored.Event.Written.ToLocalTime().ToString("g")</td>
+                    <td>
+                        <a href="@link"><code><Highlighted Text="@stored.StreamId" Needle="@Text"/></code></a>
+                    </td>
+                    <td>
+                        <a href="@link" tabindex="-1" aria-hidden="true">
+                            <code><Highlighted Text="@stored.Id" Needle="@Text"/></code>
+                        </a>
+                    </td>
+                    <td><a href="@link" tabindex="-1" aria-hidden="true">@stored.Event.Position</a></td>
+                    <td>
+                        <a href="@link" tabindex="-1" aria-hidden="true">
+                            @stored.Event.Written.ToLocalTime().ToString("g")
+                        </a>
+                    </td>
                     @* Name and version as one, the way every list here names a type, so a type met
                        in the log and the same type met on its own page read alike. A key the store
                        wrote that cannot be taken apart is left whole rather than half-read. *@
-                    <td><code>@DomainTypeDescriber.LabelOfKey(stored.Event.Type)</code></td>
                     <td>
+                        <a href="@link" tabindex="-1" aria-hidden="true">
+                            <code>@DomainTypeDescriber.LabelOfKey(stored.Event.Type)</code>
+                        </a>
+                    </td>
+                    <td class="col-payload">
                         @if (stored.Event.Error is not null)
                         {
                             <span class="missing">@stored.Event.Error</span>
@@ -523,6 +547,16 @@ else
             ? link
             : $"{link}&text={Uri.EscapeDataString(Text!)}";
     }
+
+    /// <summary>
+    /// Through to one row on its own: the stream it was appended to and the key the store wrote it
+    /// under, as the store holds them rather than as the types behind them — a row whose stream
+    /// or type no registered type claims still opens, and is the row worth opening.
+    /// </summary>
+    private static string DetailLink(StoredStreamEvent row) =>
+        "streamed/events/detail" +
+        $"?stream={Uri.EscapeDataString(row.StreamId)}" +
+        $"&id={Uri.EscapeDataString(row.Id)}";
 
     /// <summary>
     /// Which row's payload is open over the page, by the key the store wrote it under, or null when

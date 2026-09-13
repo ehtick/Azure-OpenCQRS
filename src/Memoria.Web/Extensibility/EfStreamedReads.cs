@@ -78,4 +78,9 @@ public sealed class EfStreamedReads(StreamedStoreDbContext context) : IStreamedR
     public Task<ReadStreamModel> Model(
         StreamedModelAddress address, CancellationToken cancellationToken = default) =>
         StreamedSnapshots.Model(context, address, cancellationToken);
+
+    /// <inheritdoc />
+    public Task<ReadStreamEvent> Event(
+        StreamedEventAddress address, CancellationToken cancellationToken = default) =>
+        StreamedEvents.One(context, address, cancellationToken);
 }

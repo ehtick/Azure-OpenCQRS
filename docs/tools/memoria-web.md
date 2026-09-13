@@ -100,6 +100,18 @@ row was read into, a **Json** column opens what the store actually wrote in a po
 with the same Copy button. It is a link like every other view here, so it can be bookmarked and is
 closed by the browser's back button as well as by the sheet's own close.
 
+An event has a detail page of its own too, opened by clicking a row on either **Events → Data**
+page, the way a row on the aggregate and projection lists opens. It has the three tabs a model's
+page opens with and no more: **Info** (the stream and key, or the tags, the type the row was
+written under, its sequence or position, and when and by whom it was appended), **State** (the
+payload read through the event's own properties), and **Json** (the stored payload itself). An
+event has no history to list, nothing to compare and nothing to update, so those tabs are absent
+rather than empty. Across from the heading, **View Type** opens the event's declared type over it,
+in the two views an event has, info and state — and it is there only when an uploaded assembly
+registers the type the row was written under, since a key nothing claims has no declaration to
+open. The state tab still says why such a payload will not read back, and the Json tab still shows
+what was written.
+
 On a model's **Events** tab, every row also starts with a mark saying whether the stored snapshot
 has applied it: a tick when it has, a clock when it has not yet. The mark is read off the snapshot's
 own record of the latest sequence or position it folded, so an event at or below that place is in

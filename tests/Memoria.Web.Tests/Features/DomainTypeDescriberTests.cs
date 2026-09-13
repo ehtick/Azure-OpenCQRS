@@ -492,4 +492,30 @@ public class DomainTypeDescriberTests
     {
         DomainTypeDescriber.Select([typeof(SampleDcbAggregate)], "Contoso.Gone").Should().BeNull();
     }
+
+    /// <summary>
+    /// An event is described without being built: it has no event filter to read and nothing
+    /// addresses it, so the two lists a model fills are empty by definition rather than by a walk
+    /// that found nothing — and the binding and the shape are read off the type as a model's are.
+    /// </summary>
+    [Fact]
+    public void Describes_an_event_by_its_binding_and_shape_alone()
+    {
+        var described = DomainTypeDescriber.DescribeEvent(typeof(SampleCarriedEvent));
+
+        described.Type.Should().Be(typeof(SampleCarriedEvent));
+        described.Binding.Should().NotBeNull();
+        described.Binding!.Key.Should().Be("SampleCarried:1");
+        described.AssemblyName.Should().Be(typeof(SampleCarriedEvent).Assembly.GetName().Name);
+        described.Identifiers.Should().BeEmpty("nothing addresses an event");
+        described.EventTypes.Should().BeEmpty("an event applies nothing");
+        described.Properties.Select(property => property.Name)
+            .Should().BeEquivalentTo("Id", "Measurement", "Notes", "Labels", "Chain", "State", "OccurredOn");
+    }
+
+    [Fact]
+    public void Describes_an_unbound_event_with_no_binding()
+    {
+        DomainTypeDescriber.DescribeEvent(typeof(SampleUnboundEvent)).Binding.Should().BeNull();
+    }
 }

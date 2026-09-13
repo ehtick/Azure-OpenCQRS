@@ -154,6 +154,53 @@ public static class StreamedEvents
     }
 
     /// <summary>
+    /// Reads the one event under an exact address, or nothing when there is none there.
+    /// </summary>
+    /// <param name="context">The streamed store.</param>
+    /// <param name="address">The stream and the key.</param>
+    /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
+    /// <remarks>
+    /// Matched on both halves of the address even though the key alone is the table's primary key:
+    /// the store builds the key out of the stream, but how it does so is its business, and a page
+    /// that was handed a stream and a key together should read the row that carries both. Nothing
+    /// under the address is no row and no error, as a missing snapshot is.
+    /// </remarks>
+    public static async Task<ReadStreamEvent> One(
+        StreamedStoreDbContext context,
+        StreamedEventAddress address,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            // Its own projection rather than the one a page of rows goes through, because this is
+            // the one read that wants the audit column: a table draws no column of who appended a
+            // row, and the page about one row does.
+            var row = await context.Events.AsNoTracking()
+                .Where(appended => appended.StreamId == address.StreamId && appended.Id == address.Id)
+                .Select(appended => new
+                {
+                    appended.Id, appended.StreamId, appended.Sequence, appended.EventType,
+                    appended.Data, appended.CreatedDate, appended.CreatedBy
+                })
+                .FirstOrDefaultAsync(cancellationToken);
+
+            return new ReadStreamEvent(
+                row is null
+                    ? null
+                    : new StoredStreamEvent(
+                        row.StreamId,
+                        row.Id,
+                        BoundaryEvents.Read(row.Sequence, row.EventType, row.Data, row.CreatedDate,
+                            writtenBy: row.CreatedBy)),
+                Error: null);
+        }
+        catch (Exception exception)
+        {
+            return new ReadStreamEvent(Event: null, exception.Message);
+        }
+    }
+
+    /// <summary>
     /// The events a narrowing leaves, as a query the three reads share: paged, counted, or one
     /// row at a place.
     /// </summary>
