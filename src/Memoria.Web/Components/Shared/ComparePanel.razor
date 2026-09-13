@@ -217,10 +217,13 @@
                 }
             </dd>
 
-            @* As the store holds it, offset and all, rather than brought to the reader's clock the
-               way the tables date a row: this card is the store's account of the event, and a
-               reader matching it against the database wants the value the database has. *@
-            <dt>Created</dt>
+            @* Appended, the word every event table and the page about one event date a row by:
+               an event is appended to its stream or log, and Created is what a snapshot's first
+               write is called. As the store holds it, offset and all, rather than brought to the
+               reader's clock the way the tables date a row: this card is the store's account of
+               the event, and a reader matching it against the database wants the value the
+               database has. *@
+            <dt>Appended</dt>
             <dd>
                 @if (point.Written is { } appended)
                 {
