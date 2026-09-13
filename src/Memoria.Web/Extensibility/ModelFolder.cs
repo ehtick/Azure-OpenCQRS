@@ -1,5 +1,6 @@
 using System.Reflection;
 using Memoria.EventSourcing;
+using Memoria.EventSourcing.Dcb;
 using Memoria.EventSourcing.Domain;
 
 namespace Memoria.Web.Extensibility;
@@ -31,6 +32,63 @@ public static class ModelFolder
                 method.Name == name &&
                 method.GetParameters() is [_, _, { ParameterType.Name: nameof(Int32) }, _])
         ?? throw new InvalidOperationException($"IDomainService.{name} up to a sequence is missing.");
+
+    private static readonly MethodInfo FoldDcbAggregate = UpToPosition(nameof(IDcbDomainService.GetInMemoryAggregate));
+
+    private static readonly MethodInfo FoldDcbProjection = UpToPosition(nameof(IDcbDomainService.GetInMemoryProjection));
+
+    /// <summary>
+    /// The DCB store's read up to a position, picked by its parameters for the same reason: the
+    /// whole boundary, up to a position, and up to a date share the name.
+    /// </summary>
+    private static MethodInfo UpToPosition(string name) =>
+        typeof(IDcbDomainService).GetMethods()
+            .SingleOrDefault(method =>
+                method.Name == name &&
+                method.GetParameters() is [_, { ParameterType.Name: nameof(Int64) }, _])
+        ?? throw new InvalidOperationException($"IDcbDomainService.{name} up to a position is missing.");
+
+    /// <summary>
+    /// Folds a DCB model's state up to a position in the log.
+    /// </summary>
+    /// <param name="service">The DCB domain service.</param>
+    /// <param name="model">The aggregate or projection type to fold.</param>
+    /// <param name="identifier">An identifier instance naming it, whose boundary selects its events.</param>
+    /// <param name="upToPosition">The last position to fold, inclusive.</param>
+    /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
+    /// <returns>
+    /// The folded model, or what went wrong. A boundary with nothing to fold up to that position
+    /// comes back as the model in its opening state, which is an answer rather than a fault.
+    /// </returns>
+    /// <remarks>
+    /// The identifier alone, where a streamed fold takes a stream as well: a DCB identifier carries
+    /// its own boundary. Which of the store's two reads is called follows from the identifier, as
+    /// with the streamed fold and with a refresh.
+    /// </remarks>
+    public static async Task<FoldedModel> Fold(
+        IDcbDomainService service,
+        Type model,
+        object identifier,
+        long upToPosition,
+        CancellationToken cancellationToken = default)
+    {
+        var read = identifier switch
+        {
+            IDcbAggregateId => FoldDcbAggregate,
+            IDcbProjectionId => FoldDcbProjection,
+            _ => null
+        };
+
+        if (read is null)
+        {
+            return new FoldedModel(null,
+                $"{identifier.GetType().Name} is not a DCB identifier, so nothing names what to fold.");
+        }
+
+        var answer = await StoreCall.Invoke(read, model, service, [identifier, upToPosition, cancellationToken]);
+
+        return new FoldedModel(answer.Value, answer.Error);
+    }
 
     /// <summary>
     /// Folds a streamed model's state up to a sequence.

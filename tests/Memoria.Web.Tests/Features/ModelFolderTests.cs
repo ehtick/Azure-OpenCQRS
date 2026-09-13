@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Memoria.EventSourcing;
+using Memoria.EventSourcing.Dcb;
 using Memoria.EventSourcing.Domain;
 using Memoria.Results;
 using Memoria.Web.Extensibility;
@@ -171,5 +172,84 @@ public class ModelFolderTests
 
         fold.Model.Should().BeNull();
         fold.Error.Should().Contain("Stream unreadable");
+    }
+
+    // The DCB store folds a model from its identifier alone — the boundary is the identifier's —
+    // up to a position in the one log rather than a sequence in a stream. Everything else is the
+    // same question: which read a kind of model is folded through, and how the answer is read.
+
+    private static readonly SampleDcbAggregateId DcbAggregateId = new("abc-1");
+
+    private static readonly SampleDcbProjectionId DcbProjectionId = new("abc-1");
+
+    private static IDcbDomainService DcbAggregateStore(long upToPosition, Result<SampleDcbAggregate> result)
+    {
+        var store = Substitute.For<IDcbDomainService>();
+
+        store.GetInMemoryAggregate<SampleDcbAggregate>(
+                Arg.Any<IDcbAggregateId<SampleDcbAggregate>>(),
+                upToPosition,
+                Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(result));
+
+        return store;
+    }
+
+    [Fact]
+    public async Task Folds_a_dcb_aggregate_up_to_the_position_asked_for()
+    {
+        var folded = new SampleDcbAggregate();
+        var store = DcbAggregateStore(3, folded);
+
+        var fold = await ModelFolder.Fold(store, typeof(SampleDcbAggregate), DcbAggregateId, 3);
+
+        fold.Model.Should().BeSameAs(folded);
+        fold.Error.Should().BeNull();
+
+        await store.Received(1).GetInMemoryAggregate<SampleDcbAggregate>(
+            DcbAggregateId, 3, Arg.Any<CancellationToken>());
+        await store.DidNotReceive().GetInMemoryAggregate<SampleDcbAggregate>(
+            Arg.Any<IDcbAggregateId<SampleDcbAggregate>>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Folds_a_dcb_projection_through_the_stores_projection_read()
+    {
+        var folded = new SampleDcbProjection();
+        var store = Substitute.For<IDcbDomainService>();
+
+        store.GetInMemoryProjection<SampleDcbProjection>(
+                Arg.Any<IDcbProjectionId<SampleDcbProjection>>(), 3, Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult((Result<SampleDcbProjection>)folded));
+
+        var fold = await ModelFolder.Fold(store, typeof(SampleDcbProjection), DcbProjectionId, 3);
+
+        fold.Model.Should().BeSameAs(folded);
+        fold.Error.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Reports_what_the_dcb_store_said_went_wrong()
+    {
+        var store = DcbAggregateStore(3,
+            (Result<SampleDcbAggregate>)new Failure(ErrorCode.Error, "Boundary unreadable",
+                "The tag head was missing."));
+
+        var fold = await ModelFolder.Fold(store, typeof(SampleDcbAggregate), DcbAggregateId, 3);
+
+        fold.Model.Should().BeNull();
+        fold.Error.Should().Contain("Boundary unreadable").And.Contain("The tag head was missing.");
+    }
+
+    [Fact]
+    public async Task Reports_an_identifier_that_does_not_name_a_dcb_model()
+    {
+        var store = Substitute.For<IDcbDomainService>();
+
+        var fold = await ModelFolder.Fold(store, typeof(SampleDcbAggregate), new object(), 3);
+
+        fold.Model.Should().BeNull();
+        fold.Error.Should().NotBeNullOrWhiteSpace();
+        store.ReceivedCalls().Should().BeEmpty();
     }
 }

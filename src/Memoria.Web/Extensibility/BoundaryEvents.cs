@@ -147,7 +147,55 @@ public static class BoundaryEvents
             .Select(row => Read(row.Position, row.EventType, row.Data, row.CreatedDate))
             .ToList();
 
-        return new StoredEvents(read, matching.Count, placed.Page, placed.TotalPages, Error: null);
+        return new StoredEvents(read, matching.Count, placed.Page, placed.TotalPages, Error: null)
+        {
+            Versions = Versions(rows)
+        };
+    }
+
+    /// <summary>
+    /// Which version of the model each row produced: its place in the whole history by position,
+    /// counted from one.
+    /// </summary>
+    /// <remarks>
+    /// Over every row rather than the page's, and by position rather than by the page's order: a
+    /// model's versions count its applied events in the order the store folds them, which is
+    /// position order, and narrowing or paging hides rows without renumbering the ones left. The
+    /// whole history is already in hand, so this costs nothing the page has not paid.
+    /// </remarks>
+    private static IReadOnlyDictionary<long, int> Versions(IReadOnlyList<DcbEventEntity> rows) =>
+        rows.OrderBy(row => row.Position)
+            .Select((row, index) => (row.Position, Version: index + 1))
+            .ToDictionary(placed => placed.Position, placed => placed.Version);
+
+    /// <summary>
+    /// Reads a model's whole history: every event in its boundary that it applies, in position
+    /// order, as the store folds them.
+    /// </summary>
+    /// <param name="context">The DCB store's context.</param>
+    /// <param name="boundary">The tag query the model's identifier selects its events with.</param>
+    /// <param name="applies">The event types the model applies, or null when it applies everything.</param>
+    /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
+    /// <remarks>
+    /// The same read <see cref="Load"/> pages, handed over whole: the compare tab counts and places
+    /// versions over the list rather than over a page of it. A read that failed says so rather than
+    /// answering with an empty history, which would be a different claim.
+    /// </remarks>
+    public static async Task<BoundaryHistory> History(
+        IDcbDbContext context,
+        TagQuery boundary,
+        Type[]? applies,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return new BoundaryHistory(
+                await context.GetEventEntities(boundary, applies, cancellationToken), Error: null);
+        }
+        catch (Exception exception)
+        {
+            return new BoundaryHistory([], exception.Message);
+        }
     }
 
     /// <summary>
@@ -246,7 +294,20 @@ public static class BoundaryEvents
 /// <param name="TotalPages">How many pages there are, never fewer than one.</param>
 /// <param name="Error">Why the log could not be read, or null when it was.</param>
 public sealed record StoredEvents(
-    IReadOnlyList<StoredEvent> Events, int Total, int Page, int TotalPages, string? Error);
+    IReadOnlyList<StoredEvent> Events, int Total, int Page, int TotalPages, string? Error)
+{
+    /// <summary>
+    /// Gets which version of the model each event produced, by position: its place in the whole
+    /// history the model applies, counted from one. Empty when the read failed or was not a page
+    /// of a model's history.
+    /// </summary>
+    public IReadOnlyDictionary<long, int> Versions { get; init; } = new Dictionary<long, int>();
+}
+
+/// <summary>A model's whole history, or why it could not be read.</summary>
+/// <param name="Rows">Every event in the boundary the model applies, in position order; empty when the read failed.</param>
+/// <param name="Error">Why the log could not be read, or null when it was.</param>
+public sealed record BoundaryHistory(IReadOnlyList<DcbEventEntity> Rows, string? Error);
 
 /// <summary>One event, as the log holds it.</summary>
 /// <param name="Position">Its global position.</param>

@@ -35,6 +35,79 @@ public class BoundaryEventsTests : IDisposable
         GC.SuppressFinalize(this);
     }
 
+    // Which version of the model each row produced, for the compare column. A model's versions
+    // count its applied events from one in position order, so a row's version is its place in the
+    // whole history by position — whatever order the page is drawn in, however it is narrowed,
+    // and whichever page it lands on. The pager has the whole history in hand, so it says.
+
+    private static DcbEventEntity Row(long position, DateTimeOffset written, string eventType = "SampleHappened:1") =>
+        new()
+        {
+            Position = position,
+            EventType = eventType,
+            Data = """{"Id":"abc-1"}""",
+            CreatedDate = written
+        };
+
+    /// <summary>Four rows whose dates run against their positions, so the two orders differ.</summary>
+    private static IReadOnlyList<DcbEventEntity> Scrambled =>
+    [
+        Row(3, Written.AddHours(2)),
+        Row(8, Written),
+        Row(12, Written.AddHours(3)),
+        Row(20, Written.AddHours(1))
+    ];
+
+    [Fact]
+    public void Numbers_each_row_by_its_place_in_position_order()
+    {
+        var page = BoundaryEvents.Page(Scrambled, eventType: null, text: null, descending: false, page: 1, size: 10);
+
+        page.Versions.Should().Equal(new Dictionary<long, int> { [3] = 1, [8] = 2, [12] = 3, [20] = 4 });
+    }
+
+    [Fact]
+    public void Numbers_the_same_whichever_way_the_page_is_drawn()
+    {
+        var page = BoundaryEvents.Page(Scrambled, eventType: null, text: null, descending: true, page: 1, size: 10);
+
+        page.Versions[20].Should().Be(4);
+        page.Versions[8].Should().Be(2);
+    }
+
+    /// <summary>
+    /// Narrowing hides rows; it does not renumber the ones left. A row that is the third of the
+    /// history is the third whether or not the two before it are shown.
+    /// </summary>
+    [Fact]
+    public void Numbers_a_narrowed_row_by_its_place_in_the_whole_history()
+    {
+        IReadOnlyList<DcbEventEntity> rows =
+        [
+            Row(3, Written),
+            Row(8, Written.AddHours(1), "SampleOther:1"),
+            Row(12, Written.AddHours(2)),
+            Row(20, Written.AddHours(3), "SampleOther:1")
+        ];
+
+        var page = BoundaryEvents.Page(rows, eventType: "SampleOther:1", text: null, descending: false, page: 1, size: 10);
+
+        page.Events.Select(row => row.Position).Should().Equal(8, 20);
+        page.Versions[8].Should().Be(2);
+        page.Versions[20].Should().Be(4);
+    }
+
+    [Fact]
+    public void Numbers_the_rows_of_a_later_page_by_their_place_in_the_whole_history()
+    {
+        var page = BoundaryEvents.Page(Scrambled, eventType: null, text: null, descending: false, page: 2, size: 2);
+
+        // The page is ordered by date, which puts these two on the second page of two.
+        page.Events.Select(row => row.Position).Should().Equal(3L, 12L);
+        page.Versions[3].Should().Be(1);
+        page.Versions[12].Should().Be(3);
+    }
+
     [Fact]
     public void Reads_the_event_the_payload_was_written_from()
     {

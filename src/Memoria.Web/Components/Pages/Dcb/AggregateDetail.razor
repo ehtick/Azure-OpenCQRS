@@ -5,6 +5,7 @@
 @using Microsoft.AspNetCore.WebUtilities
 @inject DomainTypeRegistry Types
 @inject IDcbDbContext StoreContext
+@inject IDcbDomainService Folds
 @inject NavigationManager Navigation
 
 <PageTitle>@Heading @Title</PageTitle>
@@ -74,12 +75,16 @@ else
            aria-current="@(Tab == JsonTab ? "page" : null)">Json</a>
         <a id="tab-@EventsTab" href="@TabLink(EventsTab)"
            aria-current="@(Tab == EventsTab ? "page" : null)">Events</a>
+        @* Reads, like the four before it, but of two folds of the boundary rather than of the row —
+           so it comes after the history it folds and before the one tab that writes. *@
+        <a id="tab-@CompareTab" href="@TabLink(CompareTab)"
+           aria-current="@(Tab == CompareTab ? "page" : null)">Compare</a>
         <a id="tab-@UpdateTab" href="@TabLink(UpdateTab)"
            aria-current="@(Tab == UpdateTab ? "page" : null)">Update</a>
     </nav>
 
     @* Each panel is named by the tab that reaches it, so the label is written once and a reader
-       arriving by fragment is told which of the five they landed in. *@
+       arriving by fragment is told which of the six they landed in. *@
     @if (Tab == InfoTab)
     {
         <section class="tab-panel" aria-labelledby="tab-@InfoTab">
@@ -407,7 +412,7 @@ else
                 }
                 else
                 {
-                    <table class="grid events">
+                    <table class="grid events compared">
                         <thead>
                         <tr>
                             <th scope="col" class="col-position">Position</th>
@@ -430,6 +435,10 @@ else
                                what the store actually wrote. Last, because it is a way to something
                                rather than a value to run an eye down. *@
                             <th scope="col" class="col-json marked">Json</th>
+                            @* What the row did to the aggregate: the version it produced against the
+                               one before. A way to something, like the column before it, so it
+                               sits with it at the end. *@
+                            <th scope="col" class="col-compare">Compare</th>
                         </tr>
                         </thead>
                         <tbody>
@@ -491,6 +500,28 @@ else
                                         <JsonMark/>
                                     </a>
                                 </td>
+                                @* The two versions the link compares, which is what tells the link
+                                   on one row from the link on the next: the version this event
+                                   produced, and the one before it. Versions rather than positions,
+                                   because they climb by one down the aggregate's history where the
+                                   position counts the whole log. Offered on every row: a payload
+                                   that will not read back is exactly the event whose effect is
+                                   worth seeing, and the fold either applies it or says why it
+                                   could not. *@
+                                <td>
+                                    @if (Events.Versions.TryGetValue(stored.Position, out var version))
+                                    {
+                                        <a class="button-mark quiet" href="@CompareLink(version)"
+                                           aria-label="Compare version @(version - 1) with version @version"
+                                           title="Compare version @(version - 1) with version @version">
+                                            @(version - 1) → @version
+                                        </a>
+                                    }
+                                    else
+                                    {
+                                        <span class="missing">—</span>
+                                    }
+                                </td>
                             </tr>
                         }
                         </tbody>
@@ -545,6 +576,30 @@ else
         </section>
     }
 
+    else if (Tab == CompareTab)
+    {
+        @* Two folds of the boundary through this row's identifier, laid over each other as one
+           table. Drawn by the panel the streamed pages draw the same thing with; what is this
+           page's to say is which model, where the form comes back to, what carries the row, and
+           that the place a version was folded up to is a position in the one log. *@
+        <ComparePanel Unavailable="Unfoldable" Comparison="Comparison" Noun="aggregate" PointLabel="Position"
+                      StoredVersion="Stored?.Version" UpdateHref="@TabLink(UpdateTab)"
+                      Action="@($"dcb/aggregates/detail#tab-{CompareTab}")"
+                      Link="@(pair => DetailLink(CompareTab, Descending, Page, from: pair.From, to: pair.To))">
+            <Carried>
+                <input type="hidden" name="type" value="@Aggregate?.FullName"/>
+                <input type="hidden" name="id" value="@Identifier?.FullName"/>
+                @foreach (var parameter in Parameters)
+                {
+                    <input type="hidden" name="@parameter.Name"
+                           value="@Values.GetValueOrDefault(parameter.Name)"/>
+                }
+                <input type="hidden" name="dir" value="@(Descending ? "desc" : "asc")"/>
+                <input type="hidden" name="size" value="@PageSize"/>
+                <input type="hidden" name="page" value="@Page"/>
+            </Carried>
+        </ComparePanel>
+    }
     else if (Tab == UpdateTab)
     {
         @* The one write these pages offer, given a tab of its own so the three that read stay
@@ -668,6 +723,50 @@ else
     private StoredEvents Events { get; set; } = new([], Total: 0, Page: 1, TotalPages: 1, Error: null);
 
     /// <summary>
+    /// The identifier rebuilt from the values in the address, or null when it could not be. Kept
+    /// because the compare tab has to say which of the two it was.
+    /// </summary>
+    private object? Instance { get; set; }
+
+    /// <summary>
+    /// The compare tab's two folds, or why there are none. Nothing until that tab asks for it.
+    /// </summary>
+    private ModelComparison Comparison { get; set; } = ModelComparison.None;
+
+    /// <summary>
+    /// Why the store cannot be asked to fold this row, for the compare tab to draw in place of its
+    /// form — or null when it can.
+    /// </summary>
+    /// <remarks>
+    /// The store folds a model through its identifier, whose boundary selects its events, so the
+    /// identifier has to be rebuilt from the address before it can be asked — and rebuilt as the
+    /// kind of identifier this page is about.
+    /// </remarks>
+    private RenderFragment? Unfoldable
+    {
+        get
+        {
+            if (Instance is null)
+            {
+                return @<p class="missing">
+            The identifier could not be rebuilt from this address, so there is nothing to say what
+            to fold.
+        </p>;
+            }
+
+            if (Instance is not IDcbAggregateId)
+            {
+                return @<p class="missing">
+            <code>@Identifier?.Name</code> does not name a DCB aggregate, so there is nothing to say
+            what to fold.
+        </p>;
+            }
+
+            return null;
+        }
+    }
+
+    /// <summary>
     /// How far the stored version has fallen behind the events the aggregate applies, or null when
     /// it has not, when there is no row to say it of, or when the history could not be counted.
     /// </summary>
@@ -767,6 +866,8 @@ else
 
     private const string UpdateTab = "update";
 
+    private const string CompareTab = ComparePanel.Tab;
+
     private string Tab { get; set; } = InfoTab;
 
     /// <summary>How far the table is narrowed to one type, in the words the count is counted in.</summary>
@@ -852,7 +953,9 @@ else
         bool clearEvent = false,
         bool clearText = false,
         string? view = null,
-        string? json = null) =>
+        string? json = null,
+        long? from = null,
+        long? to = null) =>
         $"{Address}&tab={tab}" +
         $"&dir={(descending ? "desc" : "asc")}" +
         $"&size={PageSize}" +
@@ -864,6 +967,11 @@ else
         (!clearText && IsFiltered ? $"&text={Uri.EscapeDataString(Text!)}" : string.Empty) +
         (view is { Length: > 0 } ? $"&view={view}" : string.Empty) +
         (json is { Length: > 0 } ? $"&json={Uri.EscapeDataString(json)}" : string.Empty) +
+        // The pair the compare tab folds, named only by a link to that tab: the others have
+        // nothing to fold, and carrying a pair along would leave it in the address of a view that
+        // does not read it.
+        (from is { } earlier ? $"&from={earlier}" : string.Empty) +
+        (to is { } later ? $"&to={later}" : string.Empty) +
         // Last, because everything after a fragment is part of it.
         (toTable ? $"#{EventsAnchor}" : string.Empty);
 
@@ -943,6 +1051,18 @@ else
     /// returns to the page and order it was read at rather than to the first one.
     /// </summary>
     private string TabLink(string tab) => DetailLink(tab, Descending, Page);
+
+    /// <summary>
+    /// The compare tab with the version an event produced held against the one before it: what
+    /// that one event did to the aggregate.
+    /// </summary>
+    /// <remarks>
+    /// Before the first version is zero, and version zero is the aggregate before anything happened
+    /// to it — the store hands back a fresh one — so the first row compares against that rather
+    /// than needing a link of its own.
+    /// </remarks>
+    private string CompareLink(int version) =>
+        DetailLink(CompareTab, Descending, Events.Page, from: version - 1, to: version);
 
     private string EventsLink(bool descending, int page, bool toTable = true) =>
         DetailLink(EventsTab, descending, page, toTable);
@@ -1069,13 +1189,14 @@ else
             pair => pair.Key, pair => (string?)pair.Value.LastOrDefault(),
             StringComparer.OrdinalIgnoreCase);
 
-        // Matched against the five the page has, so an unknown name in the address opens the one
+        // Matched against the six the page has, so an unknown name in the address opens the one
         // it opens with rather than a blank page.
         Tab = (Values.GetValueOrDefault("tab") ?? string.Empty).ToLowerInvariant() switch
         {
             StateTab => StateTab,
             JsonTab => JsonTab,
             EventsTab => EventsTab,
+            CompareTab => CompareTab,
             UpdateTab => UpdateTab,
             _ => InfoTab,
         };
@@ -1099,6 +1220,8 @@ else
         Parameters = IdentifierFactory.Parameters(Identifier);
 
         var created = IdentifierFactory.Create(Identifier, Values);
+
+        Instance = created.Instance;
 
         if (created.Instance is null)
         {
@@ -1154,6 +1277,18 @@ else
             // not read is not a boundary holding no events, and either would leave the warning
             // undrawn — but only one of them would be honest about it.
             Lag = SnapshotLag.Of(Stored.Version, history.Error is null ? history.Total : null);
+        }
+
+        // Two folds of the boundary, read only for the tab that draws them: the whole history the
+        // events tab pages, handed over whole so the versions are counted and placed over it.
+        if (Tab == CompareTab)
+        {
+            Comparison = await BoundaryComparison.Of(
+                await BoundaryEvents.History(StoreContext, aggregateId.Boundary, Applies),
+                Folds,
+                new BoundaryComparisonRequest(
+                    Aggregate, aggregateId,
+                    Values.GetValueOrDefault("from"), Values.GetValueOrDefault("to")));
         }
 
         // Only when they are the view being shown. The tab labels report no counts, so nothing on
