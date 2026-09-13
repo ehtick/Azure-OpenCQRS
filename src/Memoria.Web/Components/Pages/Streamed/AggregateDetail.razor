@@ -597,7 +597,7 @@ else
         @* Two folds of the stream through this row's identifier, laid over each other as one
            table. Drawn by the panel the projection page draws the same thing with; what is this
            page's to say is which model, where the form comes back to, and what carries the row. *@
-        <ComparePanel Identity="Identity" Comparison="Comparison" Noun="aggregate" StoredVersion="Stored?.Version"
+        <ComparePanel Unavailable="Unfoldable" Comparison="Comparison" Noun="aggregate" StoredVersion="Stored?.Version"
                       UpdateHref="@TabLink(UpdateTab)"
                       Action="@($"streamed/aggregates/detail#tab-{CompareTab}")"
                       Link="@(pair => DetailLink(CompareTab, Descending, Page, from: pair.From, to: pair.To))">
@@ -803,6 +803,45 @@ else
     /// The compare tab's two folds, or why there are none. Nothing until that tab asks for it.
     /// </summary>
     private ModelComparison Comparison { get; set; } = ModelComparison.None;
+
+    /// <summary>
+    /// Why the store cannot be asked to fold this row, for the compare tab to draw in place of its
+    /// form — or null when it can.
+    /// </summary>
+    /// <remarks>
+    /// The store folds a stream through an identifier and takes the things rather than the ids
+    /// they produced, so both have to be worked back out of this row before it can be asked — the
+    /// same three answers the update tab gives when one of them cannot be.
+    /// </remarks>
+    private RenderFragment? Unfoldable
+    {
+        get
+        {
+            if (Identity.Stream is null)
+            {
+                return @<p class="missing">
+            Nothing registered writes stream ids of this shape, so there is nowhere to fold from.
+        </p>;
+            }
+
+            if (Identifier is null)
+            {
+                return @<p class="missing">
+            Nothing registered writes ids of this shape, so there is nothing to say what to fold.
+        </p>;
+            }
+
+            if (Identity.Identifier is null)
+            {
+                return @<p class="missing">
+            <code>@Identifier.Name</code> could not be rebuilt from this id, so there
+            is nothing to say what to fold.
+        </p>;
+            }
+
+            return null;
+        }
+    }
 
     /// <summary>
     /// Each row's sequence on the events tab to the version of the aggregate it produced, for the

@@ -10,27 +10,13 @@
    other. What differs — which word the page calls its model, where the form posts back to, and
    which fields carry the row along — comes in from the page. *@
 <section class="tab-panel" aria-labelledby="tab-@Tab">
-    @* The store folds a stream through an identifier and takes the things rather than the ids they
-       produced, so both have to be worked back out of this row before it can be asked — the same
-       three answers the update tab gives when one of them cannot be. *@
-    @if (Identity.Stream is null)
+    @* The store folds a model through the things a row's ids were produced from, and those have
+       to be worked back out of the row before it can be asked. Whether they could be, and what to
+       say when they could not, is the page's to know: a streamed row needs a stream and an
+       identifier, a DCB row an identifier alone. *@
+    @if (Unavailable is not null)
     {
-        <p class="missing">
-            Nothing registered writes stream ids of this shape, so there is nowhere to fold from.
-        </p>
-    }
-    else if (Identity.IdentifierType is null)
-    {
-        <p class="missing">
-            Nothing registered writes ids of this shape, so there is nothing to say what to fold.
-        </p>
-    }
-    else if (Identity.Identifier is null)
-    {
-        <p class="missing">
-            <code>@Identity.IdentifierType.Name</code> could not be rebuilt from this id, so there
-            is nothing to say what to fold.
-        </p>
+        @Unavailable
     }
     else
     {
@@ -133,10 +119,20 @@
     /// </summary>
     public const string Tab = "compare";
 
-    /// <summary>The stream and identifier worked back out of the row's ids, or the half that could not be.</summary>
+    /// <summary>
+    /// Why the store cannot be asked to fold this row, drawn in place of the form — or null when it
+    /// can. The page's to say, since only it knows what it needed to work back out of the row's ids
+    /// and which half it could not.
+    /// </summary>
     [Parameter]
-    [EditorRequired]
-    public StreamedIdentity Identity { get; set; } = StreamedIdentity.Unknown;
+    public RenderFragment? Unavailable { get; set; }
+
+    /// <summary>
+    /// What the fact cards call the place in the log a version was folded up to: a sequence within
+    /// a stream, or a position in the one DCB log.
+    /// </summary>
+    [Parameter]
+    public string PointLabel { get; set; } = "Sequence";
 
     /// <summary>The two versions, or why there are none.</summary>
     [Parameter]
@@ -206,7 +202,7 @@
                 }
             </dd>
 
-            <dt>Sequence</dt>
+            <dt>@PointLabel</dt>
             <dd>@point.Sequence</dd>
 
             <dt>Event type</dt>
