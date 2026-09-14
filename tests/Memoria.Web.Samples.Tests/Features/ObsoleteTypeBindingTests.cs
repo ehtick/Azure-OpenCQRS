@@ -26,14 +26,15 @@ namespace Memoria.Web.Samples.Tests.Features;
 /// A type marked obsolete is one nothing should write through any more, not one the store has
 /// forgotten: the events it left in the log and the snapshots written by its shape are still there,
 /// and reading them back needs the binding. So the same scans that bind the live types must bind
-/// these — which is also what lets the web tool register them from the uploaded assembly.
+/// these — which is also what lets the web tool register them from the uploaded assembly. Each
+/// model is scanned from its own assembly, the way the seeder scans it.
 /// </remarks>
 public class ObsoleteTypeBindingTests
 {
     [Fact]
     public void Binds_the_retired_streamed_types_beside_the_live_ones()
     {
-        new ServiceCollection().AddMemoriaEventSourcing(typeof(Program));
+        new ServiceCollection().AddMemoriaEventSourcing(typeof(Order));
 
         using var scope = new AssertionScope();
 
@@ -48,7 +49,7 @@ public class ObsoleteTypeBindingTests
     [Fact]
     public void Binds_the_retired_dcb_types_beside_the_live_ones()
     {
-        new ServiceCollection().AddMemoriaDcb(typeof(Program));
+        new ServiceCollection().AddMemoriaDcb(typeof(Product));
 
         using var scope = new AssertionScope();
 

@@ -6,13 +6,17 @@ using Memoria.EventSourcing.Domain;
 using Memoria.EventSourcing.Extensions;
 using Memoria.Extensions;
 using Memoria.Web.Data;
+using Memoria.Web.Samples.Dcb.Aggregates;
 using Memoria.Web.Samples.Seeding;
+using Memoria.Web.Samples.Streamed.Aggregates;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
 // The sample domain types the web tool loads, registered the way Memoria.Web registers them so
-// that anything written under Streamed/ and Dcb/ is exercised here first, against the same store.
+// that anything in Memoria.Web.Samples.Streamed and Memoria.Web.Samples.Dcb is exercised here
+// first, against the same store. Each is its own assembly so that either can be uploaded alone;
+// the scans below are pointed at them by one type from each.
 
 // The content root is the output directory rather than whatever directory the process was
 // started from, so appsettings.json is found by `dotnet run` from the repository root too.
@@ -32,8 +36,8 @@ builder.Services.AddMemoria(typeof(Program));
 
 // The two event sourcing models side by side. Each store call replaces the default no-op service
 // its model registers, so it comes after.
-builder.Services.AddMemoriaEventSourcing(typeof(Program));
-builder.Services.AddMemoriaDcb(typeof(Program));
+builder.Services.AddMemoriaEventSourcing(typeof(Order));
+builder.Services.AddMemoriaDcb(typeof(Product));
 
 // Whichever store the connection string named. A relational store brings a context for each model
 // with it; a Cosmos store brings a client, the streamed model, and no context.
@@ -133,7 +137,8 @@ async Task Seed(SampleDataScope what)
 }
 
 int Count(Dictionary<string, Type> bindings) =>
-    bindings.Count(binding => binding.Value.Assembly == typeof(Program).Assembly);
+    bindings.Count(binding => binding.Value.Assembly == typeof(Order).Assembly ||
+                              binding.Value.Assembly == typeof(Product).Assembly);
 
 /// <summary>
 /// Named so that <c>typeof(Program)</c> can point the registration scans at this assembly, which a

@@ -12,8 +12,9 @@ dotnet run --project src/Memoria.Web
 
 That serves on `http://localhost:5159` in the Development environment. Point it at a store first —
 `ConnectionStrings:Memoria` in [`appsettings.json`](appsettings.json) — or fill one with
-[Memoria.Web.Samples](../Memoria.Web.Samples), which carries a sample domain in both consistency
-models and writes data through it.
+[Memoria.Web.Samples](../Memoria.Web.Samples), which writes data through a sample domain carried
+one consistency model per project, in [Memoria.Web.Samples.Streamed](../Memoria.Web.Samples.Streamed)
+and [Memoria.Web.Samples.Dcb](../Memoria.Web.Samples.Dcb).
 
 > **Use the launch profile.** Started with `--no-launch-profile` the environment is Production, the
 > development static-asset handler looks for a bundle that only exists in publish output, and the

@@ -153,8 +153,9 @@ stream or its boundary.
 > process.** Keep it on localhost or behind a proxy that authenticates every request. Both are
 > coming in the next release.
 
-To try it without a domain of your own, `src/Memoria.Web.Samples` carries a sample ecommerce domain
-modelled in both consistency models and fills a store with data written through it.
+To try it without a domain of your own, `src/Memoria.Web.Samples.Streamed` and
+`src/Memoria.Web.Samples.Dcb` carry a sample ecommerce domain modelled once in each consistency
+model, and `src/Memoria.Web.Samples` fills a store with data written through it.
 
 - 🔎 _[Memoria Web](https://lucabriguglia.github.io/Memoria/tools/memoria-web.html)_ — what it is, and what each page shows
 - ⚙️ _[Configuration](https://lucabriguglia.github.io/Memoria/tools/memoria-web-configuration.html)_ · _[Deployment](https://lucabriguglia.github.io/Memoria/tools/memoria-web-deployment.html)_

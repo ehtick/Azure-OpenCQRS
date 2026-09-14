@@ -2,12 +2,13 @@
 
 [Memoria Web](memoria-web.md) shows you a store through your own domain types. To try it before you
 have either — or to see what a store with something interesting in it looks like — the repository
-ships `Memoria.Web.Samples`.
+ships the samples, three projects with two jobs between them:
 
-It does two jobs on purpose:
-
-- it **carries a sample domain**, an ecommerce one, modelled in both consistency models
-- it **fills a store** with data written through that domain, using the framework itself
+- `Memoria.Web.Samples.Streamed` and `Memoria.Web.Samples.Dcb` **carry a sample domain**, an
+  ecommerce one, modelled once in each consistency model — one assembly per model, so that either
+  can be uploaded on its own
+- `Memoria.Web.Samples` **fills a store** with data written through that domain, using the framework
+  itself
 
 The types the tool displays are the types the seeder exercises, so nothing reaches the tool that was
 never written through Memoria first.
@@ -16,9 +17,9 @@ Five steps, and about five minutes:
 
 1. [Point the seeder at a store](#1-point-the-seeder-at-a-store)
 2. [Run it](#2-run-it)
-3. [Package the sample assembly](#3-package-the-sample-assembly)
+3. [Package the sample assemblies](#3-package-the-sample-assemblies)
 4. [Point the tool at the same store](#4-point-the-tool-at-the-same-store)
-5. [Upload the zip and look around](#5-upload-the-zip-and-look-around)
+5. [Upload a zip and look around](#5-upload-a-zip-and-look-around)
 
 ## 1. Point the seeder at a store
 
@@ -82,7 +83,7 @@ dotnet run --project src/Memoria.Web.Samples
 Memoria.Web.Samples
   store    : Npgsql
   writing  : memoria_samples
-  bound    : 28 events, 4+4 aggregates, 3+5 projections (streamed+dcb)
+  bound    : 30 events, 5+5 aggregates, 4+6 projections (streamed+dcb)
   schema   : installed
 ```
 
@@ -138,27 +139,34 @@ streamed aggregate  CustomerAccount       CustomerAccountId     c-37e7     v2 of
 streamed projection OrderSummary          OrderSummaryId        o-a6f6     no snapshot — 2 events waiting
 ```
 
-## 3. Package the sample assembly
+## 3. Package the sample assemblies
 
-The tool has no reference to this project — it reads uploaded assemblies and nothing else. So build
-it and zip the assembly on its own:
+The tool has no reference to these projects — it reads uploaded assemblies and nothing else. So
+build them and zip each domain assembly on its own, one archive per model:
 
 ```bash
 dotnet build src/Memoria.Web.Samples --configuration Release
 ```
 
 ```powershell
-Compress-Archive -Path src\Memoria.Web.Samples\bin\Release\net10.0\Memoria.Web.Samples.dll `
-                 -DestinationPath Memoria.Web.Samples.zip -Force
+Compress-Archive -Path src\Memoria.Web.Samples.Streamed\bin\Release\net10.0\Memoria.Web.Samples.Streamed.dll `
+                 -DestinationPath Memoria.Web.Samples.Streamed.zip -Force
+Compress-Archive -Path src\Memoria.Web.Samples.Dcb\bin\Release\net10.0\Memoria.Web.Samples.Dcb.dll `
+                 -DestinationPath Memoria.Web.Samples.Dcb.zip -Force
 ```
 
 ```bash
 # bash
-cd src/Memoria.Web.Samples/bin/Release/net10.0 && zip ~/Memoria.Web.Samples.zip Memoria.Web.Samples.dll
+cd src/Memoria.Web.Samples.Streamed/bin/Release/net10.0 && zip ~/Memoria.Web.Samples.Streamed.zip Memoria.Web.Samples.Streamed.dll
+cd src/Memoria.Web.Samples.Dcb/bin/Release/net10.0 && zip ~/Memoria.Web.Samples.Dcb.zip Memoria.Web.Samples.Dcb.dll
 ```
 
-The archive holds `Memoria.Web.Samples.dll` and nothing else. Never put a `Memoria*` core assembly in
-it — see [what to put in a zip](memoria-web-configuration.md#what-to-put-in-a-zip).
+Each archive holds its one `.dll` and nothing else. Never put a `Memoria*` core assembly in one —
+see [what to put in a zip](memoria-web-configuration.md#what-to-put-in-a-zip).
+
+Two archives rather than one so that you can upload one model alone. The tool lays itself out for
+the models it finds types under: with both uploaded the home page sets them side by side and the
+bar names each; with one, that model's sections take the bar and the home page directly.
 
 ## 4. Point the tool at the same store
 
@@ -171,10 +179,11 @@ dotnet run --project src/Memoria.Web
 
 Then open `http://localhost:5159`.
 
-## 5. Upload the zip and look around
+## 5. Upload a zip and look around
 
-Go to **Settings → Installed → Upload**, choose the zip, and upload it. The page reports what
-registered; **Settings → Types** counts it per model. Nothing restarts.
+Go to **Settings → Installed → Upload**, choose a zip, and upload it — then the other, if you want
+both models. The page reports what registered; **Settings → Types** counts it per model. Nothing
+restarts.
 
 Things worth opening first:
 
@@ -199,20 +208,20 @@ rather than being offered it and refused on the first write.
 opened it, and both the seeder and the tool open a connection per unit of work — they would find an
 empty store rather than the one that was seeded. Point them at a file.
 
-**Do not upload the samples alongside `Memoria.Examples.Ecommerce.Dcb`.** Both claim the event types
-`ProductCreated`, `ProductDeleted` and `ProductDetailsChanged` at version 1, and the DCB aggregate
-`Product` at version 1. Whichever loses the name loses its bindings, and its pages then report no
-events inside the boundary. Remove one archive before uploading the other.
+**Do not upload the DCB samples alongside `Memoria.Examples.Ecommerce.Dcb`.** Both claim the event
+types `ProductCreated`, `ProductDeleted` and `ProductDetailsChanged` at version 1, and the DCB
+aggregate `Product` at version 1. Whichever loses the name loses its bindings, and its pages then
+report no events inside the boundary. Remove one archive before uploading the other.
 
-**A version bump means a rebuild.** The assembly is compiled against the `<Version>` in
+**A version bump means a rebuild.** The assemblies are compiled against the `<Version>` in
 [`Directory.Build.props`](https://github.com/lucabriguglia/Memoria/blob/main/Directory.Build.props).
 One built against an older version still loads, and then contributes no types at all.
 
 ## Where things are
 
-| Path        | What is in it                                                           |
-| ----------- | ----------------------------------------------------------------------- |
-| `Streamed/` | The streamed model: streams, aggregates, projections, events            |
-| `Dcb/`      | The dynamic consistency boundary model: aggregates, projections, events |
-| `Seeding/`  | The run itself — the menu, the store it writes to, and the data         |
-| `Data/`     | The two contexts a relational store is written through                  |
+| Path                                     | What is in it                                                           |
+| ---------------------------------------- | ----------------------------------------------------------------------- |
+| `src/Memoria.Web.Samples.Streamed/`      | The streamed model: streams, aggregates, projections, events            |
+| `src/Memoria.Web.Samples.Dcb/`           | The dynamic consistency boundary model: aggregates, projections, events |
+| `src/Memoria.Web.Samples/Seeding/`       | The run itself — the menu, the store it writes to, and the data         |
+| `src/Memoria.Web.Samples/Data/`          | The two contexts a relational store is written through                  |

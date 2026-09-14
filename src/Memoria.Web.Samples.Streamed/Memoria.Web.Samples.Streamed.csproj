@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <!-- The sample ecommerce domain in the streamed model, and nothing else: this assembly is what
+         gets zipped and uploaded to Memoria Web, on its own or beside the DCB one. It carries no
+         seeding and no store, so the archive holds one file. -->
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <RootNamespace>Memoria.Web.Samples.Streamed</RootNamespace>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Memoria\Memoria.csproj" />
+        <ProjectReference Include="..\Memoria.EventSourcing\Memoria.EventSourcing.csproj" />
+    </ItemGroup>
+
+</Project>
