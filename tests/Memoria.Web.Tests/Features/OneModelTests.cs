@@ -67,29 +67,37 @@ public class OneModelTests
 
         page.Should().Contain("class=\"models\"")
             .And.Contain("<h2><a href=\"streamed\">Streamed</a></h2>")
-            .And.Contain("<h2><a href=\"dcb\">DCB</a></h2>");
+            .And.Contain("<h2><a href=\"dcb\">DCB</a></h2>")
+            .And.Contain("What is registered under the streamed model.")
+            .And.Contain("What is registered under the DCB model.");
     }
 
+    /// <summary>
+    /// Without the Overview tile: with one model there is no model heading for it to stand in
+    /// for, and the sections it would count are the tiles beside it.
+    /// </summary>
     [Fact]
-    public async Task With_only_streamed_types_the_home_page_is_the_streamed_tiles_alone()
+    public async Task With_only_streamed_types_the_home_page_is_the_streamed_sections_alone()
     {
         using var web = MemoriaWeb.Open().WithStreamedTypesOnly();
 
         var page = Markup.Plain(await web.Client.GetStringAsync("/"));
 
         page.Should().NotContain("class=\"models\"").And.NotContain("<h2>")
-            .And.Contain("href=\"streamed/streams\"").And.NotContain("href=\"dcb");
+            .And.Contain("href=\"streamed/streams\"").And.NotContain("href=\"dcb")
+            .And.NotContain("href=\"streamed\"").And.NotContain("What is registered under");
     }
 
     [Fact]
-    public async Task With_only_dcb_types_the_home_page_is_the_dcb_tiles_alone()
+    public async Task With_only_dcb_types_the_home_page_is_the_dcb_sections_alone()
     {
         using var web = MemoriaWeb.Open().WithDcbTypesOnly();
 
         var page = Markup.Plain(await web.Client.GetStringAsync("/"));
 
         page.Should().NotContain("class=\"models\"").And.NotContain("<h2>")
-            .And.Contain("href=\"dcb/projections\"").And.NotContain("href=\"streamed");
+            .And.Contain("href=\"dcb/projections\"").And.NotContain("href=\"streamed")
+            .And.NotContain("href=\"dcb\"").And.NotContain("What is registered under");
     }
 
     [Fact]

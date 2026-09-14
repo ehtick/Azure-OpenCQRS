@@ -58,8 +58,14 @@ else
     // under a section — the types the model declares and what has been stored of them — is on the
     // page the tile leads to, which is where a reader is asked to choose between them rather than
     // twice. Templates rather than components so the two layouts above draw the one markup.
-    private static readonly RenderFragment StreamedTiles =
+    //
+    // The Overview tile only while both models are laid out: it is the model's own page, the one
+    // its heading here leads to, and with one model alone there is no heading and nothing for the
+    // page to stand apart from — the sections it would count are the tiles beside it.
+    private RenderFragment StreamedTiles =>
         @<ul class="tiles">
+            @if (Shown.Both)
+            {
             <li>
                 <a href="streamed">
                     <SectionMark Kind="SectionKind.Overview"/>
@@ -69,6 +75,7 @@ else
                     </span>
                 </a>
             </li>
+            }
             <li>
                 <a href="streamed/events">
                     <SectionMark Kind="SectionKind.Events"/>
@@ -109,8 +116,10 @@ else
             </li>
         </ul>;
 
-    private static readonly RenderFragment DcbTiles =
+    private RenderFragment DcbTiles =>
         @<ul class="tiles">
+            @if (Shown.Both)
+            {
             <li>
                 <a href="dcb">
                     <SectionMark Kind="SectionKind.Overview"/>
@@ -120,6 +129,7 @@ else
                     </span>
                 </a>
             </li>
+            }
             <li>
                 <a href="dcb/events">
                     <SectionMark Kind="SectionKind.Events"/>
