@@ -139,6 +139,14 @@
     margin-top: 0;
 }
 
+/* Nothing installed yet is said in the space the table would have filled, and is given the space
+   under it the table would have had. Without it the button row, which sets no space above so as
+   to sit close under the table's own margin, lands flush on the dashed box as if it were part of
+   it — on both tabs, since the refresh form sets none above either. */
+.empty {
+    margin-bottom: 1.5rem;
+}
+
 /* The line at the foot of both type-changing panels, saying who else a change there reaches. Set
    smaller and in italic to read as a footnote to the panel rather than another thing in it — the
    panel is done by the time this is reached, and it is a condition on what was just done rather
