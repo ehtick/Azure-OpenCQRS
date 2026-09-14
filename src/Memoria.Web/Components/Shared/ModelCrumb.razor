@@ -1,0 +1,45 @@
+@using Memoria.Web.Extensibility
+@inject DomainTypeRegistry Types
+@inject Memoria.Web.Data.StoreCapabilities Store
+
+@* The model's step in a breadcrumb: a link through to its overview, followed by the separator
+   the next crumb needs, or — on the overview itself — the crumb being read. Only while both
+   models are laid out. With one model alone nothing else on the site names it, so the trail runs
+   straight from Home to the section, and the overview is called what the home tile calls it. *@
+@if (Shown.Both)
+{
+    if (Current)
+    {
+        <span aria-current="page">@Name</span>
+    }
+    else
+    {
+        <a href="@Href">@Name</a>
+        <span aria-hidden="true">/</span>
+    }
+}
+else if (Current)
+{
+    <span aria-current="page">Overview</span>
+}
+
+@code {
+
+    /// <summary>Which model's step this is.</summary>
+    [Parameter, EditorRequired]
+    public ModelStore Model { get; set; }
+
+    /// <summary>
+    /// Whether the model's overview is the page being read, so the step is the end of the trail
+    /// rather than a link along it.
+    /// </summary>
+    [Parameter]
+    public bool Current { get; set; }
+
+    private ShownModels Shown => ShownModels.Of(Types.Current, Store);
+
+    private string Href => Model == ModelStore.Dcb ? "dcb" : "streamed";
+
+    private string Name => Model == ModelStore.Dcb ? "DCB" : "Streamed";
+
+}

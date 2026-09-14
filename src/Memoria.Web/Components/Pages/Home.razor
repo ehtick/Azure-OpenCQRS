@@ -1,22 +1,65 @@
 @page "/"
+@using Memoria.Web.Extensibility
+@inject DomainTypeRegistry Types
+@inject Memoria.Web.Data.StoreCapabilities Store
 
 <PageTitle>Memoria</PageTitle>
 
 <h1>Memoria</h1>
-<p class="lede">
-    Two models of the same domain, side by side: streams addressed by aggregate, and dynamic
-    consistency boundaries addressed by identifier.
-</p>
 
-<div class="models">
-    <section class="model">
-        <h2><a href="streamed">Streamed</a></h2>
-        @* The same tiles the rest of the site is entered by, one under the other because a column
-           here is half the page rather than the whole of it. Each names a section and goes to it;
-           what is under a section — the types the model declares and what has been stored of them —
-           is on the page the tile leads to, which is where a reader is asked to choose between
-           them rather than twice. *@
-        <ul class="tiles">
+@* Laid out for the models the store has something registered under. Both: two columns, each
+   headed by its model and the way into it. One alone: that model's tiles as the page, with no
+   heading over them, because a heading names a choice and there is none to make. *@
+@if (Shown.Both)
+{
+    <p class="lede">
+        Two models of the same domain, side by side: streams addressed by aggregate, and dynamic
+        consistency boundaries addressed by identifier.
+    </p>
+
+    <div class="models">
+        <section class="model">
+            <h2><a href="streamed">Streamed</a></h2>
+            @StreamedTiles
+        </section>
+
+        <section class="model">
+            <h2><a href="dcb">DCB</a></h2>
+            @DcbTiles
+        </section>
+    </div>
+}
+else if (Shown.Streamed)
+{
+    <p class="lede">
+        Streams addressed by aggregate: the events, the models folded from them, and the streams
+        they are held in.
+    </p>
+
+    @StreamedTiles
+}
+else
+{
+    <p class="lede">
+        Dynamic consistency boundaries addressed by identifier: the events, and the models folded
+        from them.
+    </p>
+
+    @DcbTiles
+}
+
+@code {
+
+    private ShownModels Shown => ShownModels.Of(Types.Current, Store);
+
+    // The same tiles the rest of the site is entered by, one under the other because a column is
+    // half the page rather than the whole of it — and, alone, still one under the other, which is
+    // how the overview under them lays its own out. Each names a section and goes to it; what is
+    // under a section — the types the model declares and what has been stored of them — is on the
+    // page the tile leads to, which is where a reader is asked to choose between them rather than
+    // twice. Templates rather than components so the two layouts above draw the one markup.
+    private static readonly RenderFragment StreamedTiles =
+        @<ul class="tiles">
             <li>
                 <a href="streamed">
                     <SectionMark Kind="SectionKind.Overview"/>
@@ -53,8 +96,8 @@
                     </span>
                 </a>
             </li>
-            @* Last of the column, and the one the DCB side has nothing to set against it: a
-               boundary there is a query over tags rather than a place events are kept. *@
+            @* Last, and the one the DCB side has nothing to set against it: a boundary there is a
+               query over tags rather than a place events are kept. *@
             <li>
                 <a href="streamed/streams">
                     <SectionMark Kind="SectionKind.Streams"/>
@@ -64,12 +107,10 @@
                     </span>
                 </a>
             </li>
-        </ul>
-    </section>
+        </ul>;
 
-    <section class="model">
-        <h2><a href="dcb">DCB</a></h2>
-        <ul class="tiles">
+    private static readonly RenderFragment DcbTiles =
+        @<ul class="tiles">
             <li>
                 <a href="dcb">
                     <SectionMark Kind="SectionKind.Overview"/>
@@ -106,6 +147,6 @@
                     </span>
                 </a>
             </li>
-        </ul>
-    </section>
-</div>
+        </ul>;
+
+}

@@ -1,6 +1,8 @@
 @inherits LayoutComponentBase
+@using Memoria.Web.Extensibility
 @inject NavigationManager Navigation
 @inject Memoria.Web.Data.StoreCapabilities Store
+@inject DomainTypeRegistry Types
 @inject AuthenticationSettings SignIn
 
 <header>
@@ -21,6 +23,10 @@
 
         @* <details> rather than a hover menu: it opens on touch and on the keyboard with no
            script, which matters because these pages render statically. *@
+        @* Named only while both models are laid out. With one model alone there is no choice for
+           a heading to stand for, so its sections take the bar directly — see below. *@
+        @if (Shown.Both)
+        {
         @* Each of the three concerns is a heading over the pages that hold it rather than a link
            of its own: its own overview, the types the model declares, and what has been stored of
            them. The heading names the group without going anywhere — the overview under it is the
@@ -60,12 +66,6 @@
             </div>
         </details>
 
-@* Only where there is a store holding one. A Cosmos store has no dynamic consistency boundary at
-   all, so these would be nine links to pages with nothing to read — the menu is left out rather than
-   shown leading nowhere. The pages themselves are not found under such a store either; see
-   Routes.razor, which is what makes a bookmarked address agree with this menu. *@
-@if (Store.HasDcb)
-{
         <details class="menu">
             <summary class="@(InSection("dcb") ? "active" : null)">DCB</summary>
             <div class="submenu">
@@ -93,7 +93,24 @@
                 </div>
             </div>
         </details>
-}
+        }
+        else if (Shown.Streamed)
+        {
+        @* One model alone: each section is its own heading on the bar, holding the three pages
+           the group under the model heading held, and the streams stand as the one plain link
+           they were. The model's overview is not on the bar — Home is laid out for this model
+           alone now — though it is still reached from a tile there. *@
+        @Section("streamed/events", "Events")
+        @Section("streamed/aggregates", "Aggregates")
+        @Section("streamed/projections", "Projections")
+        <NavLink href="streamed/streams" Match="NavLinkMatch.All">Streams</NavLink>
+        }
+        else
+        {
+        @Section("dcb/events", "Events")
+        @Section("dcb/aggregates", "Aggregates")
+        @Section("dcb/projections", "Projections")
+        }
 
         @* The theme is picked under Settings rather than up here: it is this browser's own
            preference, which is what that tab holds, and the bar is for places to go. And a place
@@ -176,6 +193,15 @@
 @code {
 
     /// <summary>
+    /// Which models the bar is laid out for. Read off the registry each time rather than held,
+    /// since an upload changes the answer without the layout being told. A store with no boundary
+    /// never lays the DCB model out, so its nine links are left off rather than shown leading to
+    /// pages with nothing to read; the pages are not found under such a store either — see
+    /// Routes.razor, which is what makes a bookmarked address agree with this bar.
+    /// </summary>
+    private ShownModels Shown => ShownModels.Of(Types.Current, Store);
+
+    /// <summary>
     /// Marks a menu current while anywhere under its section, so the section you are in is
     /// visible without opening it. The panel itself stays shut until asked for, rather than
     /// sitting over the page.
@@ -183,5 +209,21 @@
     private bool InSection(string section) => Navigation
         .ToBaseRelativePath(Navigation.Uri)
         .StartsWith(section, StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// One section as a heading of its own on the bar, for when one model is laid out alone: the
+    /// same three pages the group under a model heading holds, opened the same way. A template
+    /// here rather than a component, so the markup stays in this file and the bar's own styles
+    /// reach it.
+    /// </summary>
+    private RenderFragment Section(string href, string label) =>
+        @<details class="menu">
+            <summary class="@(InSection(href) ? "active" : null)">@label</summary>
+            <div class="submenu">
+                <NavLink href="@href" Match="NavLinkMatch.All">Overview</NavLink>
+                <NavLink href="@($"{href}/types")" Match="NavLinkMatch.All">Types</NavLink>
+                <NavLink href="@($"{href}/data")" Match="NavLinkMatch.All">Data</NavLink>
+            </div>
+        </details>;
 
 }

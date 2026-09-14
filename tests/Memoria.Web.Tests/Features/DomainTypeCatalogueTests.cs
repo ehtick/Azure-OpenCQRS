@@ -85,4 +85,56 @@ public class DomainTypeCatalogueTests
     {
         DomainTypeCatalogue.Empty.RegisteredFrom("Samples.dll").Should().BeEmpty();
     }
+
+    /// <summary>
+    /// What the site narrows itself by: whether anything at all is registered under each model.
+    /// An event alone counts for neither, since an event is the same event whichever model applies
+    /// it and one no model applies belongs to neither.
+    /// </summary>
+    [Fact]
+    public void The_empty_catalogue_has_neither_models_types()
+    {
+        DomainTypeCatalogue.Empty.HasStreamedTypes.Should().BeFalse();
+        DomainTypeCatalogue.Empty.HasDcbTypes.Should().BeFalse();
+    }
+
+    [Fact]
+    public void An_event_no_model_applies_belongs_to_neither()
+    {
+        var catalogue = new DomainTypeCatalogue { Events = [typeof(SampleHappenedEvent)] };
+
+        catalogue.HasStreamedTypes.Should().BeFalse();
+        catalogue.HasDcbTypes.Should().BeFalse();
+    }
+
+    [Theory]
+    [MemberData(nameof(StreamedKinds))]
+    public void Any_streamed_kind_registered_means_the_streamed_model_has_types(DomainTypeCatalogue catalogue)
+    {
+        catalogue.HasStreamedTypes.Should().BeTrue();
+        catalogue.HasDcbTypes.Should().BeFalse();
+    }
+
+    [Theory]
+    [MemberData(nameof(DcbKinds))]
+    public void Any_dcb_kind_registered_means_the_dcb_model_has_types(DomainTypeCatalogue catalogue)
+    {
+        catalogue.HasDcbTypes.Should().BeTrue();
+        catalogue.HasStreamedTypes.Should().BeFalse();
+    }
+
+    public static TheoryData<DomainTypeCatalogue> StreamedKinds => new(
+        new DomainTypeCatalogue { StreamedStreamIds = [typeof(SampleStreamId)] },
+        new DomainTypeCatalogue { StreamedAggregates = [typeof(SampleAggregate)] },
+        new DomainTypeCatalogue { StreamedAggregateIds = [typeof(SampleAggregateId)] },
+        new DomainTypeCatalogue { StreamedProjections = [typeof(SampleProjection)] },
+        new DomainTypeCatalogue { StreamedProjectionIds = [typeof(SampleProjectionId)] },
+        new DomainTypeCatalogue { Events = [typeof(SampleHappenedEvent)], StreamedEvents = [typeof(SampleHappenedEvent)] });
+
+    public static TheoryData<DomainTypeCatalogue> DcbKinds => new(
+        new DomainTypeCatalogue { DcbAggregates = [typeof(SampleDcbAggregate)] },
+        new DomainTypeCatalogue { DcbAggregateIds = [typeof(SampleDcbAggregateId)] },
+        new DomainTypeCatalogue { DcbProjections = [typeof(SampleDcbProjection)] },
+        new DomainTypeCatalogue { DcbProjectionIds = [typeof(SampleDcbProjectionId)] },
+        new DomainTypeCatalogue { Events = [typeof(SampleHappenedEvent)], DcbEvents = [typeof(SampleHappenedEvent)] });
 }

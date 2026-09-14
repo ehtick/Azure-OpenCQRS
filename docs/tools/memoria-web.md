@@ -35,6 +35,14 @@ it scans them for the types both consistency models declare, and registers what 
 Events are one bound set — an event is the same event whichever model appends it — so an event both
 models apply is counted under both.
 
+Which model your domain uses is read off what was registered, and the site is laid out for it. With
+types under both, the two stand side by side: the home page in two columns, a **Streamed** and a
+**DCB** heading on the bar, and every breadcrumb passing through its model. With types under one
+alone there is no choice to make, so its sections take the bar directly — **Events**, **Aggregates**,
+**Projections**, and for the streamed model **Streams** — the home page is that model's tiles alone,
+and a breadcrumb runs straight from Home to the section. Nothing registered yet is nothing to narrow
+to, and both stay until an upload says which.
+
 The assemblies are read from bytes rather than from their path, and the registrations are rebuilt
 from scratch on every upload, removal and refresh. Nothing restarts, and a type you removed from a
 rebuilt assembly stops being offered rather than lingering from the previous load.
@@ -158,8 +166,8 @@ A snapshot that is already current, and a model with nothing to fold, both say s
 There is no Cosmos DB store for dynamic consistency boundaries, and the model would not build on that
 provider if there were — see
 [Providers](../concepts/providers.md#why-there-is-no-cosmos-db-provider-for-dcb). Under a Cosmos
-store the DCB menu is not shown and its addresses answer 404, so a bookmark says the same thing the
-menu does.
+store the site is laid out for the streamed model alone, whatever was uploaded, and the DCB addresses
+answer 404, so a bookmark says the same thing the menu does.
 
 Cosmos also cannot fully order a page of results, and falls back to ordering by date alone: every row
 is there, but rows written at the same moment can move between pages. Pages under that store say so,

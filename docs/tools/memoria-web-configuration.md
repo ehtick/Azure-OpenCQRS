@@ -118,8 +118,8 @@ The client is built in `Gateway` connection mode. The tool asks most of its ques
 partitions, and gateway mode is the one that works from wherever an operator happens to be running
 it, including from behind a corporate proxy.
 
-A Cosmos store carries the streamed model only. The DCB menu is not shown and its addresses answer
-404 — see [what each store answers](memoria-web.md#what-each-store-answers).
+A Cosmos store carries the streamed model only. The site is laid out for that model alone and the
+DCB addresses answer 404 — see [what each store answers](memoria-web.md#what-each-store-answers).
 
 ## Signing operators in
 

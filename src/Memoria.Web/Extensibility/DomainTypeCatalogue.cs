@@ -130,6 +130,24 @@ public sealed record DomainTypeCatalogue
             .ToList();
     }
 
+    /// <summary>
+    /// Gets whether anything at all is registered under the streamed model: a stream, a model, an
+    /// identifier, or an event one of its models applies.
+    /// </summary>
+    /// <remarks>
+    /// What the site narrows itself by. An event counts only through <see cref="StreamedEvents"/>:
+    /// an event is the same event whichever model applies it, so one in <see cref="Events"/> alone
+    /// says nothing about which model the domain uses.
+    /// </remarks>
+    public bool HasStreamedTypes =>
+        StreamedStreamIds.Count + StreamedAggregates.Count + StreamedAggregateIds.Count +
+        StreamedProjections.Count + StreamedProjectionIds.Count + StreamedEvents.Count > 0;
+
+    /// <summary>Gets whether anything at all is registered under the DCB model. See <see cref="HasStreamedTypes"/>.</summary>
+    public bool HasDcbTypes =>
+        DcbAggregates.Count + DcbAggregateIds.Count +
+        DcbProjections.Count + DcbProjectionIds.Count + DcbEvents.Count > 0;
+
     /// <summary>Gets the number of domain types found, identifiers included.</summary>
     /// <remarks>
     /// The events counted are the whole set. <see cref="StreamedEvents"/> and <see cref="DcbEvents"/>

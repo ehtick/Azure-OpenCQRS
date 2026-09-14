@@ -75,7 +75,11 @@ internal sealed class MemoriaWeb : WebApplicationFactory<Program>
         return this;
     }
 
-    private bool _sampleTypes;
+    /// <summary>
+    /// The assembly this instance knows the domain types of, as if it had been uploaded; null for
+    /// an instance knowing none.
+    /// </summary>
+    private System.Reflection.Assembly? _host;
 
     /// <summary>
     /// The same instance knowing the sample domain types this test assembly carries, as if they
@@ -83,7 +87,24 @@ internal sealed class MemoriaWeb : WebApplicationFactory<Program>
     /// </summary>
     public MemoriaWeb WithSampleTypes()
     {
-        _sampleTypes = true;
+        _host = typeof(SampleAggregate).Assembly;
+        return this;
+    }
+
+    /// <summary>
+    /// The same instance knowing one streamed type and nothing of the DCB model, as an upload of a
+    /// domain that only uses streams would leave it.
+    /// </summary>
+    public MemoriaWeb WithStreamedTypesOnly()
+    {
+        _host = OneSidedAssembly.Streamed;
+        return this;
+    }
+
+    /// <summary>The same instance knowing one DCB type and nothing of the streamed model.</summary>
+    public MemoriaWeb WithDcbTypesOnly()
+    {
+        _host = OneSidedAssembly.Dcb;
         return this;
     }
 
@@ -229,12 +250,12 @@ internal sealed class MemoriaWeb : WebApplicationFactory<Program>
                     EndSessionEndpoint = Provider.EndSessionEndpoint
                 });
 
-            if (_sampleTypes)
+            if (_host is { } host)
             {
                 // Registered after the application's own, so it is the one resolved — and the one
                 // Program reloads at start-up. Over the same store, so an upload still lands.
                 services.AddSingleton(provider =>
-                    new DomainTypeRegistry(provider.GetRequiredService<ExtensionStore>(), typeof(SampleAggregate).Assembly));
+                    new DomainTypeRegistry(provider.GetRequiredService<ExtensionStore>(), host));
             }
 
             if (_operator is null)
