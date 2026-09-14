@@ -1,10 +1,8 @@
 <Solution>
   <Folder Name="/Solution Items/">
-    <File Path=".github/workflows/main.yml" />
     <File Path="CODE_OF_CONDUCT.md" />
     <File Path="Directory.Build.props" />
     <File Path="Directory.Build.targets" />
-    <File Path=".github/workflows/build.yml" />
     <File Path="LICENSE" />
     <File Path="README.md" />
     <File Path="logo.png" />
@@ -126,5 +124,9 @@
     <Project Path="examples/Memoria.Examples.Messaging.RabbitMq/Memoria.Examples.Messaging.RabbitMq.csproj" />
     <Project Path="examples/Memoria.Examples.Caching.Redis/Memoria.Examples.Caching.Redis.csproj" />
     <Project Path="examples/Memoria.Examples.Caching.Memory/Memoria.Examples.Caching.Memory.csproj" />
+  </Folder>
+  <Folder Name="/workflows/">
+    <File Path=".github/workflows/build.yml" />
+    <File Path=".github/workflows/deploy.yml" />
   </Folder>
 </Solution>
