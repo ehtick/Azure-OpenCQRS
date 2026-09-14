@@ -54,7 +54,7 @@ public class OneModelTests
 
         var page = await web.Client.GetStringAsync("/streamed/aggregates/types");
 
-        Markup.Header(page).Should().Contain("<summary class=\"active\">Aggregates</summary>")
+        Markup.Unmarked(Markup.Header(page)).Should().Contain("<summary class=\"active\">Aggregates</summary>")
             .And.NotContain("<summary class=\"active\">Events</summary>");
     }
 

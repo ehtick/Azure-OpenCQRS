@@ -14,6 +14,13 @@ internal static class Markup
     /// </summary>
     public static string Plain(string page) => Regex.Replace(page, " b-[a-z0-9]{10}(?=[ >/])", string.Empty);
 
+    /// <summary>
+    /// The markup without the marks drawn in front of words: a test asking what a menu says reads
+    /// the words, and the glyph before them is not one.
+    /// </summary>
+    public static string Unmarked(string markup) =>
+        Regex.Replace(markup, "<svg.*?</svg>\\s*", string.Empty, RegexOptions.Singleline);
+
     /// <summary>The page's header alone, so a word in the body does not stand in for one up there.</summary>
     public static string Header(string page)
     {
@@ -44,7 +51,7 @@ internal static class Markup
         var header = Header(page);
         var start = Regex.Match(header, "<nav(\\s[^>]*)?>").Index;
         var end = header.IndexOf("</nav>", StringComparison.Ordinal);
-        var nav = end > start ? header[start..end] : string.Empty;
+        var nav = Unmarked(end > start ? header[start..end] : string.Empty);
 
         // A heading is a <summary>; a plain link is an <a> that is not folded under one.
         var labels = new List<string>();
@@ -72,5 +79,30 @@ internal static class Markup
         }
 
         return [.. labels];
+    }
+
+    /// <summary>One thing in a menu, and whether a mark is drawn in front of its words.</summary>
+    public sealed record MenuItem(string Label, bool Marked);
+
+    /// <summary>
+    /// Everything in the header's menus that can be chosen — each heading, each link and each
+    /// button, on the bar and folded under a heading alike, in the order written. The brand is
+    /// not one of them: it is the mark of the tool, not a place in it.
+    /// </summary>
+    public static MenuItem[] MenuItems(string page)
+    {
+        var items = new List<MenuItem>();
+
+        foreach (Match item in Regex.Matches(
+                     Header(page),
+                     "<(?<tag>summary|a|button)\\b(?![^>]*class=\"brand\")[^>]*>(?<inner>.*?)</\\k<tag>>",
+                     RegexOptions.Singleline))
+        {
+            var inner = item.Groups["inner"].Value;
+
+            items.Add(new MenuItem(Unmarked(inner).Trim(), Regex.IsMatch(inner, "^\\s*<svg class=\"glyph\"")));
+        }
+
+        return [.. items];
     }
 }

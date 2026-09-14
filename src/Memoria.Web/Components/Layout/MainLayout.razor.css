@@ -48,8 +48,13 @@ header {
         gap: 1rem;
     }
 
+        /* Flexed so the mark drawn in front of the words sits on their line rather than on the
+           baseline under it, the way a heading's does. */
         header nav ::deep a {
+            align-items: center;
             color: var(--ink-soft);
+            display: inline-flex;
+            gap: 0.4rem;
             text-decoration: none;
         }
 
@@ -62,6 +67,28 @@ header {
             font-weight: 600;
         }
 
+/* The mark in front of every item, in both menus and under every heading. Sized to the text it
+   fronts rather than in rem, so it rides the bar's size, and set back in the fainter ink the tiles
+   set theirs in: it says which item this is at a glance and then gets out of the way of the word
+   beside it. It comes forward to the item's own ink when the item is current or under the pointer,
+   so the two read as one thing lit rather than a word lit beside a mark that was not. ::deep
+   throughout because the mark is drawn by a component of its own, which this sheet does not
+   otherwise reach. */
+header ::deep .glyph {
+    color: var(--ink-faint);
+    flex: none;
+    height: 1em;
+    width: 1em;
+}
+
+    header ::deep a:hover .glyph,
+    header ::deep a.active .glyph,
+    header ::deep summary:hover .glyph,
+    header ::deep summary.active .glyph,
+    header ::deep button:hover .glyph {
+        color: inherit;
+    }
+
 /* What is the operator's own, at the far end of the bar. Pushed there by the margin rather than
    placed by the grid the bar does not have: the brand and the menu stay where they are, and this
    takes whatever is left. Signed in it is a menu under the name, drawn by .menu like the section
@@ -72,7 +99,10 @@ header {
 }
 
     .operator ::deep a {
+        align-items: center;
         color: var(--ink-soft);
+        display: inline-flex;
+        gap: 0.4rem;
         text-decoration: none;
     }
 
@@ -95,11 +125,14 @@ header {
     /* The one button among links, drawn as the links are: it is a way out beside a place to go,
        and a bordered button in a column of links would read as the point of the menu. */
     .operator .submenu button {
+        align-items: center;
         background: none;
         border: 0;
         color: var(--ink-soft);
         cursor: pointer;
+        display: inline-flex;
         font: inherit;
+        gap: 0.4rem;
         padding: 0;
         text-align: left;
     }

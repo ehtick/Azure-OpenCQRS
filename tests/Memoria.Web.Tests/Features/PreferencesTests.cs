@@ -52,7 +52,7 @@ public class PreferencesTests
 
         var header = Markup.Header(await web.Client.GetStringAsync("/"));
 
-        header.Should().MatchRegex("<summary[^>]*>[^<]*Ada Lovelace");
+        Markup.Unmarked(header).Should().MatchRegex("<summary[^>]*>[^<]*Ada Lovelace");
         header.Should().Contain("href=\"preferences\"").And.Contain("action=\"logout\"");
     }
 
