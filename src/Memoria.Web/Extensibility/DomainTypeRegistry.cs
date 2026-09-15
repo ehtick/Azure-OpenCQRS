@@ -42,6 +42,7 @@ public sealed class DomainTypeRegistry(ExtensionStore store, Assembly? host = nu
             // What was worked out about the old types goes with them.
             IdentifierShape.Forget();
             IdShape.Forget();
+            DomainTypeDescriber.Forget();
 
             var loaded = ExtensionLoader.Load(store);
 

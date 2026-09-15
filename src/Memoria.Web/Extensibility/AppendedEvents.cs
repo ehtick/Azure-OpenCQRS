@@ -33,9 +33,11 @@ public static class AppendedEvents
     /// <param name="size">The rows per page.</param>
     /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
     /// <remarks>
-    /// Position breaks a tie on the date, as it does in a boundary's events: everything appended in
-    /// one transaction is stamped from one clock reading and so shares a date exactly, and an
-    /// unstable order under paging would show one row on two pages and another on none.
+    /// Ordered by position, which is the order the store appended in and the table's own key, so
+    /// every page is a walk along the key rather than a sort of the whole table on a date nothing
+    /// indexes. The date is drawn beside each row all the same; a position is assigned at the moment
+    /// the date is stamped, so the two orders only ever differ where a clock was adjusted between
+    /// appends, and then the position is the truer account of what came first.
     /// <para>
     /// The payload is matched as it was written, which is the serialized event whole — so the text
     /// looked for reaches the property names as well as the values under them. That is the point of
@@ -97,10 +99,8 @@ public static class AppendedEvents
             var placed = InstanceQuery.Place(page, total, size);
 
             var ordered = descending
-                ? stored.OrderByDescending(appended => appended.CreatedDate)
-                    .ThenByDescending(appended => appended.Position)
-                : stored.OrderBy(appended => appended.CreatedDate)
-                    .ThenBy(appended => appended.Position);
+                ? stored.OrderByDescending(appended => appended.Position)
+                : stored.OrderBy(appended => appended.Position);
 
             var rows = await ordered
                 .Skip(placed.Skip)

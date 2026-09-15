@@ -460,6 +460,36 @@ Perfectly reasonable, with two precautions:
 The tool creates nothing and deletes nothing. The only write it can make is refreshing a snapshot —
 see [the one thing it writes](memoria-web.md#the-one-thing-it-writes).
 
+### Indexes for a large store
+
+The tool works against a store exactly as Memoria creates it, and on most stores that is fast
+enough. Its list pages, though, sort on columns the store's own reads never sort on, and Memoria
+deliberately indexes only what its own reads need — an index is paid for on every write, by every
+application using the package, and a diagnostic tool's list page is not a reason to tax them.
+
+So none of these are in the package. If a data page is slow against a large store, add the index
+that serves it out of band, as a DBA would, and build it concurrently (`CREATE INDEX CONCURRENTLY`
+on PostgreSQL, `WITH (ONLINE = ON)` on SQL Server editions that offer it) so the build does not
+block the application's writes:
+
+| Page | Table | Index | Why |
+|---|---|---|---|
+| Streamed → Events → Data, unfiltered | `DomainEvents` | `(CreatedDate)` | The log is read newest first by the date it was appended, across every stream. The column never changes once written, so this is the cheap kind of index: each append lands at the end of it. |
+| Streamed → Aggregates or Projections → Data | `DomainAggregates`, `DomainProjections` | `(UpdatedDate)` or `(CreatedDate)`, whichever column the page is sorted on | Worth it only with hundreds of thousands of models: there is one row per model instance, so these tables are usually small beside the events. `UpdatedDate` changes on every save, so an index on it is rewritten on every save too — measure before adding it. |
+| DCB → Aggregates or Projections → Data | `DcbSnapshots` | `(SnapshotKind, ModelType, UpdatedDate)` | The same caution, for the same reason. |
+
+Two things not to index:
+
+- **`DcbSnapshots.TagQuery`**. It is stored without a length, which SQL Server will not index at
+  all, and the filter box matches it with a leading wildcard, which no index serves anyway. The
+  DCB detail page does not need it: it reaches a snapshot by the row's own key.
+- **`DcbEvents.CreatedDate`**. The DCB log is read in position order, which is the table's key,
+  so it needs nothing.
+
+The Cosmos pages have their own version of this — a composite index the store's policy leaves out
+on purpose — and step down to a coarser order rather than ask for it; see
+[what each store answers](memoria-web.md#what-each-store-answers).
+
 ### Who did what
 
 Every line the tool logs about a write — an upload, a removal, a reread of the extensions, a

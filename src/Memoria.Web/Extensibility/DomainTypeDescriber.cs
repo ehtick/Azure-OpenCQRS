@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Reflection;
 using Memoria.EventSourcing.Dcb;
 using Memoria.EventSourcing.Domain;
@@ -10,6 +11,30 @@ namespace Memoria.Web.Extensibility;
 /// </summary>
 public static class DomainTypeDescriber
 {
+    // What is worked out about a type is worked out once: reading its attributes and properties is
+    // reflection, and reading its event filter builds an instance of it, and none of that changes
+    // until the assemblies are read again. Process-wide, as the shapes of the identifiers are,
+    // and forgotten with them on a reload.
+    private static readonly ConcurrentDictionary<Type, DomainTypeBinding?> Bindings = new();
+
+    private static readonly ConcurrentDictionary<Type, IReadOnlyList<DomainProperty>> Properties = new();
+
+    private static readonly ConcurrentDictionary<Type, IReadOnlyList<Type>> EventTypes = new();
+
+    private static readonly ConcurrentDictionary<(Type Model, IReadOnlyList<Type> Among), IReadOnlyList<Type>>
+        Addressing = new();
+
+    /// <summary>
+    /// Forgets everything worked out about every type, for when the types are read again.
+    /// </summary>
+    public static void Forget()
+    {
+        Bindings.Clear();
+        Properties.Clear();
+        EventTypes.Clear();
+        Addressing.Clear();
+    }
+
     /// <summary>
     /// Picks the type a page was asked for out of the ones it is listing.
     /// </summary>
@@ -70,7 +95,8 @@ public static class DomainTypeDescriber
     /// constructs every model to read its event filter.
     /// </remarks>
     public static IReadOnlyList<Type> IdentifiersOf(Type type, IReadOnlyList<Type> identifiers) =>
-        identifiers.Where(identifier => Addresses(identifier, type)).ToList();
+        Addressing.GetOrAdd((type, identifiers), key =>
+            key.Among.Where(identifier => Addresses(identifier, key.Model)).ToList());
 
     /// <summary>
     /// Reads what a type is bound as, off whichever of the three attributes it carries.
@@ -83,13 +109,14 @@ public static class DomainTypeDescriber
     /// a list has no use for that.
     /// </remarks>
     public static DomainTypeBinding? BindingOf(Type type) =>
-        type.GetCustomAttribute<AggregateType>() is { } aggregate
-            ? new DomainTypeBinding(aggregate.Name, aggregate.Version)
-            : type.GetCustomAttribute<ProjectionType>() is { } projection
-                ? new DomainTypeBinding(projection.Name, projection.Version)
-                : type.GetCustomAttribute<EventType>() is { } @event
-                    ? new DomainTypeBinding(@event.Name, @event.Version)
-                    : null;
+        Bindings.GetOrAdd(type, static read =>
+            read.GetCustomAttribute<AggregateType>() is { } aggregate
+                ? new DomainTypeBinding(aggregate.Name, aggregate.Version)
+                : read.GetCustomAttribute<ProjectionType>() is { } projection
+                    ? new DomainTypeBinding(projection.Name, projection.Version)
+                    : read.GetCustomAttribute<EventType>() is { } @event
+                        ? new DomainTypeBinding(@event.Name, @event.Version)
+                        : null);
 
     /// <summary>
     /// How a type is named wherever a page lists one: what it is bound as, and the version of that
@@ -209,19 +236,20 @@ public static class DomainTypeDescriber
     /// the store reads it too, so a model that cannot be constructed here could not be folded
     /// either — but this is a page, so a model that throws costs its event list, not the page.
     /// </remarks>
-    private static IReadOnlyList<Type> EventTypesOf(Type type)
-    {
-        try
+    private static IReadOnlyList<Type> EventTypesOf(Type type) =>
+        EventTypes.GetOrAdd(type, static build =>
         {
-            return InstanceFactory.CreateInstance(type) is EventSourcedModel model
-                ? model.EventTypeFilter ?? []
-                : [];
-        }
-        catch (Exception)
-        {
-            return [];
-        }
-    }
+            try
+            {
+                return InstanceFactory.CreateInstance(build) is EventSourcedModel model
+                    ? model.EventTypeFilter ?? []
+                    : [];
+            }
+            catch (Exception)
+            {
+                return [];
+            }
+        });
 
     /// <summary>
     /// Reads the properties a type declares itself, and the properties of the values they hold.
@@ -240,7 +268,8 @@ public static class DomainTypeDescriber
     /// refusing to walk back into a type already being walked.
     /// </para>
     /// </remarks>
-    public static IReadOnlyList<DomainProperty> PropertiesOf(Type type) => PropertiesOf(type, []);
+    public static IReadOnlyList<DomainProperty> PropertiesOf(Type type) =>
+        Properties.GetOrAdd(type, static read => PropertiesOf(read, []));
 
     /// <summary>
     /// How many values deep to read. Enough for a value holding a value, which is as far as the

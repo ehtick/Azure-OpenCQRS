@@ -26,6 +26,15 @@ namespace Memoria.Web.Extensibility;
 public sealed class CosmosStreamedReads(CosmosClient client, string databaseName, string containerName)
     : IStreamedReads
 {
+    /// <summary>
+    /// Which order each container was last served in, for the life of the process: a refusal for
+    /// want of an index is paid for once, not on every page.
+    /// </summary>
+    private static readonly OrderingMemory Remembered = new();
+
+    private string Key(params string[] ladder) =>
+        string.Join('/', [databaseName, containerName, .. ladder]);
+
     /// <inheritdoc />
     /// <remarks>
     /// Two queries: one for how many there are and one for the page itself. The count is its own
@@ -93,26 +102,27 @@ public sealed class CosmosStreamedReads(CosmosClient client, string databaseName
     /// an implementation detail.
     /// </para>
     /// </remarks>
-    private static async Task<(List<EventDocument> Documents, string? Notice)> Ordered(
+    private async Task<(List<EventDocument> Documents, string? Notice)> Ordered(
         Container container, Narrowing narrowing, StreamedEventFilter filter, PlacedPage placed,
         CancellationToken cancellationToken)
     {
         var direction = filter.Descending ? "DESC" : "ASC";
 
-        try
+        var ladder = new (string Order, string? Notice)[]
         {
-            return (await Page(container, narrowing,
-                    $"c.createdDate {direction}, c.streamId ASC, c.sequence {direction}",
-                    filter, placed, cancellationToken),
-                null);
-        }
-        catch (CosmosException refused) when (NeedsACompositeIndex(refused))
-        {
-            return (await Page(container, narrowing, $"c.createdDate {direction}", filter, placed,
-                    cancellationToken),
+            ($"c.createdDate {direction}, c.streamId ASC, c.sequence {direction}", null),
+            ($"c.createdDate {direction}",
                 "This container has no composite index for the full order, so these events are " +
-                "ordered by date alone. Events written at the same moment may move between pages.");
-        }
+                "ordered by date alone. Events written at the same moment may move between pages.")
+        };
+
+        // Climbed from wherever this container was last served rather than from the top each
+        // time: the refusal is a fact about the container, and was paid for on the first page.
+        var (documents, rung) = await Remembered.Climb(Key("events", direction), ladder.Length,
+            rung => Page(container, narrowing, ladder[rung].Order, filter, placed, cancellationToken),
+            exception => exception is CosmosException refused && NeedsACompositeIndex(refused));
+
+        return (documents, ladder[rung].Notice);
     }
 
     /// <summary>
@@ -385,7 +395,7 @@ public sealed class CosmosStreamedReads(CosmosClient client, string databaseName
     /// and take a refusal for want of a composite index as the answer to a question rather than an
     /// error. Four orders here rather than two, because either date can be sorted either way.
     /// </remarks>
-    private static async Task<(List<SnapshotDocument> Documents, string? Notice)> OrderedSnapshots(
+    private async Task<(List<SnapshotDocument> Documents, string? Notice)> OrderedSnapshots(
         Container container, Narrowing narrowing, SnapshotKind kind, StreamedSnapshotFilter filter,
         PlacedPage placed, CancellationToken cancellationToken)
     {
@@ -419,25 +429,16 @@ public sealed class CosmosStreamedReads(CosmosClient client, string databaseName
                 "are ordered by when they were first written instead."));
         }
 
-        for (var attempt = 0; attempt < ladder.Count; attempt++)
-        {
-            var (order, notice) = ladder[attempt];
+        // Climbed from wherever this container was last served for this kind of model, this date
+        // and this direction: each is its own ladder, since a refusal at one rung says nothing
+        // about a ladder that asks for a different property.
+        var (documents, rung) = await Remembered.Climb(
+            Key(kind.DocumentType, asked, direction), ladder.Count,
+            rung => SnapshotPage(container, narrowing, kind, ladder[rung].Order, filter, placed, cancellationToken),
+            exception => exception is CosmosException refused &&
+                         (NeedsACompositeIndex(refused) || DoesNotIndex(refused)));
 
-            try
-            {
-                return (await SnapshotPage(container, narrowing, kind, order, filter, placed,
-                    cancellationToken), notice);
-            }
-            catch (CosmosException refused)
-                when (attempt < ladder.Count - 1 &&
-                      (NeedsACompositeIndex(refused) || DoesNotIndex(refused)))
-            {
-                // Try the next rung. The last one is left to throw: a refusal there is not a
-                // coarser answer this can offer, it is an error the page should show.
-            }
-        }
-
-        throw new UnreachableException("The ladder above returns or throws on its last rung.");
+        return (documents, ladder[rung].Notice);
     }
 
     /// <summary>
