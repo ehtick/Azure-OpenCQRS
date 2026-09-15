@@ -884,7 +884,10 @@ h2:focus {
     /* A word typed to narrow the list, set on the sunk ground the Data pages' filter sits on and
        divided from the rows under it by the same rule that divides them from each other. Narrower
        than that filter because the card is: the field takes what width there is, and the button
-       and the way back sit on the same line at the size every other quiet control has. */
+       and the way back sit on the same line at the size every other quiet control has. The field
+       is set exactly as the Data pages' filter field is — same face, same padding — and stretched
+       to the button's height, so the two are level; at its own smaller face and padding it was
+       visibly shorter than the button. */
     .panel-index .index-filter {
         align-items: center;
         background: var(--sunk);
@@ -896,15 +899,26 @@ h2:focus {
     }
 
         .panel-index .index-filter input[type="search"] {
+            align-self: stretch;
             background: var(--surface);
             border: 1px solid var(--field-rule);
             border-radius: 4px;
             color: var(--ink);
             flex: 1 1 6rem;
             font: inherit;
-            font-size: var(--text-sm);
+            font-size: var(--text-md);
             min-width: 0;
-            padding: 0.35rem 0.5rem;
+            padding: 0.5rem 0.625rem;
+        }
+
+        .panel-index .index-filter input[type="search"]:focus-visible {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgb(var(--accent-rgb) / 0.18);
+            outline: none;
+        }
+
+        .panel-index .index-filter input[type="search"]::placeholder {
+            color: var(--ink-faint);
         }
 
         .panel-index .index-filter a {
@@ -2592,8 +2606,9 @@ h2:focus {
 }
 
 /* The filter field and the button that submits it. The button is the shared .quiet, so it is the
-   size of every other button on a form rather than one this page invented; the field's padding is
-   set to match it, so the two are the same height. */
+   size of every other button on a form rather than one this page invented; the field takes the
+   button's padding and is stretched to its height, so the two are level. Padding alone left the
+   field a couple of pixels short, because its face is a step smaller than the button's. */
 .search {
     align-items: center;
     display: flex;
@@ -2602,6 +2617,7 @@ h2:focus {
 
     .search input[type="search"],
     .search input[type="number"] {
+        align-self: stretch;
         background: var(--surface);
         border: 1px solid var(--field-rule);
         border-radius: 4px;
@@ -2637,6 +2653,7 @@ h2:focus {
     }
 
     .search select {
+        align-self: stretch;
         background: var(--surface);
         border: 1px solid var(--field-rule);
         border-radius: 4px;
