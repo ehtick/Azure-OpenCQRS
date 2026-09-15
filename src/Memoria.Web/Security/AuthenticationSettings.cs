@@ -83,13 +83,13 @@ public abstract record AuthenticationSettings
             return new Disabled();
         }
 
+        // Names the provider settings and not the flag. The refusal is shown to whoever asks the
+        // tool, and the one way to run it open is documented, not advertised on the page.
         if (!described)
         {
             throw new InvalidOperationException(
                 $"Authentication is not configured. Set {AuthoritySetting}, {ClientIdSetting} and " +
-                $"{ClientSecretSetting} to sign operators in through an OpenID Connect provider, " +
-                $"or set {DisabledSetting} to true to run this tool open, which leaves its upload " +
-                "form to anyone who can reach it.");
+                $"{ClientSecretSetting} to sign operators in through an OpenID Connect provider.");
         }
 
         return new OpenIdConnect(

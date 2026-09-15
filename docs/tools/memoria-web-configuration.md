@@ -255,11 +255,11 @@ localhost, and it is a choice that has to be written down: the tool told neither
 refuses,
 
 > Authentication is not configured. Set Authentication:Oidc:Authority, Authentication:Oidc:ClientId
-> and Authentication:Oidc:ClientSecret to sign operators in through an OpenID Connect provider, or
-> set Authentication:Disabled to true to run this tool open, which leaves its upload form to anyone
-> who can reach it.
+> and Authentication:Oidc:ClientSecret to sign operators in through an OpenID Connect provider.
 
-and a tool told both refuses too, rather than guessing which was meant. While open, every start-up
+and a tool told both refuses too, rather than guessing which was meant. The refusal names the
+provider settings and not this flag, on purpose: it is shown to whoever asks the tool, and the way
+to run it open is written here rather than advertised there. While open, every start-up
 says so:
 
 ```

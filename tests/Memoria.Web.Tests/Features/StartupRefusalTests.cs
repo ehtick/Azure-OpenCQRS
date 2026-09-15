@@ -36,7 +36,7 @@ public class StartupRefusalTests
             .Contain("Authentication:Oidc:Authority").And
             .Contain("Authentication:Oidc:ClientId").And
             .Contain("Authentication:Oidc:ClientSecret").And
-            .Contain("Authentication:Disabled").And
+            .NotContain("Authentication:Disabled").And
             .Contain("memoria-web-configuration");
     }
 

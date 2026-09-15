@@ -50,8 +50,12 @@ public class AuthenticationSettingsTests
             .Should().Be(new AuthenticationSettings.Disabled());
     }
 
+    /// <summary>
+    /// The refusal names the provider settings and not the flag: it is shown to whoever asks the
+    /// tool, and the one way to run it open is documented rather than advertised.
+    /// </summary>
     [Fact]
-    public void Refuses_to_start_when_nothing_is_said()
+    public void Refuses_when_nothing_is_said_naming_the_provider_settings_and_not_the_flag()
     {
         var reading = () => AuthenticationSettings.Of(Configured());
 
@@ -60,7 +64,7 @@ public class AuthenticationSettingsTests
             .Contain("Authentication:Oidc:Authority").And
             .Contain("Authentication:Oidc:ClientId").And
             .Contain("Authentication:Oidc:ClientSecret").And
-            .Contain("Authentication:Disabled");
+            .NotContain("Authentication:Disabled");
     }
 
     /// <summary>
@@ -74,10 +78,10 @@ public class AuthenticationSettingsTests
             ("Authentication:Disabled", ""),
             ("Authentication:Oidc:Authority", "")));
 
+        // Refused as nothing said, rather than as a provider with a setting missing or as the
+        // two asking for opposite things.
         reading.Should().Throw<InvalidOperationException>()
-            .Which.Message.Should()
-            .Contain("Authentication:Oidc:Authority").And
-            .Contain("Authentication:Disabled");
+            .Which.Message.Should().StartWith("Authentication is not configured");
     }
 
     [Fact]
