@@ -25,49 +25,18 @@
 else
 {
     <div class="panels">
-        <nav class="panel panel-index" aria-label="Events">
-            @* What the card holds, in the voice the tables cap their columns in — the card beside
-               this one is capped by the name of what is being read, and this one by what there is
-               to read. It is also the only place on the page the count appears: the section page
-               says how many there are before a reader comes here, and nothing said it after. *@
-            <p class="index-cap">@Counted(Events.Count, "event type")</p>
-
-            <ul>
-                @foreach (var @event in Events)
-                {
-                    @* The whole group is marked as the current one, not just its first row, so an
-                       open row and what is folded under it read as one selected block. *@
-                    <li class="@CurrentClass(@event)">
-                        @* One row folds under an event, where a model folds the identifiers that
-                           address it: what has been stored of this type. Nothing addresses an event,
-                           so there is one way in rather than a list of them — and it is folded here
-                           all the same, so the two lists open the same way and a reader who has
-                           learned one has learned the other. A <details> rather than script, like
-                           the header menu, because these pages render statically. *@
-                        <details open="@IsCurrent(@event)">
-                            @* The name is a link inside the summary rather than the summary itself:
-                               a click on it selects the event, and a click beside it only opens the
-                               row. *@
-                            <summary>@NameRow(@event)</summary>
-
-                            <ul class="index-links">
-                                <li>
-                                    @* The mark the Data tile on the section page is entered
-                                       through, in front of the word rather than opposite it: the
-                                       whole row is the one link, and the mark says what kind of
-                                       place it leads to. The same mark in both places, so the way
-                                       into the log looks the same wherever a reader meets it. *@
-                                    <a href="@DataLink(@event)">
-                                        <SectionMark Kind="SectionKind.Data"/>
-                                        Data
-                                    </a>
-                                </li>
-                            </ul>
-                        </details>
-                    </li>
-                }
-            </ul>
-        </nav>
+        @* One row folds under an event, where a model folds the identifiers that address it: what
+           has been stored of this type. Nothing addresses an event, so there is one way in rather
+           than a list of them — and it is folded here all the same, so the two lists open the same
+           way and a reader who has learned one has learned the other. *@
+        <TypeIndex Label="Events"
+                   Noun="event type"
+                   Types="Events"
+                   Selected="Selected"
+                   Address="@Address"
+                   Tab="@Tab"
+                   Query="@Query"
+                   Links="@(type => [new TypeIndex.Link(DataLink(type), "Data")])"/>
 
         <section class="panel panel-detail">
             @* Selected is only null when the list is empty, which the branch above already covers. *@
@@ -171,8 +140,15 @@ else
     /// </summary>
     private const string Heading = "Event Types";
 
+    /// <summary>The page's own address, which every link in the list and the tabs return to.</summary>
+    private const string Address = "streamed/events/types";
+
     [SupplyParameterFromQuery(Name = "type")]
     private string? SelectedName { get; set; }
+
+    /// <summary>What was typed into the list's filter, or null when nothing was.</summary>
+    [SupplyParameterFromQuery(Name = "q")]
+    private string? Query { get; set; }
 
     /// <summary>
     /// The two views the panel offers, named as they appear in the address. Which one is showing is
@@ -204,12 +180,9 @@ else
     private IReadOnlyList<Type> Events => Types.Current.StreamedEvents;
 
     /// <summary>
-    /// The event being shown: the one asked for, or the first in the list. Arriving with nothing
-    /// chosen shows the first rather than an empty panel, because there is nothing to decide before
-    /// something can be read.
+    /// The event being shown: the one asked for, or the first the list offers.
     /// </summary>
-    private Type? Selected =>
-        DomainTypeDescriber.Select(Events, SelectedName) ?? Events.FirstOrDefault();
+    private Type? Selected => TypeIndex.Choose(Events, SelectedName, Query);
 
     /// <summary>
     /// What the selected event is bound as, read straight off the type.
@@ -232,13 +205,6 @@ else
     private static string BoundAs(Type @event) => DomainTypeDescriber.LabelOf(@event);
 
     /// <summary>
-    /// Another event, read the same way as the one being left: the tab travels with the choice, so
-    /// a facet compared across two types is one click each rather than two.
-    /// </summary>
-    private string Link(Type @event) =>
-        $"streamed/events/types?type={Uri.EscapeDataString(@event.FullName ?? @event.Name)}&tab={Tab}";
-
-    /// <summary>
     /// Through to what has been appended of one event type. The type is passed in rather than taken
     /// from the selection, because the list links rows that are not selected.
     /// </summary>
@@ -246,29 +212,9 @@ else
         $"streamed/events/data?type={Uri.EscapeDataString(@event.FullName ?? @event.Name)}";
 
     /// <summary>
-    /// A tab of the event already chosen.
+    /// A tab of the event already chosen, keeping what was typed into the list.
     /// </summary>
-    private string TabLink(string tab) =>
-        $"streamed/events/types?type={Uri.EscapeDataString(Selected?.FullName ?? string.Empty)}&tab={tab}";
-
-    private bool IsCurrent(Type @event) => @event == Selected;
-
-    private string? CurrentClass(Type @event) => IsCurrent(@event) ? "current" : null;
-
-    private string? CurrentFlag(Type @event) => IsCurrent(@event) ? "true" : null;
-
-    /// <summary>
-    /// The row that names one event and selects it. A link rather than a click handler: the page
-    /// renders statically like the rest, and the choice stays in the address so it can be shared.
-    /// </summary>
-    private RenderFragment<Type> NameRow => @event =>
-        @<a class="index-row" href="@Link(@event)" aria-current="@CurrentFlag(@event)">
-            @* Named by what it is bound as rather than by the class: that is the name written into
-               the log and the one a stored event is read back under, and it is the name that stays
-               put when the class is renamed. The namespace it came from is on the info tab, with
-               the rest of what is true of the class rather than of the binding. *@
-            <span class="index-name">@BoundAs(@event)<ObsoleteMark Type="@(@event)"/></span>
-        </a>;
+    private string TabLink(string tab) => TypeIndex.LinkTo(Address, Selected, tab, Query);
 
     /// <summary>
     /// The properties a type declares, a row each, with the properties of any value one holds in
@@ -293,12 +239,6 @@ else
                 }
             }
         </text>;
-
-    /// <summary>
-    /// How many of something, written so one of it is not one of them.
-    /// </summary>
-    private static string Counted(int count, string noun) =>
-        count == 1 ? $"1 {noun}" : $"{count} {noun}s";
 
     /// <summary>
     /// How far under something a row sits, as a class rather than a measurement, so how wide a step

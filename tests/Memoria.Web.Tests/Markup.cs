@@ -105,4 +105,40 @@ internal static class Markup
 
         return [.. items];
     }
+
+    /// <summary>
+    /// The names down the index beside a Types page's panel, in the order written: what a reader
+    /// can pick from, after any narrowing and whichever group each sits in.
+    /// </summary>
+    public static string[] IndexNames(string page)
+    {
+        var names = new List<string>();
+
+        foreach (Match match in Regex.Matches(page, "<span class=\"index-name\"[^>]*>(?<name>[^<]*)"))
+        {
+            names.Add(match.Groups["name"].Value.Trim());
+        }
+
+        return [.. names];
+    }
+
+    /// <summary>One fold of the index, and whether it is open.</summary>
+    public sealed record IndexGroup(string Name, bool Open);
+
+    /// <summary>
+    /// The groups the index is folded into, in the order written, or none when it is one flat list.
+    /// </summary>
+    public static IndexGroup[] IndexGroups(string page)
+    {
+        var groups = new List<IndexGroup>();
+
+        foreach (Match match in Regex.Matches(
+                     Plain(page),
+                     "<details class=\"index-group\"(?<open> open)?>\\s*<summary class=\"index-group-name\">(?<name>[^<]*)</summary>"))
+        {
+            groups.Add(new IndexGroup(match.Groups["name"].Value.Trim(), match.Groups["open"].Success));
+        }
+
+        return [.. groups];
+    }
 }

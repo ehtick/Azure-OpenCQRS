@@ -108,6 +108,15 @@ internal sealed class MemoriaWeb : WebApplicationFactory<Program>
         return this;
     }
 
+    /// <summary>
+    /// The same instance knowing two streamed aggregates under one namespace and nothing else.
+    /// </summary>
+    public MemoriaWeb WithOneNamespace()
+    {
+        _host = OneSidedAssembly.OneNamespace;
+        return this;
+    }
+
     private IStreamedReads? _reads;
 
     private Memoria.EventSourcing.IDomainService? _domainService;

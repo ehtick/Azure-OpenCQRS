@@ -845,6 +845,93 @@ h2:focus {
     overflow: hidden;
 }
 
+/* Beside the panel it drives, the card keeps to the viewport and scrolls its own rows: a long
+   list used to scroll the whole page away from the panel, leaving a reader at row two hundred with
+   the facts of the chosen type somewhere above. Held back from the top by the page's own gutter,
+   and no taller than the viewport less the same, so the last row can always be scrolled to. Only on
+   the wide layout: stacked over the panel on a narrow screen, a card pinned to the top would cover
+   the panel it stands in for. */
+@media (min-width: 40.0625rem) {
+    .panel-index {
+        max-height: calc(100vh - 2rem);
+        overflow-y: auto;
+        position: sticky;
+        top: 1rem;
+    }
+}
+
+    /* The cap and the filter stay at the top of the card while the rows scroll under them, on the
+       card's own sheet so the rows do not show through. */
+    .panel-index .index-head {
+        background: var(--surface);
+        position: sticky;
+        top: 0;
+        z-index: 1;
+    }
+
+    /* A word typed to narrow the list, set on the sunk ground the Data pages' filter sits on and
+       divided from the rows under it by the same rule that divides them from each other. Narrower
+       than that filter because the card is: the field takes what width there is, and the button
+       and the way back sit on the same line at the size every other quiet control has. */
+    .panel-index .index-filter {
+        align-items: center;
+        background: var(--sunk);
+        border-bottom: 1px solid var(--rule);
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        padding: 0.5rem 0.75rem;
+    }
+
+        .panel-index .index-filter input[type="search"] {
+            background: var(--surface);
+            border: 1px solid var(--field-rule);
+            border-radius: 4px;
+            color: var(--ink);
+            flex: 1 1 6rem;
+            font: inherit;
+            font-size: var(--text-sm);
+            min-width: 0;
+            padding: 0.35rem 0.5rem;
+        }
+
+        .panel-index .index-filter a {
+            font-size: var(--text-sm);
+        }
+
+    /* Nothing left after narrowing, said in the rows' own place rather than leaving a card that
+       ends at its filter. */
+    .panel-index > .missing {
+        margin: 0;
+        padding: 0.75rem 1rem;
+    }
+
+    /* One fold per namespace. The heading is set the way the cap is — small, spaced, capitals — so
+       it reads as a division of the list rather than as a row of it, and takes the caret every
+       other fold in the card takes. Groups are divided by the rule the rows are. */
+    .panel-index .index-group + .index-group {
+        border-top: 1px solid var(--rule);
+    }
+
+    .panel-index .index-group-name {
+        color: var(--ink-soft);
+        font-size: var(--text-2xs);
+        font-weight: 600;
+        /* The caret to the far edge, as on a row: the name is the summary's only text and takes
+           no flex of its own, so the space between is what pushes the caret across. */
+        justify-content: space-between;
+        letter-spacing: 0.09em;
+        overflow-wrap: anywhere;
+        padding: 0.5rem 0 0.5rem 1rem;
+        text-transform: uppercase;
+    }
+
+    /* The rows of an open group sit under a rule from its heading, as a row's links sit under a
+       rule from its name. */
+    .panel-index .index-group[open] > .index-rows {
+        border-top: 1px solid var(--rule);
+    }
+
     /* What the card holds and how much of it, in the voice a table's column headings are set in:
        the same ground, size, weight and letter-spacing, so a reader meets one kind of caption
        across these pages. It also gives the column a top edge to line up with the heading of the
@@ -863,13 +950,13 @@ h2:focus {
 
 /* One type to a row, divided by rules, with what addresses it folded under its own row. The border
    and the radius belong to the card now; the list only has to be a list. */
-.panel-index > ul {
+.panel-index .index-rows {
     list-style: none;
     margin: 0;
     padding: 0;
 }
 
-    .panel-index > ul > li + li {
+    .panel-index .index-rows > li + li {
         border-top: 1px solid var(--rule);
     }
 
@@ -881,7 +968,7 @@ h2:focus {
        the list — the selection read as a dent rather than as a choice. Written against the accent's
        channels so it is the same colour as the bar beside it at every strength, and so the dark
        theme gets a light veil over a dark card rather than a colour that has to be picked twice. */
-    .panel-index > ul > li.current {
+    .panel-index .index-rows > li.current {
         background: rgb(var(--accent-rgb) / 0.07);
         box-shadow: inset 0.2rem 0 0 var(--accent);
     }
@@ -956,7 +1043,7 @@ h2:focus {
 
     /* The one being read: the accent it is marked by, at the weight that used to be on all of
        them. It is the brightest row in the card, which is what a selection should be. */
-    .panel-index > ul > li.current .index-name {
+    .panel-index .index-rows > li.current .index-name {
         color: var(--accent);
         font-weight: 600;
     }

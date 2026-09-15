@@ -1,0 +1,246 @@
+@using Memoria.Web.Extensibility
+
+@* The list beside a Types page's panel, written once for the six pages that have one: what a
+   reader can pick from, narrowed by a word typed into it and folded by namespace. The pages differ
+   in what they list, where a row leads and what folds under it, which is what the parameters say;
+   how a list is read is the same on all of them, and is said here.
+
+   Everything on it is a link or a form that submits by GET, so the pages stay statically rendered
+   and every state of the list — what was typed, which type is chosen, which tab — lives in the
+   address, where it can be bookmarked and gone back to. *@
+<nav class="panel panel-index" aria-label="@Label">
+    @* The cap and the filter stay at the top of the card while the rows scroll under them, so what
+       is being looked through and the way to narrow it are in view wherever the reader has got to. *@
+    <div class="index-head">
+        @* What the card holds, in the voice the tables cap their columns in. The only place on the
+           page the count appears: the section page says how many there are before a reader comes
+           here, and nothing said it after. Once narrowed, how many were left out of how many, so a
+           short list is read as a narrowing and not as a small domain. *@
+        <p class="index-cap">@Cap</p>
+
+        @* Narrowing is a link to a shorter list, so it goes in the address like the Data pages'
+           filter does. The choice and the tab travel in hidden fields so typing does not throw them
+           away; typed, not chosen, because a name is what a reader arrives knowing. *@
+        <form class="index-filter" method="get" action="@Address">
+            <label class="visually-hidden" for="q">Filter by name</label>
+            <input id="q" type="search" name="q" value="@Query" placeholder="Filter by name" autocomplete="off"/>
+            @if (Selected is { } chosen)
+            {
+                <input type="hidden" name="type" value="@NameOf(chosen)"/>
+            }
+            <input type="hidden" name="tab" value="@Tab"/>
+            <button type="submit" class="quiet">Filter</button>
+            @if (IsNarrowed)
+            {
+                @* One way back to the whole list, keeping what is chosen and which view is open. *@
+                <a href="@LinkTo(Selected, query: null)">Clear</a>
+            }
+        </form>
+    </div>
+
+    @if (Shown.Count == 0)
+    {
+        <p class="missing">No @Noun matches.</p>
+    }
+    else if (Grouped)
+    {
+        @* One fold per namespace, in the order the namespaces are first met, which is the order
+           the list is already in. Open for the group holding the type being read, so choosing one
+           is what opens its group, and open for every group once something is typed, because
+           what was typed is what the reader is looking for. A <details> rather than script, like
+           the rows' own folds, because these pages render statically. *@
+        foreach (var group in Groups)
+        {
+            <details class="index-group" open="@IsOpen(group)">
+                <summary class="index-group-name">@group.Key</summary>
+                @Rows(group)
+            </details>
+        }
+    }
+    else
+    {
+        @* One namespace is nothing to fold by: a heading over the whole list would say what every
+           row under it already agrees on. *@
+        @Rows(Shown)
+    }
+</nav>
+
+@code {
+
+    /// <summary>What the list is a list of, for assistive technology: "Events", "Aggregates".</summary>
+    [Parameter, EditorRequired]
+    public required string Label { get; set; }
+
+    /// <summary>One of them, for the count and the empty message: "event type", "aggregate".</summary>
+    [Parameter, EditorRequired]
+    public required string Noun { get; set; }
+
+    /// <summary>Every type the page lists, before any narrowing.</summary>
+    [Parameter, EditorRequired]
+    public required IReadOnlyList<Type> Types { get; set; }
+
+    /// <summary>The type the panel beside the list is showing, or null when there is none.</summary>
+    [Parameter]
+    public Type? Selected { get; set; }
+
+    /// <summary>The page's own address, which every link out of the list and the form return to.</summary>
+    [Parameter, EditorRequired]
+    public required string Address { get; set; }
+
+    /// <summary>
+    /// The view open on the panel, carried by every row so a facet compared across two types is
+    /// one click each rather than two.
+    /// </summary>
+    [Parameter, EditorRequired]
+    public required string Tab { get; set; }
+
+    /// <summary>What was typed into the filter, or null when nothing was.</summary>
+    [Parameter]
+    public string? Query { get; set; }
+
+    /// <summary>
+    /// Where a row leads besides the panel: the links folded under its name, each to what has been
+    /// stored of it. None for a type nothing addresses, whose row is then the plain link it looks
+    /// like.
+    /// </summary>
+    [Parameter, EditorRequired]
+    public required Func<Type, IReadOnlyList<Link>> Links { get; set; }
+
+    /// <summary>One thing folded under a row: where it leads and what it is called.</summary>
+    public sealed record Link(string Href, string Text);
+
+    /// <summary>
+    /// The types whose name or class holds what was typed — the name as the store writes it and
+    /// the class as the domain declares it, so a namespace narrows the list to what came from it.
+    /// Every type when nothing was typed.
+    /// </summary>
+    public static IReadOnlyList<Type> Matching(IReadOnlyList<Type> types, string? query)
+    {
+        var typed = query?.Trim();
+
+        return string.IsNullOrEmpty(typed)
+            ? types
+            : types.Where(type => Holds(DomainTypeDescriber.LabelOf(type), typed) || Holds(type.FullName, typed))
+                .ToList();
+    }
+
+    /// <summary>
+    /// The type a page shows on arrival: the one asked for, or the first of the narrowed list, or
+    /// the first of them all. Arriving with nothing chosen shows the first rather than an empty
+    /// panel, because there is nothing to decide before something can be read — and the first of
+    /// what was narrowed to, because that is what the reader came looking for.
+    /// </summary>
+    public static Type? Choose(IReadOnlyList<Type> types, string? fullName, string? query) =>
+        DomainTypeDescriber.Select(types, fullName)
+        ?? Matching(types, query).FirstOrDefault()
+        ?? types.FirstOrDefault();
+
+    /// <summary>
+    /// A row, or a tab of one: the page's address with the type, the view and what was typed. The
+    /// page's tabs are built through here too, so the narrowing survives a change of view.
+    /// </summary>
+    public static string LinkTo(string address, Type? type, string tab, string? query)
+    {
+        var link = $"{address}?type={Uri.EscapeDataString(type is null ? string.Empty : NameOf(type))}&tab={tab}";
+
+        return string.IsNullOrWhiteSpace(query) ? link : $"{link}&q={Uri.EscapeDataString(query)}";
+    }
+
+    private static bool Holds(string? text, string typed) =>
+        text is not null && text.Contains(typed, StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>What a type is named in an address: the name the page's own selection matches on.</summary>
+    private static string NameOf(Type type) => type.FullName ?? type.Name;
+
+    private IReadOnlyList<Type> Shown => Matching(Types, Query);
+
+    private bool IsNarrowed => !string.IsNullOrWhiteSpace(Query);
+
+    private string Cap =>
+        IsNarrowed ? $"{Shown.Count} of {Counted(Types.Count, Noun)}" : Counted(Types.Count, Noun);
+
+    /// <summary>
+    /// Whether there is anything to fold by: more than one namespace across the whole list, so a
+    /// narrowing that leaves one namespace still says which.
+    /// </summary>
+    private bool Grouped => Types.Select(NamespaceOf).Distinct().Skip(1).Any();
+
+    private IEnumerable<IGrouping<string, Type>> Groups => Shown.GroupBy(NamespaceOf);
+
+    private bool IsOpen(IEnumerable<Type> group) => IsNarrowed || group.Contains(Selected);
+
+    private static string NamespaceOf(Type type) => type.Namespace ?? "No namespace";
+
+    private string LinkTo(Type? type, string? query) => LinkTo(Address, type, Tab, query);
+
+    private bool IsCurrent(Type type) => type == Selected;
+
+    private string? CurrentClass(Type type) => IsCurrent(type) ? "current" : null;
+
+    private string? CurrentFlag(Type type) => IsCurrent(type) ? "true" : null;
+
+    /// <summary>
+    /// How many of something, written so one of it is not one of them.
+    /// </summary>
+    private static string Counted(int count, string noun) =>
+        count == 1 ? $"1 {noun}" : $"{count} {noun}s";
+
+    /// <summary>
+    /// The rows of one run of types, whether the whole list or one group of it. The whole group of
+    /// the type being read is marked as the current one, not just its first row, so an open row and
+    /// what is folded under it read as one selected block.
+    /// </summary>
+    private RenderFragment<IEnumerable<Type>> Rows => types =>
+        @<ul class="index-rows">
+            @foreach (var type in types)
+            {
+                <li class="@CurrentClass(type)">
+                    @if (Links(type) is { Count: > 0 } links)
+                    {
+                        @* Where the row leads, folded under the row that names it, and open for the
+                           type being read: choosing one is what opens it, while any other can still
+                           be peeked into without leaving the one on the right. The name is a link
+                           inside the summary rather than the summary itself: a click on it selects
+                           the type, and a click beside it only opens the row. *@
+                        <details open="@IsCurrent(type)">
+                            <summary>@NameRow(type)</summary>
+
+                            <ul class="index-links">
+                                @foreach (var link in links)
+                                {
+                                    <li>
+                                        @* The mark the Data tile on the section page is entered
+                                           through, in front of the words: the whole row is the one
+                                           link, and the mark says what kind of place it leads to. *@
+                                        <a href="@link.Href">
+                                            <SectionMark Kind="SectionKind.Data"/>
+                                            @link.Text
+                                        </a>
+                                    </li>
+                                }
+                            </ul>
+                        </details>
+                    }
+                    else
+                    {
+                        @* Nothing leads off it, so there is nothing to disclose and no caret
+                           offering to. The row is the plain link it looks like. *@
+                        @NameRow(type)
+                    }
+                </li>
+            }
+        </ul>;
+
+    /// <summary>
+    /// The row that names one type and selects it. A link rather than a click handler: the page
+    /// renders statically like the rest, and the choice stays in the address so it can be shared.
+    /// Named by what it is bound as rather than by the class: that is the name the store writes and
+    /// the one a stored row is found under, and it is the name that stays put when the class is
+    /// renamed. The namespace is the group it sits in, and the rest of the class is on the info tab.
+    /// </summary>
+    private RenderFragment<Type> NameRow => type =>
+        @<a class="index-row" href="@LinkTo(type, Query)" aria-current="@CurrentFlag(type)">
+            <span class="index-name">@DomainTypeDescriber.LabelOf(type)<ObsoleteMark Type="type"/></span>
+        </a>;
+
+}

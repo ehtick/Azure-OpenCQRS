@@ -24,6 +24,59 @@ internal static class OneSidedAssembly
     /// <summary>One DCB projection id, and nothing of the streamed model.</summary>
     public static readonly Assembly Dcb = Declaring("DcbOnly", "OnlyProjectionId", typeof(IDcbProjectionId));
 
+    /// <summary>
+    /// Two streamed aggregates declared under one namespace and nothing else: a list with nothing
+    /// to fold by. The test assembly itself cannot be that list, because its own samples sit under
+    /// two namespaces.
+    /// </summary>
+    public static readonly Assembly OneNamespace = DeclaringAggregates("OneNamespace", "FirstAggregate", "SecondAggregate");
+
+    private static Assembly DeclaringAggregates(string assemblyName, params string[] typeNames)
+    {
+        var assembly = AssemblyBuilder.DefineDynamicAssembly(new AssemblyName(assemblyName), AssemblyBuilderAccess.Run);
+        var module = assembly.DefineDynamicModule(assemblyName);
+
+        foreach (var typeName in typeNames)
+        {
+            var type = module.DefineType(
+                $"{assemblyName}.{typeName}", TypeAttributes.Public | TypeAttributes.Class, typeof(AggregateRoot));
+
+            // The two members the base leaves abstract, answering as the samples do: no filter,
+            // and no event applied.
+            var filter = type.DefineMethod(
+                "get_EventTypeFilter",
+                MethodAttributes.Public | MethodAttributes.Virtual | MethodAttributes.SpecialName | MethodAttributes.HideBySig,
+                typeof(Type[]),
+                Type.EmptyTypes);
+            var filterIl = filter.GetILGenerator();
+            filterIl.Emit(OpCodes.Ldnull);
+            filterIl.Emit(OpCodes.Ret);
+            type.DefineMethodOverride(filter, typeof(EventSourcedModel).GetProperty(nameof(EventSourcedModel.EventTypeFilter))!.GetGetMethod()!);
+            type.DefineProperty(nameof(EventSourcedModel.EventTypeFilter), PropertyAttributes.None, typeof(Type[]), null).SetGetMethod(filter);
+
+            var apply = type.DefineMethod(
+                "Apply",
+                MethodAttributes.Family | MethodAttributes.Virtual | MethodAttributes.HideBySig,
+                typeof(bool),
+                Type.EmptyTypes);
+            var eventType = apply.DefineGenericParameters("T")[0];
+            eventType.SetInterfaceConstraints(typeof(IEvent));
+            apply.SetParameters(eventType);
+            var applyIl = apply.GetILGenerator();
+            applyIl.Emit(OpCodes.Ldc_I4_0);
+            applyIl.Emit(OpCodes.Ret);
+            type.DefineMethodOverride(
+                apply,
+                typeof(EventSourcedModel)
+                    .GetMethods(BindingFlags.NonPublic | BindingFlags.Instance)
+                    .Single(method => method.Name == "Apply" && method.IsGenericMethodDefinition));
+
+            type.CreateType();
+        }
+
+        return assembly;
+    }
+
     private static Assembly Declaring(string assemblyName, string typeName, Type contract)
     {
         var assembly = AssemblyBuilder.DefineDynamicAssembly(new AssemblyName(assemblyName), AssemblyBuilderAccess.Run);
