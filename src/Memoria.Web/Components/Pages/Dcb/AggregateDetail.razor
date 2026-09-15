@@ -1263,8 +1263,7 @@ else
         // answer for the boundary that produced it, and the events it selects.
         Boundary = aggregateId.Boundary;
 
-        var loaded = await ModelReader.Load(
-            StoreContext, Aggregate, Kind, Kind.BindingKey(Aggregate), Boundary.ToString());
+        var loaded = await ModelReader.Load(StoreContext, Aggregate, Kind, aggregateId);
 
         Loaded = loaded.Model;
         Stored = loaded.Snapshot;

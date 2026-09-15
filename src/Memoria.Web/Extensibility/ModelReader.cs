@@ -1,4 +1,5 @@
 using Memoria.EventSourcing;
+using Memoria.EventSourcing.Dcb;
 using Memoria.EventSourcing.Dcb.Store.EntityFrameworkCore;
 using Memoria.EventSourcing.Dcb.Store.EntityFrameworkCore.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -29,38 +30,50 @@ namespace Memoria.Web.Extensibility;
 public static class ModelReader
 {
     /// <summary>
-    /// Loads the model stored under an exact boundary.
+    /// Loads the model stored under an identifier.
     /// </summary>
     /// <param name="context">The DCB store.</param>
     /// <param name="model">The aggregate or projection type the payload was written from.</param>
     /// <param name="kind">Which of the two it is, as the row discriminates them.</param>
-    /// <param name="modelType">The model's binding key, as <c>name:version</c>.</param>
-    /// <param name="boundary">The boundary in canonical form, as <c>TagQuery.ToString</c> writes it.</param>
+    /// <param name="identifier">The rebuilt identifier instance naming it, whose boundary the snapshot was folded from.</param>
     /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
     /// <returns>
     /// What the row holds. Everything null when there is no row: a snapshot is only ever a valid
-    /// answer for the boundary that produced it, so an exact match is the same test the store
-    /// itself applies, and nothing matching means nothing has been stored under it.
+    /// answer for the boundary that produced it, and nothing under its key means nothing has been
+    /// stored under it. An identifier that is not of the kind asked for is said rather than read.
     /// </returns>
+    /// <remarks>
+    /// Reached by the key the store filed the row under — the identifier's store id and its
+    /// boundary, digested the way the store digests them — and held against the boundary as well,
+    /// which is the store's own read exactly. One row by its key, rather than a scan of every
+    /// snapshot of the kind for one whose boundary matches, which is what matching on the boundary
+    /// alone came to: the table is keyed by the id, and nothing indexes the boundary.
+    /// </remarks>
     public static async Task<LoadedModel> Load(
         IDcbDbContext context,
         Type model,
         DcbModelKind kind,
-        string modelType,
-        string boundary,
+        object identifier,
         CancellationToken cancellationToken = default)
     {
         var snapshotKind = kind.SnapshotKind();
 
         try
         {
+            var (storeId, boundary) = (kind, identifier) switch
+            {
+                (DcbModelKind.Aggregate, IDcbAggregateId aggregateId) => (aggregateId.ToStoreId(model), aggregateId.Boundary),
+                (DcbModelKind.Projection, IDcbProjectionId projectionId) => (projectionId.ToStoreId(model), projectionId.Boundary),
+                _ => throw new InvalidOperationException(
+                    $"{identifier.GetType().Name} does not name a DCB {kind.ToString().ToLowerInvariant()}, so nothing says where its snapshot is.")
+            };
+
+            var id = DcbSnapshotEntity.BuildId(snapshotKind, storeId, boundary);
+            var canonical = boundary.ToString();
+
             var snapshot = await context.DcbSnapshots
                 .AsNoTracking()
-                .FirstOrDefaultAsync(
-                    row => row.SnapshotKind == snapshotKind &&
-                           row.ModelType == modelType &&
-                           row.TagQuery == boundary,
-                    cancellationToken);
+                .FirstOrDefaultAsync(row => row.Id == id && row.TagQuery == canonical, cancellationToken);
 
             return snapshot is null ? new LoadedModel(null, null, null) : Read(model, snapshot);
         }

@@ -150,19 +150,20 @@ public sealed record ModelComparison(
                 "The event one of the two versions was folded up to could not be found in the history.");
         }
 
-        var before = await ModelFolder.Fold(
-            service, request.Model, identity.Stream!, identity.Identifier!, checked((int)from.Sequence), cancellationToken);
-        var after = await ModelFolder.Fold(
-            service, request.Model, identity.Stream!, identity.Identifier!, checked((int)to.Sequence), cancellationToken);
+        // Both versions out of one read, up to the later one: the earlier version is the first of
+        // those events, since a version is the model's own count of them.
+        var folded = await ModelFolder.Fold(
+            service, request.Model, identity.Stream!, identity.Identifier!, from.Version,
+            checked((int)to.Sequence), cancellationToken);
 
-        var error = before.Error ?? after.Error ?? (before.Model is null || after.Model is null
+        var error = folded.Error ?? (folded.Before is null || folded.After is null
             ? "The store folded nothing for one of the two versions."
             : null);
 
         return error is not null
             ? new ModelComparison(range, from, to, lastVersion, [], error)
             : new ModelComparison(range, from, to, lastVersion, StateDiff.Of(
-                DomainTypeDescriber.ReadState(before.Model!),
-                DomainTypeDescriber.ReadState(after.Model!)), null);
+                DomainTypeDescriber.ReadState(folded.Before!),
+                DomainTypeDescriber.ReadState(folded.After!)), null);
     }
 }

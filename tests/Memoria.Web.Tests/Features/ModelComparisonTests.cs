@@ -85,29 +85,35 @@ public class ModelComparisonTests
         return reads;
     }
 
-    private static IDomainService Folding(params (long UpToSequence, Result<SampleCountingAggregate> Result)[] folds)
+    /// <summary>
+    /// A store holding the model's events up to a sequence: one event per version, since the model
+    /// counts each. Both versions are folded from the one read up to the later sequence, so that is
+    /// the only read a store need answer.
+    /// </summary>
+    private static IDomainService Holding(int upToSequence, Result<List<IEvent>> events)
     {
         var store = Substitute.For<IDomainService>();
 
-        foreach (var (upToSequence, result) in folds)
-        {
-            store.GetInMemoryAggregate<SampleCountingAggregate>(
-                    Arg.Any<IStreamId>(),
-                    Arg.Any<IAggregateId<SampleCountingAggregate>>(),
-                    (int)upToSequence,
-                    Arg.Any<CancellationToken>())
-                .Returns(Task.FromResult(result));
-        }
+        store.GetEventsUpToSequence(
+                Arg.Any<IStreamId>(),
+                upToSequence,
+                Arg.Any<Type[]?>(),
+                Arg.Any<IDictionary<string, string>?>(),
+                Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(events));
 
         return store;
     }
 
-    private static SampleCountingAggregate Counting(int count) => new() { Count = count };
+    private static IDomainService Holding() => Substitute.For<IDomainService>();
+
+    private static List<IEvent> Events(int count) =>
+        Enumerable.Range(1, count).Select(n => (IEvent)new SampleHappenedEvent($"event-{n}")).ToList();
 
     [Fact]
     public async Task Compares_the_last_version_against_the_one_before_it_when_nothing_is_asked_for()
     {
-        var store = Folding((13, Counting(3)), (14, Counting(5)));
+        var store = Holding(14, Events(8));
 
         var comparison = await ModelComparison.Of(History(), store, Request(null, null));
 
@@ -117,7 +123,24 @@ public class ModelComparisonTests
         comparison.To!.Sequence.Should().Be(14);
         comparison.Error.Should().BeNull();
         comparison.Rows.Should().ContainSingle().Which.Should().BeEquivalentTo(
-            new DiffRow("Count", "int", "3", "5", Change.Changed, []));
+            new DiffRow("Count", "int", "7", "8", Change.Changed, []));
+    }
+
+    /// <summary>
+    /// The two versions come out of one read of the stream, up to the later version's sequence:
+    /// the earlier version is the first of those events folded, and the later is all of them. The
+    /// store is never asked to fold, which would read the events a second time.
+    /// </summary>
+    [Fact]
+    public async Task Reads_the_stream_once_for_both_versions()
+    {
+        var store = Holding(14, Events(8));
+
+        await ModelComparison.Of(History(), store, Request(null, null));
+
+        await store.Received(1).GetEventsUpToSequence(
+            Stream, 14, Arg.Any<Type[]?>(), Arg.Any<IDictionary<string, string>?>(), Arg.Any<CancellationToken>());
+        store.ReceivedCalls().Should().HaveCount(1);
     }
 
     /// <summary>
@@ -131,7 +154,7 @@ public class ModelComparisonTests
         var reads = History();
         var request = Request("3", "7") with { EventTypes = ["Sample:1"] };
 
-        await ModelComparison.Of(reads, Folding((9, Counting(1)), (13, Counting(2))), request);
+        await ModelComparison.Of(reads, Holding(13, Events(7)), request);
 
         await reads.Received(1).Count(
             Arg.Is<StreamedEventFilter>(filter =>
@@ -151,14 +174,14 @@ public class ModelComparisonTests
     public async Task Folds_each_version_up_to_the_sequence_of_the_models_own_event()
     {
         var reads = History();
-        var store = Folding((9, Counting(1)), (13, Counting(1)));
+        var store = Holding(13, Events(7));
 
         var comparison = await ModelComparison.Of(reads, store, Request("3", "7"));
 
         comparison.Range.Should().Be(new CompareRange(3, 7));
         comparison.From!.Sequence.Should().Be(9);
         comparison.To!.Sequence.Should().Be(13);
-        comparison.Rows.Single().Change.Should().Be(Change.Unchanged);
+        comparison.Rows.Single().Should().BeEquivalentTo(new DiffRow("Count", "int", "3", "7", Change.Changed, []));
 
         await reads.Received(1).At(Arg.Is<StreamedEventFilter>(filter => !filter.Descending), 2, Arg.Any<CancellationToken>());
         await reads.Received(1).At(Arg.Is<StreamedEventFilter>(filter => !filter.Descending), 6, Arg.Any<CancellationToken>());
@@ -172,7 +195,7 @@ public class ModelComparisonTests
     [Fact]
     public async Task Carries_the_event_that_produced_each_version()
     {
-        var store = Folding((9, Counting(1)), (13, Counting(1)));
+        var store = Holding(13, Events(7));
 
         var comparison = await ModelComparison.Of(History(), store, Request("3", "7"));
 
@@ -181,25 +204,25 @@ public class ModelComparisonTests
     }
 
     /// <summary>
-    /// Version zero is the model before anything happened to it, which is the fold up to sequence
-    /// zero: no event to look up, and the store hands back a fresh model.
+    /// Version zero is the model before anything happened to it: no event to look up, and none of
+    /// the events read are folded into it.
     /// </summary>
     [Fact]
-    public async Task Folds_version_zero_up_to_sequence_zero()
+    public async Task Folds_version_zero_as_the_model_before_anything_happened()
     {
-        var store = Folding((0, Counting(0)), (7, Counting(1)));
+        var store = Holding(7, Events(1));
 
         var comparison = await ModelComparison.Of(History(), store, Request("0", "1"));
 
         comparison.From.Should().Be(new FoldPoint(0, 0, null, null));
         comparison.To!.Sequence.Should().Be(7);
-        comparison.Rows.Single().Change.Should().Be(Change.Changed);
+        comparison.Rows.Single().Should().BeEquivalentTo(new DiffRow("Count", "int", "0", "1", Change.Changed, []));
     }
 
     [Fact]
     public async Task Has_nothing_to_compare_on_a_history_with_no_events()
     {
-        var store = Folding();
+        var store = Holding();
 
         var comparison = await ModelComparison.Of(History(versions: 0), store, Request(null, null));
 
@@ -217,7 +240,7 @@ public class ModelComparisonTests
     [Fact]
     public async Task Says_why_when_the_history_could_not_be_read()
     {
-        var store = Folding();
+        var store = Holding();
 
         var asked = await ModelComparison.Of(History(versions: null), store, Request("3", "7"));
         var unasked = await ModelComparison.Of(History(versions: null), store, Request(null, null));
@@ -231,7 +254,7 @@ public class ModelComparisonTests
     [Fact]
     public async Task Refuses_a_version_past_the_last_without_asking_the_store_to_fold()
     {
-        var store = Folding();
+        var store = Holding();
 
         var comparison = await ModelComparison.Of(History(), store, Request("3", "9"));
 
@@ -241,11 +264,10 @@ public class ModelComparisonTests
     }
 
     [Fact]
-    public async Task Reports_a_fold_the_store_refused()
+    public async Task Reports_a_read_the_store_refused()
     {
-        var store = Folding(
-            (13, Counting(3)),
-            (14, (Result<SampleCountingAggregate>)new Failure(ErrorCode.Error, "Stream unreadable", "Event 14 will not open.")));
+        var store = Holding(14,
+            (Result<List<IEvent>>)new Failure(ErrorCode.Error, "Stream unreadable", "Event 14 will not open."));
 
         var comparison = await ModelComparison.Of(History(), store, Request(null, null));
 
@@ -262,7 +284,7 @@ public class ModelComparisonTests
     public async Task Asks_nothing_when_the_identity_was_not_rebuilt()
     {
         var reads = History();
-        var store = Folding();
+        var store = Holding();
         var request = Request(null, null) with { Identity = StreamedIdentity.Unknown };
 
         var comparison = await ModelComparison.Of(reads, store, request);
@@ -273,14 +295,21 @@ public class ModelComparisonTests
     }
 }
 
-/// <summary>An aggregate with one property to read, so a comparison has a row to show.</summary>
+/// <summary>
+/// An aggregate with one property to read, so a comparison has a row to show: how many events it
+/// has applied, which is what a version of it is.
+/// </summary>
 public class SampleCountingAggregate : AggregateRoot
 {
     public int Count { get; set; }
 
     public override Type[]? EventTypeFilter => null;
 
-    protected override bool Apply<T>(T @event) => false;
+    protected override bool Apply<T>(T @event)
+    {
+        Count++;
+        return true;
+    }
 }
 
 public class SampleCountingAggregateId(string id) : IAggregateId<SampleCountingAggregate>

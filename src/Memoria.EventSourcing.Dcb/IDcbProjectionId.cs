@@ -53,6 +53,18 @@ public static class DcbProjectionIdExtensions
     public static string ToStoreId<T>(this IDcbProjectionId<T> projectionId) where T : IDcbProjection =>
         $"{projectionId.Id}:{GetVersion(typeof(T))}";
 
+    /// <summary>
+    /// Combines the projection ID with the version of the given projection type to form the
+    /// persisted snapshot identifier, for a caller holding the projection as a runtime type rather
+    /// than a type parameter.
+    /// </summary>
+    /// <param name="projectionId">The projection identifier.</param>
+    /// <param name="projectionClrType">The projection type, carrying its <see cref="ProjectionType"/>.</param>
+    /// <returns>The store ID, the same one <see cref="ToStoreId{T}"/> forms.</returns>
+    /// <exception cref="InvalidOperationException">The type carries no <see cref="ProjectionType"/>.</exception>
+    public static string ToStoreId(this IDcbProjectionId projectionId, Type projectionClrType) =>
+        $"{projectionId.Id}:{GetVersion(projectionClrType)}";
+
     private static int GetVersion(Type projectionClrType) => Versions.GetOrAdd(projectionClrType, static clrType =>
     {
         var projectionType = clrType.GetCustomAttribute<ProjectionType>();

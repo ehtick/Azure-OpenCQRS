@@ -1,147 +1,185 @@
-using System.Reflection;
 using Memoria.EventSourcing;
 using Memoria.EventSourcing.Dcb;
 using Memoria.EventSourcing.Domain;
+using Memoria.Results;
 
 namespace Memoria.Web.Extensibility;
 
 /// <summary>
-/// Folds one model's state out of its stream up to a sequence, without writing it anywhere.
+/// Folds two versions of one model out of its history, without writing either anywhere.
 /// </summary>
 /// <remarks>
-/// Through the store's own domain service, as <see cref="ModelRefresher"/> refreshes: folding events
-/// into a model is the store's operation, and the in-memory read is the one that does it without
-/// leaving a snapshot behind — which is what a page comparing two versions of a row wants, since
-/// neither version is the one the row should be left at.
+/// The events are read from the store once, up to the later version, through the store's own
+/// filtered read — the model's event types and the identifier's event properties, which is what
+/// the store's own fold reads with — and both versions are folded from that one read: the earlier
+/// from the first however-many of the events, the later from all of them. A version is the model's
+/// count of its own events, so the earlier version's events are exactly the first that many of the
+/// later's; folding each version through the store instead read the earlier version's events twice.
 /// <para>
-/// Reflection, because the model type is not known until someone uploads it and the read is generic
-/// and constrained (<c>IAggregateRoot, new()</c>). The overload is picked by its parameters rather
-/// than by name: the whole stream, up to a sequence, and up to a date all share the name, and only
-/// the sequence one is this.
+/// The fold itself is the model's own <see cref="EventSourcedModel.Apply(IEnumerable{IEvent})"/>,
+/// on a fresh instance: what a page comparing two versions of a row wants is each version's state,
+/// and neither version is the one the row should be left at. No reflection over generics is needed,
+/// since the filtered reads are not generic and the model is built from its runtime type.
 /// </para>
 /// </remarks>
 public static class ModelFolder
 {
-    private static readonly MethodInfo FoldAggregate = UpToSequence(nameof(IDomainService.GetInMemoryAggregate));
-
-    private static readonly MethodInfo FoldProjection = UpToSequence(nameof(IDomainService.GetInMemoryProjection));
-
-    private static MethodInfo UpToSequence(string name) =>
-        typeof(IDomainService).GetMethods()
-            .SingleOrDefault(method =>
-                method.Name == name &&
-                method.GetParameters() is [_, _, { ParameterType.Name: nameof(Int32) }, _])
-        ?? throw new InvalidOperationException($"IDomainService.{name} up to a sequence is missing.");
-
-    private static readonly MethodInfo FoldDcbAggregate = UpToPosition(nameof(IDcbDomainService.GetInMemoryAggregate));
-
-    private static readonly MethodInfo FoldDcbProjection = UpToPosition(nameof(IDcbDomainService.GetInMemoryProjection));
-
     /// <summary>
-    /// The DCB store's read up to a position, picked by its parameters for the same reason: the
-    /// whole boundary, up to a position, and up to a date share the name.
-    /// </summary>
-    private static MethodInfo UpToPosition(string name) =>
-        typeof(IDcbDomainService).GetMethods()
-            .SingleOrDefault(method =>
-                method.Name == name &&
-                method.GetParameters() is [_, { ParameterType.Name: nameof(Int64) }, _])
-        ?? throw new InvalidOperationException($"IDcbDomainService.{name} up to a position is missing.");
-
-    /// <summary>
-    /// Folds a DCB model's state up to a position in the log.
+    /// Folds two versions of a DCB model out of its boundary.
     /// </summary>
     /// <param name="service">The DCB domain service.</param>
     /// <param name="model">The aggregate or projection type to fold.</param>
     /// <param name="identifier">An identifier instance naming it, whose boundary selects its events.</param>
-    /// <param name="upToPosition">The last position to fold, inclusive.</param>
+    /// <param name="beforeVersion">The earlier version: how many of the events to fold into it.</param>
+    /// <param name="upToPosition">The position the later version was folded up to, inclusive.</param>
     /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
     /// <returns>
-    /// The folded model, or what went wrong. A boundary with nothing to fold up to that position
-    /// comes back as the model in its opening state, which is an answer rather than a fault.
+    /// The two folded models, or what went wrong. A boundary with nothing to fold up to that
+    /// position comes back as the model in its opening state twice, which is an answer rather than
+    /// a fault.
     /// </returns>
     /// <remarks>
     /// The identifier alone, where a streamed fold takes a stream as well: a DCB identifier carries
-    /// its own boundary. Which of the store's two reads is called follows from the identifier, as
-    /// with the streamed fold and with a refresh.
+    /// its own boundary. The boundary's tags go onto both versions, as the store's own fold puts
+    /// them on before applying anything.
     /// </remarks>
-    public static async Task<FoldedModel> Fold(
+    public static async Task<FoldedPair> Fold(
         IDcbDomainService service,
         Type model,
         object identifier,
+        int beforeVersion,
         long upToPosition,
         CancellationToken cancellationToken = default)
     {
-        var read = identifier switch
+        if (DcbModels.BoundaryOf(identifier) is not { } boundary)
         {
-            IDcbAggregateId => FoldDcbAggregate,
-            IDcbProjectionId => FoldDcbProjection,
-            _ => null
-        };
-
-        if (read is null)
-        {
-            return new FoldedModel(null,
+            return FoldedPair.Refused(
                 $"{identifier.GetType().Name} is not a DCB identifier, so nothing names what to fold.");
         }
 
-        var answer = await StoreCall.Invoke(read, model, service, [identifier, upToPosition, cancellationToken]);
-
-        return new FoldedModel(answer.Value, answer.Error);
+        return await Fold(model, beforeVersion,
+            applies => service.GetEventsUpToPosition(boundary, upToPosition, applies, cancellationToken),
+            fresh =>
+            {
+                if (fresh is IDcbModel tagged)
+                {
+                    tagged.Tags = boundary.Tags;
+                }
+            });
     }
 
     /// <summary>
-    /// Folds a streamed model's state up to a sequence.
+    /// Folds two versions of a streamed model out of its stream.
     /// </summary>
     /// <param name="service">The streamed domain service.</param>
     /// <param name="model">The aggregate or projection type to fold.</param>
     /// <param name="streamId">The stream it is folded from.</param>
     /// <param name="identifier">An identifier instance naming it inside that stream.</param>
-    /// <param name="upToSequence">The last sequence to fold, inclusive.</param>
+    /// <param name="beforeVersion">The earlier version: how many of the events to fold into it.</param>
+    /// <param name="upToSequence">The sequence the later version was folded up to, inclusive.</param>
     /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
     /// <returns>
-    /// The folded model, or what went wrong. A stream with nothing to fold up to that sequence
-    /// comes back as the model in its opening state, which is an answer rather than a fault.
+    /// The two folded models, or what went wrong. A stream with nothing to fold up to that sequence
+    /// comes back as the model in its opening state twice, which is an answer rather than a fault.
     /// </returns>
-    /// <remarks>
-    /// Which of the store's two reads is called follows from the identifier rather than being
-    /// asked for, as with a refresh: an identifier names one model and only one kind of model.
-    /// </remarks>
-    public static async Task<FoldedModel> Fold(
+    public static async Task<FoldedPair> Fold(
         IDomainService service,
         Type model,
         object streamId,
         object identifier,
+        int beforeVersion,
         int upToSequence,
         CancellationToken cancellationToken = default)
     {
-        if (streamId is not IStreamId)
+        if (streamId is not IStreamId stream)
         {
-            return new FoldedModel(null,
+            return FoldedPair.Refused(
                 $"{streamId.GetType().Name} is not a stream, so there is nowhere to fold from.");
         }
 
-        var read = identifier switch
-        {
-            IAggregateId => FoldAggregate,
-            IProjectionId => FoldProjection,
-            _ => null
-        };
+        IDictionary<string, string>? properties;
 
-        if (read is null)
+        switch (identifier)
         {
-            return new FoldedModel(null,
-                $"{identifier.GetType().Name} is not a streamed identifier, so nothing names what to fold.");
+            case IAggregateId aggregateId:
+                properties = aggregateId.EventPropertyFilter;
+                break;
+            case IProjectionId projectionId:
+                properties = projectionId.EventPropertyFilter;
+                break;
+            default:
+                return FoldedPair.Refused(
+                    $"{identifier.GetType().Name} is not a streamed identifier, so nothing names what to fold.");
         }
 
-        var answer = await StoreCall.Invoke(
-            read, model, service, [streamId, identifier, upToSequence, cancellationToken]);
-
-        return new FoldedModel(answer.Value, answer.Error);
+        return await Fold(model, beforeVersion,
+            applies => service.GetEventsUpToSequence(stream, upToSequence, applies, properties, cancellationToken),
+            prepare: null);
     }
+
+    /// <summary>
+    /// One read, two folds: the events the model applies up to the later version, folded into two
+    /// fresh instances — the first <paramref name="beforeVersion"/> of them into one, all into the
+    /// other.
+    /// </summary>
+    private static async Task<FoldedPair> Fold(
+        Type model,
+        int beforeVersion,
+        Func<Type[]?, Task<Result<List<IEvent>>>> read,
+        Action<EventSourcedModel>? prepare)
+    {
+        try
+        {
+            if (Fresh(model, prepare) is not { } before || Fresh(model, prepare) is not { } after)
+            {
+                return FoldedPair.Refused($"{model.Name} is not an event-sourced model, so there is nothing to fold.");
+            }
+
+            var result = await read(after.EventTypeFilter);
+
+            if (result.IsNotSuccess || result.Value is not { } events)
+            {
+                return FoldedPair.Refused(Describe(result.Failure));
+            }
+
+            before.Apply(events.Take(beforeVersion));
+            after.Apply(events);
+
+            return new FoldedPair(before, after, Error: null);
+        }
+        catch (Exception exception)
+        {
+            return FoldedPair.Refused(exception.Message);
+        }
+    }
+
+    private static EventSourcedModel? Fresh(Type model, Action<EventSourcedModel>? prepare)
+    {
+        if (InstanceFactory.CreateInstance(model) is not EventSourcedModel fresh)
+        {
+            return null;
+        }
+
+        prepare?.Invoke(fresh);
+
+        return fresh;
+    }
+
+    private static string Describe(Failure? failure) =>
+        failure is null
+            ? "The store reported a failure with no detail."
+            : string.Join(" — ", new[] { failure.Title, failure.Description }.Where(part => !string.IsNullOrWhiteSpace(part)))
+                is { Length: > 0 } message
+                ? message
+                : "The store reported a failure.";
 }
 
-/// <summary>The outcome of a fold.</summary>
-/// <param name="Model">The folded model, or null when there is none to show.</param>
+/// <summary>The outcome of folding two versions.</summary>
+/// <param name="Before">The earlier version, or null when there is none to show.</param>
+/// <param name="After">The later version, or null when there is none to show.</param>
 /// <param name="Error">Why there is none, or null when nothing went wrong.</param>
-public sealed record FoldedModel(object? Model, string? Error);
+public sealed record FoldedPair(object? Before, object? After, string? Error)
+{
+    /// <summary>Neither version, and why.</summary>
+    public static FoldedPair Refused(string error) => new(null, null, error);
+}

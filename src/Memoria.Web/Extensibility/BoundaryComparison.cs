@@ -74,17 +74,19 @@ public static class BoundaryComparison
         var from = Place(range.From);
         var to = Place(range.To);
 
-        var before = await ModelFolder.Fold(service, request.Model, request.Identifier, from.Sequence, cancellationToken);
-        var after = await ModelFolder.Fold(service, request.Model, request.Identifier, to.Sequence, cancellationToken);
+        // Both versions out of one read, up to the later one: the earlier version is the first of
+        // those events, since a version is the model's own count of them.
+        var folded = await ModelFolder.Fold(
+            service, request.Model, request.Identifier, from.Version, to.Sequence, cancellationToken);
 
-        var error = before.Error ?? after.Error ?? (before.Model is null || after.Model is null
+        var error = folded.Error ?? (folded.Before is null || folded.After is null
             ? "The store folded nothing for one of the two versions."
             : null);
 
         return error is not null
             ? new ModelComparison(range, from, to, rows.Count, [], error)
             : new ModelComparison(range, from, to, rows.Count, StateDiff.Of(
-                DomainTypeDescriber.ReadState(before.Model!),
-                DomainTypeDescriber.ReadState(after.Model!)), null);
+                DomainTypeDescriber.ReadState(folded.Before!),
+                DomainTypeDescriber.ReadState(folded.After!)), null);
     }
 }

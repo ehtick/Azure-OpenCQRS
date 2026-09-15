@@ -75,6 +75,18 @@ public static class DcbAggregateIdExtensions
     public static string ToStoreId<T>(this IDcbAggregateId<T> aggregateId) where T : IDcbAggregateRoot =>
         $"{aggregateId.Id}:{GetVersion(typeof(T))}";
 
+    /// <summary>
+    /// Combines the aggregate ID with the version of the given aggregate type to form the persisted
+    /// snapshot identifier, for a caller holding the aggregate as a runtime type rather than a type
+    /// parameter.
+    /// </summary>
+    /// <param name="aggregateId">The aggregate identifier.</param>
+    /// <param name="aggregateClrType">The aggregate type, carrying its <see cref="AggregateType"/>.</param>
+    /// <returns>The store ID, the same one <see cref="ToStoreId{T}"/> forms.</returns>
+    /// <exception cref="InvalidOperationException">The type carries no <see cref="AggregateType"/>.</exception>
+    public static string ToStoreId(this IDcbAggregateId aggregateId, Type aggregateClrType) =>
+        $"{aggregateId.Id}:{GetVersion(aggregateClrType)}";
+
     // Resolved once per closed generic rather than by reflection on every call. A throwing factory
     // caches nothing, so an unattributed type still throws on every call rather than turning into a
     // TypeInitializationException.

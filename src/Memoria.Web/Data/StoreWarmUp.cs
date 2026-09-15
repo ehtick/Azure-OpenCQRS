@@ -111,15 +111,16 @@ public static class StoreWarmUp
                         }
                     }
 
-                    // The detail page reads the same table, but addressed by one whole boundary rather
-                    // than by the shape of one. That is a distinct query for EF to compile, so warming
-                    // the list alone would leave it to be compiled on the first row anyone opens.
+                    // The detail page reads the same table, but addressed by one row's key rather
+                    // than by the shape of a boundary. That is a distinct query for EF to compile, so
+                    // warming the list alone would leave it to be compiled on the first row anyone
+                    // opens.
                     if (listed.FirstOrDefault() is { } instance &&
-                        DcbModels.BoundaryOf(IdentifierFactory.Create(shape.Identifier,
+                        IdentifierFactory.Create(shape.Identifier,
                             instance.Values.ToDictionary(
-                                value => value.Key, value => (string?)value.Value)).Instance) is { } boundary)
+                                value => value.Key, value => (string?)value.Value)).Instance is { } identifier)
                     {
-                        await ModelReader.Load(store, model, kind, modelType, boundary.ToString());
+                        await ModelReader.Load(store, model, kind, identifier);
                     }
 
                     app.Logger.LogInformation("Store warmed on {Model}.", model.Name);

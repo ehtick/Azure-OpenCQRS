@@ -1258,8 +1258,7 @@ else
         // answer for the boundary that produced it, and the events it selects.
         Boundary = projectionId.Boundary;
 
-        var loaded = await ModelReader.Load(
-            StoreContext, Projection, Kind, Kind.BindingKey(Projection), Boundary.ToString());
+        var loaded = await ModelReader.Load(StoreContext, Projection, Kind, projectionId);
 
         Loaded = loaded.Model;
         Stored = loaded.Snapshot;
