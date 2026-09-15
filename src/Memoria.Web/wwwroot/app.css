@@ -2009,8 +2009,11 @@ h2:focus {
 
 /* The link in that column, in the shape the steps on the compare tab have, brought down a step to
    sit inside a row rather than beside a form: a control in a table is read at the table's small
-   size, and at the full size it lifted every row to make room for itself. */
+   size, and at the full size it lifted every row to make room for itself. Its inline-flex restated,
+   because the row's rule for its own anchors makes every link in the row a block the width of the
+   cell, and the button's border drew round the whole column rather than round its two numbers. */
 .grid.events.compared td .button-mark {
+    display: inline-flex;
     font-size: var(--text-sm);
     padding: 0.25rem 0.6rem;
 }
