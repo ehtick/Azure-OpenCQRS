@@ -56,6 +56,7 @@ public static class StoreWarmUp
 
             var store = scope.ServiceProvider.GetRequiredService<IDcbDbContext>();
             var types = app.Services.GetRequiredService<DomainTypeRegistry>().Current;
+            var totals = app.Services.GetRequiredService<TotalsCache>();
 
             // Either kind will do. Both pages run the same two queries, and the kind rides in as a
             // parameter rather than as part of the SQL, so whichever is warmed first warms the other's
@@ -99,7 +100,7 @@ public static class StoreWarmUp
                             {
                                 var page = await IdentifierInstances.Page(store, kind, narrowed,
                                     narrowedShape, tag, sort, descending: true, page: 1,
-                                    size: InstanceQuery.DefaultPageSize);
+                                    size: InstanceQuery.DefaultPageSize, totals);
 
                                 // Only the shaped read unfolds a boundary into the values an identifier
                                 // is built from, which is what the detail read below needs.

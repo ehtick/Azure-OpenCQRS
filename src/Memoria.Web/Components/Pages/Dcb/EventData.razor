@@ -4,6 +4,7 @@
 @using Microsoft.AspNetCore.WebUtilities
 @inject DomainTypeRegistry Types
 @inject IDcbDbContext StoreContext
+@inject TotalsCache Totals
 @inject NavigationManager Navigation
 
 <PageTitle>DCB @Heading</PageTitle>
@@ -551,7 +552,8 @@ else
             Text,
             Descending,
             int.TryParse(Value("page"), out var asked) ? asked : 1,
-            PageSize);
+            PageSize,
+            Totals);
     }
 
     /// <summary>

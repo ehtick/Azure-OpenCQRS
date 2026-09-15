@@ -110,6 +110,18 @@ internal sealed class MemoriaWeb : WebApplicationFactory<Program>
 
     private IStreamedReads? _reads;
 
+    private Memoria.EventSourcing.IDomainService? _domainService;
+
+    /// <summary>
+    /// The same instance writing the streamed store through the service given rather than the
+    /// SQLite file: for a test of what a refresh does around the write, not of the write itself.
+    /// </summary>
+    public MemoriaWeb WithDomainService(Memoria.EventSourcing.IDomainService domainService)
+    {
+        _domainService = domainService;
+        return this;
+    }
+
     /// <summary>
     /// The same instance reading the streamed store through the reads given rather than the
     /// SQLite file: for a page test that wants to say what the page asked the store, and answer it.
@@ -274,6 +286,11 @@ internal sealed class MemoriaWeb : WebApplicationFactory<Program>
             {
                 // Registered after the application's own, so it is the one resolved.
                 services.AddScoped(_ => reads);
+            }
+
+            if (_domainService is { } domainService)
+            {
+                services.AddScoped(_ => domainService);
             }
 
             if (_operator is null)

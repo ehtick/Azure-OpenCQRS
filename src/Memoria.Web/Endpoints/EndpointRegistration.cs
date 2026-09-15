@@ -160,25 +160,27 @@ public static class EndpointRegistration
         app.MapPost("/dcb/aggregates/update", async (
             DomainTypeRegistry types,
             IDcbDomainService store,
+            TotalsCache totals,
             ILoggerFactory loggerFactory,
             HttpRequest request,
             [FromForm] string type,
             [FromForm] string id,
             [FromForm] string returnUrl,
             ClaimsPrincipal user) =>
-            await Refresh(DcbModelKind.Aggregate, types, store, loggerFactory, request, type, id, returnUrl, Operator.Of(user)))
+            await Refresh(DcbModelKind.Aggregate, types, store, totals, loggerFactory, request, type, id, returnUrl, Operator.Of(user)))
             .RequireAuthorization(Roles.Updater);
 
         app.MapPost("/dcb/projections/update", async (
             DomainTypeRegistry types,
             IDcbDomainService store,
+            TotalsCache totals,
             ILoggerFactory loggerFactory,
             HttpRequest request,
             [FromForm] string type,
             [FromForm] string id,
             [FromForm] string returnUrl,
             ClaimsPrincipal user) =>
-            await Refresh(DcbModelKind.Projection, types, store, loggerFactory, request, type, id, returnUrl, Operator.Of(user)))
+            await Refresh(DcbModelKind.Projection, types, store, totals, loggerFactory, request, type, id, returnUrl, Operator.Of(user)))
             .RequireAuthorization(Roles.Updater);
     }
 
@@ -196,6 +198,7 @@ public static class EndpointRegistration
         app.MapPost("/streamed/aggregates/update", async (
             DomainTypeRegistry types,
             IDomainService store,
+            TotalsCache totals,
             ILoggerFactory loggerFactory,
             [FromForm] string type,
             [FromForm] string stream,
@@ -203,12 +206,13 @@ public static class EndpointRegistration
             [FromForm] string returnUrl,
             ClaimsPrincipal user) =>
             await RefreshStreamed(
-                StreamedModelKind.Aggregate, types, store, loggerFactory, type, stream, id, returnUrl, Operator.Of(user)))
+                StreamedModelKind.Aggregate, types, store, totals, loggerFactory, type, stream, id, returnUrl, Operator.Of(user)))
             .RequireAuthorization(Roles.Updater);
 
         app.MapPost("/streamed/projections/update", async (
             DomainTypeRegistry types,
             IDomainService store,
+            TotalsCache totals,
             ILoggerFactory loggerFactory,
             [FromForm] string type,
             [FromForm] string stream,
@@ -216,7 +220,7 @@ public static class EndpointRegistration
             [FromForm] string returnUrl,
             ClaimsPrincipal user) =>
             await RefreshStreamed(
-                StreamedModelKind.Projection, types, store, loggerFactory, type, stream, id, returnUrl, Operator.Of(user)))
+                StreamedModelKind.Projection, types, store, totals, loggerFactory, type, stream, id, returnUrl, Operator.Of(user)))
             .RequireAuthorization(Roles.Updater);
     }
 
@@ -246,6 +250,7 @@ public static class EndpointRegistration
         DcbModelKind kind,
         DomainTypeRegistry types,
         IDcbDomainService store,
+        TotalsCache totals,
         ILoggerFactory loggerFactory,
         HttpRequest request,
         string type,
@@ -286,7 +291,7 @@ public static class EndpointRegistration
 
         var refreshed = await ModelRefresher.Refresh(store, model, created.Instance);
 
-        return Answer(logger, returnUrl, model, refreshed, asked,
+        return Answer(logger, totals, returnUrl, model, refreshed, asked,
             nothingToDo: $"Nothing to refresh — no snapshot, and no events inside the boundary this " +
                          $"{Named(kind)} applies.");
     }
@@ -310,6 +315,7 @@ public static class EndpointRegistration
         StreamedModelKind kind,
         DomainTypeRegistry types,
         IDomainService store,
+        TotalsCache totals,
         ILoggerFactory loggerFactory,
         string type,
         string stream,
@@ -350,7 +356,7 @@ public static class EndpointRegistration
 
         var refreshed = await ModelRefresher.Refresh(store, model, identity.Stream, identity.Identifier);
 
-        return Answer(logger, returnUrl, model, refreshed, asked,
+        return Answer(logger, totals, returnUrl, model, refreshed, asked,
             nothingToDo: $"Nothing to refresh — no snapshot, and no events in this stream that this " +
                          $"{Named(kind)} folds.");
     }
@@ -359,6 +365,7 @@ public static class EndpointRegistration
     /// What a refresh did, logged and carried back to the page that asked for it.
     /// </summary>
     /// <param name="logger">The store's own logger.</param>
+    /// <param name="totals">The remembered totals, forgotten when a snapshot was written.</param>
     /// <param name="returnUrl">The page the button was pressed on.</param>
     /// <param name="model">The model that was refreshed, for the log.</param>
     /// <param name="refreshed">What the store said.</param>
@@ -368,7 +375,8 @@ public static class EndpointRegistration
     /// terms: a boundary the model applies, or a stream it folds.
     /// </param>
     private static IResult Answer(
-        ILogger logger, string returnUrl, Type model, RefreshedModel refreshed, Operator asked, string nothingToDo)
+        ILogger logger, TotalsCache totals, string returnUrl, Type model, RefreshedModel refreshed,
+        Operator asked, string nothingToDo)
     {
         if (refreshed.Error is not null)
         {
@@ -378,6 +386,13 @@ public static class EndpointRegistration
         }
 
         logger.LogInformation("Refreshed the snapshot for {Model}, asked by {Operator}.", model.Name, asked);
+
+        if (refreshed.Refreshed)
+        {
+            // The one change to the store this tool can see coming: a snapshot written may be a
+            // row a models page did not count.
+            totals.Forget();
+        }
 
         return BackToModel(returnUrl,
             message: refreshed.Refreshed ? "Snapshot refreshed." : nothingToDo);

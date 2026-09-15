@@ -7,6 +7,7 @@ using Memoria.EventSourcing.Store.EntityFrameworkCore.Extensions;
 using Memoria.Web.Extensibility;
 using Microsoft.Azure.Cosmos;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Memoria.Web.Data;
 
@@ -38,6 +39,11 @@ public static class StoreRegistration
         // engine it is.
         services.AddSingleton(StoreCapabilities.Of(database.Provider));
 
+        // Where every list's total is remembered between pages: one for the process, whichever
+        // store it is, since a request cannot remember across requests.
+        services.TryAddSingleton(TimeProvider.System);
+        services.AddSingleton<TotalsCache>();
+
         if (database.Provider is DatabaseProvider.Cosmos)
         {
             var store = CosmosStore.Of(database, configuration);
@@ -51,7 +57,8 @@ public static class StoreRegistration
             // through the framework: they are the two the pages ask, and no store operation answers
             // them. Read through the one client registered above.
             services.AddScoped<IStreamedReads>(provider => new CosmosStreamedReads(
-                provider.GetRequiredService<CosmosClient>(), store.DatabaseName, store.ContainerName));
+                provider.GetRequiredService<CosmosClient>(), store.DatabaseName, store.ContainerName,
+                provider.GetRequiredService<TotalsCache>()));
 
             return services;
         }

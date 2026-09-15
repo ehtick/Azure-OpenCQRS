@@ -55,6 +55,7 @@ public static class IdentifierInstances
         bool descending,
         int page,
         int size,
+        TotalsCache? totals = null,
         CancellationToken cancellationToken = default)
     {
         var snapshotKind = kind.SnapshotKind();
@@ -93,7 +94,13 @@ public static class IdentifierInstances
             stored = stored.Where(snapshot => EF.Functions.Like(snapshot.TagQuery.ToLower(), wanted));
         }
 
-        var total = await stored.CountAsync(cancellationToken);
+        // Remembered for a while when there is somewhere to remember it: the count is the dearer
+        // of a page's two queries, and the same for every page of one narrowing.
+        var total = totals is null
+            ? await stored.CountAsync(cancellationToken)
+            : await totals.Total(
+                TotalsCache.KeyOf("dcb-models", kind, modelType, shape?.BoundaryPattern, text),
+                () => stored.CountAsync(cancellationToken));
         var placed = InstanceQuery.Place(page, total, size);
 
         var ordered = (sort, descending) switch

@@ -6,13 +6,14 @@ namespace Memoria.Web.Extensibility;
 /// Answers the pages' two questions from a relational store, through Entity Framework Core.
 /// </summary>
 /// <param name="context">The streamed store's three tables.</param>
+/// <param name="totals">Where a list's total is remembered between pages, or null to count on every page.</param>
 /// <remarks>
 /// The queries themselves stay in <see cref="StreamedEvents"/> and <see cref="StreamedSnapshots"/>,
 /// which is where their reasoning is written down. This unpacks a filter into the arguments they
 /// already take and does nothing else: a store that answers by composing <c>IQueryable</c> needs no
 /// second account of what the pages are asking for.
 /// </remarks>
-public sealed class EfStreamedReads(StreamedStoreDbContext context) : IStreamedReads
+public sealed class EfStreamedReads(StreamedStoreDbContext context, TotalsCache? totals = null) : IStreamedReads
 {
     /// <inheritdoc />
     public Task<StoredStreamEvents> Events(
@@ -28,6 +29,7 @@ public sealed class EfStreamedReads(StreamedStoreDbContext context) : IStreamedR
             filter.EventTypes,
             filter.Properties,
             filter.BeforeSequence,
+            totals,
             cancellationToken);
 
     /// <inheritdoc />
@@ -85,6 +87,7 @@ public sealed class EfStreamedReads(StreamedStoreDbContext context) : IStreamedR
             filter.Descending,
             filter.Page,
             filter.Size,
+            totals,
             cancellationToken);
 
     /// <inheritdoc />

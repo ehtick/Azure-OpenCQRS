@@ -455,7 +455,9 @@ Perfectly reasonable, with two precautions:
   does. They page rather than fetching whole streams, and against a relational store the list queries
   are run once in the background at start-up so nobody's first page load pays to build the model and
   compile them — but a wide filter over a large store is still a query against your production
-  database.
+  database. The total under a list's title is counted once and kept for thirty seconds, so paging
+  through a list costs one count; against a store being written to, that number can trail the
+  store by up to that long. The rows themselves are always read fresh.
 
 The tool creates nothing and deletes nothing. The only write it can make is refreshing a snapshot —
 see [the one thing it writes](memoria-web.md#the-one-thing-it-writes).

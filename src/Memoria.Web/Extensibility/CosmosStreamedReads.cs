@@ -23,9 +23,25 @@ namespace Memoria.Web.Extensibility;
 /// everything".
 /// </para>
 /// </remarks>
-public sealed class CosmosStreamedReads(CosmosClient client, string databaseName, string containerName)
+public sealed class CosmosStreamedReads(
+    CosmosClient client, string databaseName, string containerName, TotalsCache? totals = null)
     : IStreamedReads
 {
+    /// <summary>
+    /// The total for a narrowing: remembered for a while when there is somewhere to remember it,
+    /// since the count is one cross-partition query of its own and the same for every page.
+    /// </summary>
+    private Task<int> Total(
+        string list, Container container, Narrowing narrowing, CancellationToken cancellationToken) =>
+        totals is null
+            ? Count(container, narrowing, cancellationToken)
+            : totals.Total(
+                TotalsCache.KeyOf(list, narrowing.Where, narrowing.Values.Select(value => value.Name + "=" + Written(value.Value))),
+                () => Count(container, narrowing, cancellationToken));
+
+    private static string Written(object value) =>
+        value is IEnumerable<string> items ? string.Join(',', items) : value.ToString() ?? string.Empty;
+
     /// <summary>
     /// Which order each container was last served in, for the life of the process: a refusal for
     /// want of an index is paid for once, not on every page.
@@ -50,7 +66,7 @@ public sealed class CosmosStreamedReads(CosmosClient client, string databaseName
 
             var narrowing = Narrowing.For(filter);
 
-            var total = await Count(container, narrowing, cancellationToken);
+            var total = await Total("cosmos-events", container, narrowing, cancellationToken);
             var placed = InstanceQuery.Place(filter.Page, total, filter.Size);
 
             var (documents, notice) =
@@ -253,7 +269,7 @@ public sealed class CosmosStreamedReads(CosmosClient client, string databaseName
 
             var narrowing = Narrowing.ForSnapshots(kind, filter);
 
-            var total = await Count(container, narrowing, cancellationToken);
+            var total = await Total("cosmos-snapshots", container, narrowing, cancellationToken);
             var placed = InstanceQuery.Place(filter.Page, total, filter.Size);
 
             var (documents, notice) =

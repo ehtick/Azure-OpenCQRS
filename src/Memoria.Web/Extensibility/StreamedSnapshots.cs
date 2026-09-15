@@ -67,6 +67,7 @@ public static class StreamedSnapshots
         bool descending,
         int page,
         int size,
+        TotalsCache? totals = null,
         CancellationToken cancellationToken = default)
     {
         try
@@ -111,7 +112,13 @@ public static class StreamedSnapshots
                     snapshot.StoreId.ToLower().Contains(wanted));
             }
 
-            var total = await stored.CountAsync(cancellationToken);
+            // Remembered for a while when there is somewhere to remember it: the count is the
+            // dearer of a page's two queries, and the same for every page of one narrowing.
+            var total = totals is null
+                ? await stored.CountAsync(cancellationToken)
+                : await totals.Total(
+                    TotalsCache.KeyOf("streamed-snapshots", kind, streamPattern, modelType, identifierPattern, text),
+                    () => stored.CountAsync(cancellationToken));
             var placed = InstanceQuery.Place(page, total, size);
 
             var ordered = (sort, descending) switch
