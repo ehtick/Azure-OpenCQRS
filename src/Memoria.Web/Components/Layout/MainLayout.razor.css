@@ -116,8 +116,11 @@ header ::deep .glyph {
     }
 
     /* Hung from the right edge rather than the left: this is the last thing in the bar, and a
-       sheet opening leftwards from it stays on the page. */
-    .operator .submenu {
+       sheet opening leftwards from it stays on the page. Named as the operator's menu rather than
+       merely the operator's so that it outweighs the .menu rule below: at equal weight that rule,
+       being later, put left: 0 back, and a sheet hung from both edges ran past the window and
+       gave the page a scrollbar each way. */
+    .menu.operator .submenu {
         left: auto;
         right: 0;
     }
