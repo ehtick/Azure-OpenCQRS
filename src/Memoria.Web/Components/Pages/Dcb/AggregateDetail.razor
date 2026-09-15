@@ -697,6 +697,10 @@ else
 
 @code {
 
+    /// <summary>The request, for the rows-per-page size the browser remembers in a cookie.</summary>
+    [CascadingParameter]
+    private HttpContext? HttpContext { get; set; }
+
     /// <summary>
     /// Which of the two DCB models this page reads, which is what tells the store's one snapshot
     /// table which of its rows are this page's.
@@ -1272,31 +1276,22 @@ else
         Applies = BoundaryEvents.AppliedBy(Aggregate, Loaded);
 
         Descending = string.Equals(Values.GetValueOrDefault("dir"), "desc", StringComparison.OrdinalIgnoreCase);
-        PageSize = InstanceQuery.PageSizeOf(Values.GetValueOrDefault("size"));
+        PageSize = InstanceQuery.PageSizeOf(Values.GetValueOrDefault("size"), HttpContext);
         Page = int.TryParse(Values.GetValueOrDefault("page"), out var asked) ? asked : 1;
         PayloadsOpen = string.Equals(
             Values.GetValueOrDefault("payloads"), Open, StringComparison.OrdinalIgnoreCase);
 
         // The info tab reports no counts either, but it does report the version, and a version only
         // means something against the history behind it — so the one thing asked for here is how
-        // many events there are. A page of one, because the rows themselves are the events tab's;
-        // the total is the whole count whatever page is asked for, which is what is wanted.
+        // many events there are. A count and nothing else: the rows themselves are the events tab's.
         if (Tab == InfoTab && Stored is not null)
         {
-            var history = await BoundaryEvents.Load(
-                StoreContext,
-                aggregateId.Boundary,
-                Applies,
-                eventType: null,
-                text: null,
-                descending: false,
-                page: 1,
-                size: 1);
+            var counted = await BoundaryEvents.Count(StoreContext, aggregateId.Boundary, Applies);
 
             // A count that failed says nothing rather than nothing found: a boundary the store could
             // not read is not a boundary holding no events, and either would leave the warning
             // undrawn — but only one of them would be honest about it.
-            Lag = SnapshotLag.Of(Stored.Version, history.Error is null ? history.Total : null);
+            Lag = SnapshotLag.Of(Stored.Version, counted.Total);
         }
 
         // Two folds of the boundary, read only for the tab that draws them: the whole history the

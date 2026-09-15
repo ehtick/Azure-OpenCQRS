@@ -28,6 +28,38 @@ public static class InstanceQuery
         int.TryParse(size, out var parsed) && PageSizes.Contains(parsed) ? parsed : DefaultPageSize;
 
     /// <summary>
+    /// The cookie the browser remembers its rows-per-page choice in, alongside its own storage.
+    /// </summary>
+    /// <remarks>
+    /// The same name the script keys its storage by — see wwwroot/preferences.js. The cookie is
+    /// what lets the first render of a table already be at the remembered size: before it, a table
+    /// reached without a size in the address was drawn at the default and then reloaded by the
+    /// script at the remembered size, every query run twice for one visit.
+    /// </remarks>
+    public const string RowsPerPageCookie = "memoria.rows-per-page";
+
+    /// <summary>
+    /// Reads a rows-per-page size from the address first and the browser's memory second, falling
+    /// back to the default when neither names one on offer.
+    /// </summary>
+    /// <param name="asked">The size in the address, or null.</param>
+    /// <param name="remembered">The size the browser remembers, or null.</param>
+    /// <remarks>
+    /// The address wins: it is the choice the reader just made, or a link somebody sent them, and
+    /// a link has to mean the same thing whoever opens it.
+    /// </remarks>
+    public static int PageSizeOf(string? asked, string? remembered) =>
+        int.TryParse(asked, out var parsed) && PageSizes.Contains(parsed) ? parsed : PageSizeOf(remembered);
+
+    /// <summary>
+    /// Reads a rows-per-page size from the address first and the request's cookie second.
+    /// </summary>
+    /// <param name="asked">The size in the address, or null.</param>
+    /// <param name="context">The request, or null when there is none to read a cookie off.</param>
+    public static int PageSizeOf(string? asked, HttpContext? context) =>
+        PageSizeOf(asked, context?.Request.Cookies[RowsPerPageCookie]);
+
+    /// <summary>
     /// Reads the column to order by, falling back to the updated date.
     /// </summary>
     /// <param name="sort">The column as it arrived, or null.</param>

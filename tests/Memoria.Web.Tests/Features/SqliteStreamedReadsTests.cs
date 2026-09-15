@@ -209,6 +209,36 @@ public class SqliteStreamedReadsTests : IAsyncLifetime
         counted.Total.Should().Be(2);
     }
 
+    // The one question the detail page's version column asks when the table is narrowed: where
+    // every event of the model sits, so each row on the page can be placed in the whole history.
+    // One read of the sequences alone, whatever order the page is drawn in, rather than one count
+    // for each row.
+
+    [Fact]
+    public async Task GivenAFilter_WhenTheHistoryIsRead_ThenEveryMatchingSequenceComesBackInOrder()
+    {
+        await using var context = Read();
+
+        var history = await new EfStreamedReads(context).History(
+            Filter(descending: true) with { StreamPattern = "customer:c-0000" });
+
+        using var scope = new AssertionScope();
+
+        history.Error.Should().BeNull();
+        history.Positions.Should().Equal(0L, 1L, 2L, 3L);
+    }
+
+    [Fact]
+    public async Task GivenTheTypesAModelApplies_WhenTheHistoryIsRead_ThenOnlyThoseAreInIt()
+    {
+        await using var context = Read();
+
+        var history = await new EfStreamedReads(context).History(
+            Filter() with { StreamPattern = "customer:c-0000", EventTypes = ["OrderShippedEvent:1"] });
+
+        history.Positions.Should().BeEmpty("no seeded row is of that type");
+    }
+
     [Fact]
     public async Task GivenAPlace_WhenTheEventThereIsRead_ThenThatOneRowComesBackInTheOrderAsked()
     {

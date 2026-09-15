@@ -231,6 +231,10 @@ else
 
 @code {
 
+    /// <summary>The request, for the rows-per-page size the browser remembers in a cookie.</summary>
+    [CascadingParameter]
+    private HttpContext? HttpContext { get; set; }
+
     /// <summary>
     /// Which of the two DCB models this page lists, which is what tells the store's one snapshot
     /// table which of its rows are this page's.
@@ -539,7 +543,7 @@ else
         Text = Value("text");
         Sort = InstanceQuery.SortOf(Value("sort"));
         Descending = !string.Equals(Value("dir"), "asc", StringComparison.OrdinalIgnoreCase);
-        PageSize = InstanceQuery.PageSizeOf(Value("size"));
+        PageSize = InstanceQuery.PageSizeOf(Value("size"), HttpContext);
 
         // A choice with nothing to look for is not asked about. A null key and a null shape narrow
         // to everything rather than to nothing, so asking would answer the name of one aggregate

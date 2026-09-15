@@ -59,6 +59,19 @@ public sealed class EfStreamedReads(StreamedStoreDbContext context) : IStreamedR
             cancellationToken);
 
     /// <inheritdoc />
+    public Task<EventHistory> History(
+        StreamedEventFilter filter, CancellationToken cancellationToken = default) =>
+        StreamedEvents.History(
+            context,
+            filter.StreamPattern,
+            filter.EventType,
+            filter.Text,
+            filter.EventTypes,
+            filter.Properties,
+            filter.BeforeSequence,
+            cancellationToken);
+
+    /// <inheritdoc />
     public Task<StoredStreamSnapshots> Snapshots(
         StreamedSnapshotFilter filter, CancellationToken cancellationToken = default) =>
         StreamedSnapshots.Page(

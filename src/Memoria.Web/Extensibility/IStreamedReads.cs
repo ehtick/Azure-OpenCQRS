@@ -50,6 +50,21 @@ public interface IStreamedReads
     Task<PlacedStreamEvent> At(StreamedEventFilter filter, int index, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Reads where every event a narrowing leaves sits in its stream, oldest first, without reading
+    /// the events themselves.
+    /// </summary>
+    /// <param name="filter">What to narrow to. Its order, page and size are not read.</param>
+    /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
+    /// <remarks>
+    /// What places the rows of a narrowed table in a model's whole history: one read of the
+    /// sequences alone, and every row on the page is placed by where its own falls. Before it, each
+    /// row was placed by a count of the events below it — a page of a hundred rows was a hundred
+    /// counts. Only meaningful with a pattern matching one stream, since a sequence counts within
+    /// a stream.
+    /// </remarks>
+    Task<EventHistory> History(StreamedEventFilter filter, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Reads one page of the snapshots, of either kind of model.
     /// </summary>
     /// <param name="filter">Which kind, what to narrow to, in what order, and which page of it.</param>
@@ -137,6 +152,11 @@ public sealed record EventCount(int? Total, string? Error);
 /// <param name="Event">The event, or null when there is none at that place or the log could not be read.</param>
 /// <param name="Error">Why the log could not be read, or null when it was — a place past the end is not an error.</param>
 public sealed record PlacedStreamEvent(StoredStreamEvent? Event, string? Error);
+
+/// <summary>Where every event a narrowing leaves sits in its stream, or why they could not be read.</summary>
+/// <param name="Positions">The sequences, oldest first, or null when the log could not be read.</param>
+/// <param name="Error">Why it could not be, or null when it was.</param>
+public sealed record EventHistory(IReadOnlyList<long>? Positions, string? Error);
 
 /// <summary>
 /// What one page of the log is narrowed to.

@@ -37,9 +37,17 @@ function stored() {
     }
 }
 
+// Written down twice: in storage, which the script reads back, and in a cookie under the same
+// name, which the server reads. The cookie is what lets a table arrive already at the remembered
+// size — without it the first render was at the default and the reload below ran every query a
+// second time. The reload stays for a browser that remembers in storage but not in cookies.
 function remember(size) {
     try {
         window.localStorage.setItem(key, size);
+    } catch {
+    }
+    try {
+        document.cookie = `${key}=${encodeURIComponent(size)}; path=/; max-age=31536000; samesite=lax`;
     } catch {
     }
 }

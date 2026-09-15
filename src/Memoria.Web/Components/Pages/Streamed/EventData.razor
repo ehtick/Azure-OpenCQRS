@@ -379,6 +379,10 @@ else
 
 @code {
 
+    /// <summary>The request, for the rows-per-page size the browser remembers in a cookie.</summary>
+    [CascadingParameter]
+    private HttpContext? HttpContext { get; set; }
+
     /// <summary>
     /// Which of the log's events are being looked at: all of them, one type, or neither because the
     /// name in the address reaches nothing that could have been written.
@@ -605,7 +609,7 @@ else
         Choice = TypeChoice.Of(EventTypes, Value("type"));
         Text = Value("text");
         Descending = !string.Equals(Value("dir"), "asc", StringComparison.OrdinalIgnoreCase);
-        PageSize = InstanceQuery.PageSizeOf(Value("size"));
+        PageSize = InstanceQuery.PageSizeOf(Value("size"), HttpContext);
 
         // Only one word opens them, so anything else the address might say — including the word an
         // older link used for folded — leaves the page as it opens, which is folded.

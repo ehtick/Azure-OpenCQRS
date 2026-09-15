@@ -172,6 +172,31 @@ public sealed class CosmosStreamedReads(CosmosClient client, string databaseName
 
     /// <inheritdoc />
     /// <remarks>
+    /// The sequences alone, in sequence order: one small answer the size of the history's key,
+    /// rather than the documents themselves. Ordered by a single path, so no composite index is
+    /// asked of the container.
+    /// </remarks>
+    public async Task<EventHistory> History(
+        StreamedEventFilter filter, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var container = client.GetContainer(databaseName, containerName);
+            var narrowing = Narrowing.For(filter);
+            var positions = await Read<long>(container, narrowing.Apply(new QueryDefinition(
+                    $"SELECT VALUE c.sequence FROM c WHERE {narrowing.Where} ORDER BY c.sequence ASC")),
+                cancellationToken);
+
+            return new EventHistory(positions, Error: null);
+        }
+        catch (Exception exception)
+        {
+            return new EventHistory(null, exception.Message);
+        }
+    }
+
+    /// <inheritdoc />
+    /// <remarks>
     /// The same ordered query a page is read with, asked for one document at an offset and no
     /// count — so a place past the end is an empty answer rather than a fault.
     /// </remarks>

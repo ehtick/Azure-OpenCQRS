@@ -108,6 +108,18 @@ internal sealed class MemoriaWeb : WebApplicationFactory<Program>
         return this;
     }
 
+    private IStreamedReads? _reads;
+
+    /// <summary>
+    /// The same instance reading the streamed store through the reads given rather than the
+    /// SQLite file: for a page test that wants to say what the page asked the store, and answer it.
+    /// </summary>
+    public MemoriaWeb WithReads(IStreamedReads reads)
+    {
+        _reads = reads;
+        return this;
+    }
+
     /// <summary>The address of the sample aggregate's detail page, on the tab asked for.</summary>
     public static string SampleAggregateDetail(string tab) =>
         $"/streamed/aggregates/detail?type={typeof(SampleAggregate).FullName}&stream=sample:1&id=sample-1:1&tab={tab}";
@@ -256,6 +268,12 @@ internal sealed class MemoriaWeb : WebApplicationFactory<Program>
                 // Program reloads at start-up. Over the same store, so an upload still lands.
                 services.AddSingleton(provider =>
                     new DomainTypeRegistry(provider.GetRequiredService<ExtensionStore>(), host));
+            }
+
+            if (_reads is { } reads)
+            {
+                // Registered after the application's own, so it is the one resolved.
+                services.AddScoped(_ => reads);
             }
 
             if (_operator is null)

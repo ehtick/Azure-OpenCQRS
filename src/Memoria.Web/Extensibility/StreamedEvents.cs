@@ -154,6 +154,40 @@ public static class StreamedEvents
     }
 
     /// <summary>
+    /// Reads where every narrowed event sits in its stream, oldest first, and nothing else about it.
+    /// </summary>
+    /// <remarks>
+    /// The sequences alone, in sequence order whatever order a page is drawn in: what places the
+    /// rows of a narrowed table in a model's whole history. One read the size of the history's
+    /// key column, rather than a count per row.
+    /// </remarks>
+    public static async Task<EventHistory> History(
+        StreamedStoreDbContext context,
+        string? streamPattern,
+        string? eventType,
+        string? text,
+        IReadOnlyList<string>? eventTypes = null,
+        IReadOnlyDictionary<string, string>? properties = null,
+        long? beforeSequence = null,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var stored = Narrow(context, streamPattern, eventType, text, eventTypes, properties, beforeSequence);
+            var positions = await stored
+                .OrderBy(appended => appended.Sequence)
+                .Select(appended => (long)appended.Sequence)
+                .ToListAsync(cancellationToken);
+
+            return new EventHistory(positions, Error: null);
+        }
+        catch (Exception exception)
+        {
+            return new EventHistory(null, exception.Message);
+        }
+    }
+
+    /// <summary>
     /// Reads the one event under an exact address, or nothing when there is none there.
     /// </summary>
     /// <param name="context">The streamed store.</param>

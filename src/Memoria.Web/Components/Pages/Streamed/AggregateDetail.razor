@@ -724,6 +724,10 @@ else
 
 @code {
 
+    /// <summary>The request, for the rows-per-page size the browser remembers in a cookie.</summary>
+    [CascadingParameter]
+    private HttpContext? HttpContext { get; set; }
+
     /// <summary>
     /// Which of the two streamed models this page reads, which is what tells the store which of its
     /// two tables the row is in.
@@ -1332,7 +1336,7 @@ else
         Applies = BoundaryEvents.AppliedBy(Aggregate, Loaded);
 
         Descending = string.Equals(Value("dir"), "desc", StringComparison.OrdinalIgnoreCase);
-        PageSize = InstanceQuery.PageSizeOf(Value("size"));
+        PageSize = InstanceQuery.PageSizeOf(Value("size"), HttpContext);
         Page = int.TryParse(Value("page"), out var asked) ? asked : 1;
         PayloadsOpen = string.Equals(Value("payloads"), Open, StringComparison.OrdinalIgnoreCase);
 
@@ -1355,7 +1359,9 @@ else
         // warning. The events tab says as much above its table; here there is nothing to say.
         if (Tab == InfoTab && Stored is not null && Claim is not null)
         {
-            var history = await Store.Events(new StreamedEventFilter(
+            // A count and nothing else: a page of one would fetch a row nobody wanted to learn the
+            // same number.
+            var counted = await Store.Count(new StreamedEventFilter(
                 StreamPattern: StreamId,
                 EventType: null,
                 Text: null,
@@ -1370,7 +1376,7 @@ else
             // A count that failed says nothing rather than nothing found: a stream the store could
             // not read is not a stream holding no events, and either would leave the warning
             // undrawn — but only one of them would be honest about it.
-            Lag = SnapshotLag.Of(Stored.Version, history.Error is null ? history.Total : null);
+            Lag = SnapshotLag.Of(Stored.Version, counted.Total);
         }
 
         // Only when they are the view being shown. The tab labels report no counts, so nothing on

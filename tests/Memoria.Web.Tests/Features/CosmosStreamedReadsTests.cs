@@ -218,4 +218,30 @@ public class CosmosStreamedReadsTests : IAsyncLifetime
         read.Error.Should().BeNull();
         read.Event.Should().BeNull();
     }
+
+    /// <summary>
+    /// The detail page's version column, narrowed: the model's whole history read once, as the
+    /// sequences alone in order, so each row on the page is placed by where it falls.
+    /// </summary>
+    [Fact]
+    public async Task GivenAFilter_WhenTheHistoryIsRead_ThenEveryMatchingSequenceComesBackInOrder()
+    {
+        var history = await _reads.History(
+            Filter() with { StreamPattern = "c-0002", EventTypes = ["OrderPlacedEvent:1"] });
+
+        using var scope = new AssertionScope();
+
+        history.Error.Should().BeNull();
+        // Every event of stream two is even-numbered, so every one of them was placed.
+        history.Positions.Should().Equal(0L, 1L, 2L, 3L, 4L, 5L);
+    }
+
+    [Fact]
+    public async Task GivenTheTypesAModelApplies_WhenTheHistoryIsRead_ThenOnlyThoseAreInIt()
+    {
+        var history = await _reads.History(
+            Filter() with { StreamPattern = "c-0002", EventTypes = ["OrderShippedEvent:1"] });
+
+        history.Positions.Should().BeEmpty("no event of stream two was shipped");
+    }
 }

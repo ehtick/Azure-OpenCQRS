@@ -12,8 +12,9 @@ namespace Memoria.Web.Extensibility;
 /// <para>
 /// A table showing the whole history knows every row's place from the page it is on, its order and
 /// the total, and asks the store nothing. A table narrowed to some of the history knows it for none
-/// of them, because the rows between two shown may be hidden rather than another model's; each is
-/// placed by asking how many of the model's events sit below it, one count per row.
+/// of them, because the rows between two shown may be hidden rather than another model's; the
+/// model's whole history is read once, as its sequences alone, and each row is placed by where its
+/// own falls in it.
 /// </para>
 /// </remarks>
 public static class EventVersions
@@ -31,8 +32,9 @@ public static class EventVersions
     /// <param name="narrowed">Whether the page shows only some of the history.</param>
     /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
     /// <returns>
-    /// Each row's sequence to the version it produced. A row whose count the store refused is left
-    /// out, so a page can draw the rows it can and say nothing for the rest.
+    /// Each row's sequence to the version it produced. When the store refused the history, or a row
+    /// is not in it, that row is left out, so a page can draw the rows it can and say nothing for
+    /// the rest.
     /// </returns>
     public static async Task<IReadOnlyDictionary<long, int>> Of(
         IStreamedReads reads,
@@ -44,11 +46,14 @@ public static class EventVersions
     {
         var versions = new Dictionary<long, int>();
 
-        for (var index = 0; index < page.Events.Count; index++)
+        if (page.Events.Count == 0)
         {
-            var position = page.Events[index].Event.Position;
+            return versions;
+        }
 
-            if (!narrowed)
+        if (!narrowed)
+        {
+            for (var index = 0; index < page.Events.Count; index++)
             {
                 // Where the row sits in the whole history, counted from the oldest: the rows on the
                 // pages before this one — a page's worth each, whatever this page holds, since only
@@ -56,32 +61,42 @@ public static class EventVersions
                 // counted back from the total.
                 var offset = (page.Page - 1) * model.Size + index;
 
-                versions[position] = descending ? page.Total - offset : offset + 1;
-
-                continue;
+                versions[page.Events[index].Event.Position] = descending ? page.Total - offset : offset + 1;
             }
 
-            // A count and nothing else: the row's place is how many of the model's events sit
-            // below it, and a page of one would fetch a row nobody wanted to learn the same number.
-            var below = await reads.Count(new StreamedEventFilter(
-                model.StreamPattern,
-                EventType: null,
-                Text: null,
-                Descending: false,
-                Page: 1,
-                Size: 1)
-            {
-                EventTypes = model.EventTypes,
-                Properties = model.Properties,
-                BeforeSequence = position
-            }, cancellationToken);
+            return versions;
+        }
 
-            if (below.Total is not { } counted)
+        // The whole history, once, as sequences alone: the model's stream, types and properties,
+        // and nothing the table was narrowed by. A row's version is where its sequence falls in
+        // it, from one.
+        var history = await reads.History(new StreamedEventFilter(
+            model.StreamPattern,
+            EventType: null,
+            Text: null,
+            Descending: false,
+            Page: 1,
+            Size: 1)
+        {
+            EventTypes = model.EventTypes,
+            Properties = model.Properties
+        }, cancellationToken);
+
+        if (history.Positions is not { } positions)
+        {
+            return versions;
+        }
+
+        var placed = positions
+            .Select((position, index) => (Position: position, Version: index + 1))
+            .ToDictionary(row => row.Position, row => row.Version);
+
+        foreach (var row in page.Events)
+        {
+            if (placed.TryGetValue(row.Event.Position, out var version))
             {
-                continue;
+                versions[row.Event.Position] = version;
             }
-
-            versions[position] = counted + 1;
         }
 
         return versions;
