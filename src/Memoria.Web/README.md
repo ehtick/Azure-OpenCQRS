@@ -24,8 +24,8 @@ and [Memoria.Web.Samples.Dcb](../Memoria.Web.Samples.Dcb).
 ## Signing in
 
 Operators sign in through an OpenID Connect provider — any that publishes a discovery document —
-and nothing answers anyone who has not, form posts included. The tool refuses to start until it is
-told which provider, or told in so many words to run open, which is what
+and nothing answers anyone who has not, form posts included. The tool answers nothing but a page
+saying so until it is told which provider, or told in so many words to run open, which is what
 [`appsettings.Development.json`](appsettings.Development.json) does for `dotnet run` on localhost.
 
 Signed in, an operator is a Reader, an Updater or an Administrator, each including the one before:

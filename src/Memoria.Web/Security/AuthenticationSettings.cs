@@ -7,9 +7,11 @@ namespace Memoria.Web.Security;
 /// </summary>
 /// <remarks>
 /// Decided once before the application listens, the way the store is. There is no third answer
-/// and no default: a tool told neither refuses to start. The settings page takes an assembly and
-/// runs it, so "nobody said" cannot mean "anybody may" — whoever deploys it has to write down
-/// which of the two they want, and the refusal names the settings that would say so.
+/// and no default: a tool told neither refuses, and answers nothing but the refusal — see
+/// <see cref="StartupRefusal"/>. The settings page takes an assembly and runs it, so "nobody said"
+/// cannot mean "anybody may" — whoever deploys it has to write down which of the two they want,
+/// and the refusal names the settings that would say so. It is shown to whoever asks, so it names
+/// settings and never their values.
 /// </remarks>
 public abstract record AuthenticationSettings
 {

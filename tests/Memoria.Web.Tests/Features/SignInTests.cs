@@ -108,19 +108,4 @@ public class SignInTests
         web.Logged.Should().Contain(entry =>
             entry.Level == LogLevel.Information && entry.Message.Contains(MemoriaWeb.Provider.Authority));
     }
-
-    [Fact]
-    public void Refuses_to_start_when_told_neither_to_sign_in_nor_to_run_open()
-    {
-        using var web = MemoriaWeb.Unconfigured();
-
-        var starting = () => web.Client;
-
-        starting.Should().Throw<InvalidOperationException>()
-            .Which.Message.Should()
-            .Contain("Authentication:Oidc:Authority").And
-            .Contain("Authentication:Oidc:ClientId").And
-            .Contain("Authentication:Oidc:ClientSecret").And
-            .Contain("Authentication:Disabled");
-    }
 }

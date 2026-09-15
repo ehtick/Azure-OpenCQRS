@@ -10,7 +10,7 @@ namespace Memoria.Web.Tests.Features;
 /// <summary>
 /// How the tool decides, before it listens for anything, whether operators are signed in through
 /// an OpenID Connect provider or nobody is. Left unsaid is not an answer: an upload form that runs
-/// code does not get to be open by omission, so a tool told neither refuses to start and says
+/// code does not get to be open by omission, so a tool told neither refuses and says
 /// which settings would have told it.
 /// </summary>
 public class AuthenticationSettingsTests

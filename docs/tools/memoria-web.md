@@ -198,8 +198,9 @@ says it should be.
 > reach it; nothing decides what they may do once they have.
 
 **Operators sign in through your OpenID Connect provider.** Nothing — no page, no form post —
-answers anyone who has not, and the tool refuses to start until it is told which provider, or told
-in so many words to run open. See [Configuration](memoria-web-configuration.md#signing-operators-in)
+answers anyone who has not, and the tool answers nothing but a page saying so until it is told
+which provider, or told in so many words to run open. See
+[Configuration](memoria-web-configuration.md#signing-operators-in)
 for the settings and [Deployment](memoria-web-deployment.md#signing-operators-in) for what to
 register at the provider.
 

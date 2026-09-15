@@ -57,6 +57,12 @@ note above.
 
 Nothing else. There is no cache, no message broker, no background worker and no scheduled job.
 
+A deployment whose settings could not be read stays up and answers every address with a page saying
+which setting is missing, at status 503 — see
+[When it is not configured](memoria-web-configuration.md#when-it-is-not-configured). A host's own
+error page in its place (App Service's "Application Error", say) means the process itself is not
+running, and the reason is in the host's log rather than the tool's.
+
 Every page renders statically — all of their state travels in the query string — so no component
 declares an interactive render mode and no Blazor circuit is opened. Ordinary HTTP proxying is
 enough; nothing here needs a WebSocket today.
@@ -438,7 +444,7 @@ welcome; the token lifetime is the whole of that guarantee.
 
 `Authentication:Disabled=true` runs the application with nobody signed in, the way `dotnet run`
 does on localhost. It is a choice that has to be written down — an application told neither this nor
-a provider refuses to start — and every start-up while it is in force logs a warning saying so. Use
+a provider refuses — and every start-up while it is in force logs a warning saying so. Use
 it on localhost, or behind a proxy that authenticates **every** request including the form posts,
 and nowhere else.
 

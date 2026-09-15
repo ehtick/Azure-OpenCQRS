@@ -1,6 +1,7 @@
 using Memoria.EventSourcing.Dcb.Extensions;
 using Memoria.EventSourcing.Extensions;
 using Memoria.Extensions;
+using Memoria.Web;
 using Memoria.Web.Data;
 using Memoria.Web.Endpoints;
 using Memoria.Web.Extensibility;
@@ -8,23 +9,38 @@ using Memoria.Web.Security;
 
 var builder = WebApplication.CreateBuilder(args);
 
+DatabaseConnection database;
+AuthenticationSettings authentication;
+AuthorizationSettings roles;
+
+try
+{
+    // Which engine the store is in is read off the connection string, or taken from
+    // Database:Provider where the string could be more than one. The tool is pointed at a store
+    // somebody else created, so it is told rather than assuming Postgres.
+    database = DatabaseConnection.Of(
+        builder.Configuration.GetConnectionString(DatabaseConnection.Name),
+        builder.Configuration[DatabaseConnection.Setting]);
+
+    // Whether operators sign in, read here for the same reason the store is: a tool told neither
+    // refuses, rather than running open because nobody said otherwise.
+    authentication = AuthenticationSettings.Of(builder.Configuration);
+
+    // Which of the provider's claim values make an operator more than a Reader. Silence maps nobody.
+    roles = AuthorizationSettings.Of(builder.Configuration);
+}
+catch (InvalidOperationException refusal)
+{
+    // Refused before a single service was added: what runs instead is a page saying which
+    // settings would have let it start, and nothing else — see StartupRefusal for why the
+    // process stays up to say so rather than leaving it to the host's own error page.
+    builder.Refusing(refusal).Run();
+    return;
+}
+
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
-
-// Which engine the store is in is read off the connection string, or taken from Database:Provider
-// where the string could be more than one. The tool is pointed at a store somebody else created,
-// so it is told rather than assuming Postgres.
-var database = DatabaseConnection.Of(
-    builder.Configuration.GetConnectionString(DatabaseConnection.Name),
-    builder.Configuration[DatabaseConnection.Setting]);
-
-// Whether operators sign in, read here for the same reason the store is: a tool told neither
-// refuses to start, rather than starting open because nobody said otherwise.
-var authentication = AuthenticationSettings.Of(builder.Configuration);
-
-// Which of the provider's claim values make an operator more than a Reader. Silence maps nobody.
-var roles = AuthorizationSettings.Of(builder.Configuration);
 
 builder.Services.AddSignIn(authentication, roles);
 

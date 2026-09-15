@@ -30,6 +30,15 @@ As environment variables, replace each `:` with a double underscore:
 `ConnectionStrings__Memoria`, `Database__Provider`, `Extensions__Directory`,
 `Authentication__Oidc__ClientSecret`, `Authorization__Roles__Administrator`.
 
+## When it is not configured
+
+A tool told nothing about its store, or nothing about how operators sign in, does not serve its
+pages. It answers every address with one page instead — at status 503, so a health check or a
+monitor reads it as a deployment that is not up — saying which settings would have let it start
+and linking back here. Nothing else is mapped while it does: not a page, not the upload form. The
+same is said in the log, as an error, for whoever is looking at the host rather than the browser.
+The messages quoted below are what that page and that log say.
+
 ## The connection string
 
 ```json
@@ -40,7 +49,7 @@ As environment variables, replace each `:` with a double underscore:
 }
 ```
 
-The application will not start without it:
+Without it, the tool answers only [the page that says so](#when-it-is-not-configured):
 
 > Connection string 'Memoria' is not configured in appsettings.json.
 
@@ -123,8 +132,9 @@ DCB addresses answer 404 — see [what each store answers](memoria-web.md#what-e
 
 ## Signing operators in
 
-Operators sign in through an OpenID Connect provider, and the tool refuses to start until it is
-told which one — or told, in so many words, to run open. There is no default. The settings page
+Operators sign in through an OpenID Connect provider, and the tool answers nothing but
+[the page saying so](#when-it-is-not-configured) until it is told which one — or told, in so many
+words, to run open. There is no default. The settings page
 takes an assembly and runs it, so "nobody said" cannot mean "anybody may".
 
 ```json
@@ -242,7 +252,7 @@ Running open, roles do not apply: there is nobody to hold one, and every page an
 runs the tool with nobody signed in and every page answering anyone who can reach it — including
 the upload form. It is how the repository's `appsettings.Development.json` runs `dotnet run` on
 localhost, and it is a choice that has to be written down: the tool told neither this nor a provider
-refuses to start,
+refuses,
 
 > Authentication is not configured. Set Authentication:Oidc:Authority, Authentication:Oidc:ClientId
 > and Authentication:Oidc:ClientSecret to sign operators in through an OpenID Connect provider, or
