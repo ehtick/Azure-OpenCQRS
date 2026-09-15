@@ -10,6 +10,7 @@
     background: var(--surface);
     border: 1px solid var(--rule);
     border-radius: 8px;
+    box-shadow: var(--shadow-card);
     margin-bottom: 1.5rem;
 }
 
