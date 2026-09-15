@@ -478,18 +478,37 @@ else
                         <tbody>
                         @foreach (var stored in Events.Events)
                         {
-                            <tr>
+                            var link = RowLink(stored.Id);
+
+                            @* The whole row is the target, as it is on the log's own page: every
+                               cell that reads a value carries the same link, and only the first of
+                               them is reachable by keyboard or read out — the rest repeat it. The
+                               cells that hold something of their own stay as they are: the applied
+                               mark, which is read out by itself and would be silenced inside a
+                               link marked as a repeat; the payload's fold and the Json mark, whose
+                               clicks a link laid under them would take; and the compare link. The
+                               stylesheet keeps their padding where the row moves the rest onto the
+                               anchors. *@
+                            <tr class="clickable">
                                 <td class="col-applied">
                                     <AppliedMark Applied="AppliedEvent.Is(stored.Event.Position, Stored?.Sequence)"/>
                                 </td>
-                                <td>@stored.Event.Position</td>
-                                <td>@stored.Event.Written.ToLocalTime().ToString("g")</td>
+                                <td class="col-sequence"><a href="@link">@stored.Event.Position</a></td>
+                                <td>
+                                    <a href="@link" tabindex="-1" aria-hidden="true">
+                                        @stored.Event.Written.ToLocalTime().ToString("g")
+                                    </a>
+                                </td>
                                 @* Name and version as one, the way every list here names a type, so
                                    a type met in a history and the same type met on its own page
                                    read alike. A key the store wrote that cannot be taken apart is
                                    left whole rather than half-read. *@
-                                <td><code>@DomainTypeDescriber.LabelOfKey(stored.Event.Type)</code></td>
                                 <td>
+                                    <a href="@link" tabindex="-1" aria-hidden="true">
+                                        <code>@DomainTypeDescriber.LabelOfKey(stored.Event.Type)</code>
+                                    </a>
+                                </td>
+                                <td class="col-payload">
                                     @if (stored.Event.Error is not null)
                                     {
                                         <span class="missing">@stored.Event.Error</span>
@@ -537,7 +556,7 @@ else
                                    event whose effect is worth seeing, and the fold either applies
                                    it or says why it could not. A row whose place the store would
                                    not say has nothing honest to link to, and says so. *@
-                                <td>
+                                <td class="col-compare">
                                     @if (Versions.TryGetValue(stored.Event.Position, out var version))
                                     {
                                         <a class="button-mark quiet" href="@CompareLink(version)"
@@ -719,6 +738,21 @@ else
                     IdLabel="Id" Id="@appended.Id"
                     Data="@appended.Event.Data"
                     CloseLink="@EventsLink(Descending, Events.Page)"/>
+    }
+
+    @* One row of the history, opened over the tab it was listed on, in the three views the log's
+       own page reads it through — the same component, so a row met here and the same row met there
+       read alike. Drawn only when the address asks for a row that is on the page under it, so the
+       table behind it is the table a reader left. *@
+    @if (OpenedRow is { } opened)
+    {
+        <EventDialog Event="opened.Event"
+                     Store="ModelStore.Streamed"
+                     StreamId="@opened.StreamId"
+                     Id="@opened.Id"
+                     Tab="@Show"
+                     TabLink="RowTabLink"
+                     CloseLink="@EventsLink(Descending, Events.Page)"/>
     }
 }
 
@@ -1035,6 +1069,8 @@ else
     /// <param name="open">Whether the payloads are out, or null to carry on as they are.</param>
     /// <param name="clearEvent">Whether to widen back to every type the aggregate applies.</param>
     /// <param name="clearText">Whether to drop the text a row had to carry.</param>
+    /// <param name="row">The event to open over the events tab, or null for none.</param>
+    /// <param name="show">Which of the open event's views to show, or null for the one it opens with.</param>
     /// <remarks>
     /// The payloads and the two narrowings are named only when they are made. Folded and unnarrowed
     /// are what the table opens as, so a link to one is a link with nothing to say about them.
@@ -1049,6 +1085,8 @@ else
         bool clearText = false,
         string? view = null,
         string? json = null,
+        string? row = null,
+        string? show = null,
         long? from = null,
         long? to = null) =>
         $"{Address}&tab={tab}" +
@@ -1062,6 +1100,10 @@ else
         (!clearText && IsFiltered ? $"&text={Uri.EscapeDataString(Text!)}" : string.Empty) +
         (view is { Length: > 0 } ? $"&view={view}" : string.Empty) +
         (json is { Length: > 0 } ? $"&json={Uri.EscapeDataString(json)}" : string.Empty) +
+        (row is { Length: > 0 } ? $"&row={Uri.EscapeDataString(row)}" : string.Empty) +
+        // Named only with the row it is a view of, and only once a reader has left the view the
+        // row opens with.
+        (show is { Length: > 0 } ? $"&show={show}" : string.Empty) +
         // The pair the compare tab folds up to, named only by a link to that tab: the others have
         // nothing to fold, and carrying a pair along would leave it in the address of a view that
         // does not read it.
@@ -1124,6 +1166,49 @@ else
     /// </summary>
     private string JsonLink(string id) =>
         DetailLink(EventsTab, Descending, Events.Page, json: id) + $"#{JsonDialog.Anchor}";
+
+    /// <summary>
+    /// Which row of the history is open over the events tab, by the key the store wrote it under,
+    /// or null when none is.
+    /// </summary>
+    /// <remarks>
+    /// Named only when it is open, which is what makes every other link on the page close it: a
+    /// reader who changes tab, pages or narrows has left that row behind, and carrying it along
+    /// would leave a sheet hanging over a table it is no longer in.
+    /// </remarks>
+    [SupplyParameterFromQuery(Name = "row")]
+    private string? RequestedRow { get; set; }
+
+    /// <summary>Which of the open row's three views to show, or nothing for the one it opens with.</summary>
+    [SupplyParameterFromQuery(Name = "show")]
+    private string? RequestedShow { get; set; }
+
+    private string Show => EventView.Match(RequestedShow);
+
+    /// <summary>
+    /// The row it names, or null when the address names none or names one that is not on this page.
+    /// </summary>
+    /// <remarks>
+    /// Found among the rows already read rather than fetched on its own: the sheet opens over the
+    /// page it was opened from, so the row is one of the ones drawn underneath it. A key that is not
+    /// there costs nothing and shows nothing, which is what a stale link should do.
+    /// </remarks>
+    private StoredStreamEvent? OpenedRow =>
+        string.IsNullOrEmpty(RequestedRow)
+            ? null
+            : Events.Events.FirstOrDefault(row => row.Id == RequestedRow);
+
+    /// <summary>
+    /// The events tab as it stands with one row open over it, landing on the sheet so a reader far
+    /// down the table is taken to what they just opened.
+    /// </summary>
+    private string RowLink(string id) =>
+        DetailLink(EventsTab, Descending, Events.Page, row: id) + $"#{EventDialog.Anchor}";
+
+    /// <summary>The open row with another of its views asked for.</summary>
+    private string RowTabLink(string show) =>
+        DetailLink(EventsTab, Descending, Events.Page, row: RequestedRow, show: show) +
+        $"#{EventDialog.Anchor}";
 
     /// <summary>
     /// The page as it stands with one of the type's views open over it, landing on the panel so a

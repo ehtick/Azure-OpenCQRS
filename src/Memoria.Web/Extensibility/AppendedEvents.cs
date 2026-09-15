@@ -118,6 +118,7 @@ public static class AppendedEvents
                     appended.EventType,
                     appended.Data,
                     appended.CreatedDate,
+                    appended.CreatedBy,
 
                     // Projected with the row rather than included, so the tags of one page's worth
                     // are read and no navigation is left to be walked after the page is materialised.
@@ -129,11 +130,12 @@ public static class AppendedEvents
 
             // The same reading a boundary's events go through, so a row says the same thing
             // wherever it is met — including a row whose type the uploaded assemblies no longer
-            // describe, which is listed rather than dropped. The tags come with it: this is the one
-            // read where they are a fact of the row rather than the question that selected it.
+            // describe, which is listed rather than dropped. The tags and who appended it come with
+            // it, as they do on the page about one event: a row on this page opens on that page, and
+            // a row on a model's events tab opens in a sheet that lists the same facts.
             var read = rows
                 .Select(row => BoundaryEvents.Read(row.Position, row.EventType, row.Data, row.CreatedDate,
-                    row.Tags))
+                    row.Tags, row.CreatedBy))
                 .ToList();
 
             return new StoredEvents(read, total, placed.Page, placed.TotalPages, Error: null);

@@ -276,6 +276,19 @@ public class SampleCarryingDcbAggregate : DcbAggregateRoot
 }
 
 /// <summary>
+/// What addresses <see cref="SampleCarryingDcbAggregate"/>. Named by a value called something other
+/// than <c>id</c>, which the detail page's address already uses for the identifier type itself —
+/// so this is the one DCB identifier here whose detail page can actually be reached, and a tag key
+/// of its own, so no row another model's identifier is tested against is claimed by this one.
+/// </summary>
+public class SampleCarryingId(string sampleId) : IDcbAggregateId<SampleCarryingDcbAggregate>
+{
+    public string Id { get; } = sampleId;
+
+    public TagQuery Boundary { get; } = TagQuery.AnyOf(new Tag("carrying", sampleId));
+}
+
+/// <summary>
 /// An event carrying no <see cref="EventType"/>, so nothing writes it into the log and nothing
 /// reads it back. Listed all the same, because a type a model applies is worth seeing whether or
 /// not it is bound.

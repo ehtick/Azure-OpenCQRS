@@ -1,4 +1,5 @@
 using System.Data.Common;
+using System.Security.Claims;
 using FluentAssertions;
 using FluentAssertions.Execution;
 using Memoria.EventSourcing.Dcb;
@@ -69,13 +70,32 @@ public class SqliteBoundaryEventsTests : IAsyncLifetime
         public override DateTimeOffset GetUtcNow() => Now;
     }
 
+    private const string Seeder = "seeder";
+
+    /// <summary>
+    /// A request signed in as the seeder, so the audit interceptor names someone on each row: what
+    /// a page has to read back beside the row.
+    /// </summary>
+    private static IHttpContextAccessor SignedInAs(string nameIdentifier)
+    {
+        var accessor = Substitute.For<IHttpContextAccessor>();
+
+        accessor.HttpContext.Returns(new DefaultHttpContext
+        {
+            User = new ClaimsPrincipal(new ClaimsIdentity(
+                [new Claim(ClaimTypes.NameIdentifier, nameIdentifier)], "test"))
+        });
+
+        return accessor;
+    }
+
     private DcbStoreDbContext Store(TimeProvider? clock = null) =>
         new(new DbContextOptionsBuilder<DcbDbContext>()
                 .UseSqlite(ConnectionString)
                 .AddInterceptors(new Capture(_commands))
                 .Options,
             clock ?? TimeProvider.System,
-            Substitute.For<IHttpContextAccessor>());
+            SignedInAs(Seeder));
 
     public async Task InitializeAsync()
     {
@@ -218,6 +238,26 @@ public class SqliteBoundaryEventsTests : IAsyncLifetime
         paged.Total.Should().Be(6);
         paged.Page.Should().Be(2);
         paged.TotalPages.Should().Be(3);
+    }
+
+    /// <summary>
+    /// The two facts about a row that are not its payload and not its place: what it was appended
+    /// under and by whom. Read with the page, because the sheet a row opens in over the table lists
+    /// both, and a sheet saying "no tag" or "not attributed" of a row nobody asked about would be
+    /// saying something it does not know.
+    /// </summary>
+    [Fact]
+    public async Task Carries_each_rows_tags_and_who_appended_it()
+    {
+        await using var context = Store();
+
+        var paged = await Load(context);
+
+        using var scope = new AssertionScope();
+
+        paged.Events.Should().NotBeEmpty();
+        paged.Events.Should().OnlyContain(stored => stored.Tags.SequenceEqual(new[] { "product:alpha" }));
+        paged.Events.Should().OnlyContain(stored => stored.WrittenBy == Seeder);
     }
 
     [Fact]

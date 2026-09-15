@@ -1,0 +1,104 @@
+@using Memoria.Web.Extensibility
+
+@* One stored event, over the table it was listed in rather than instead of it: what a reader wants
+   of a row while running down a model's history is a look at that one row, and leaving for the
+   log's own page to get it means coming back to find the history again. The same three views the
+   log's page reads a row through, drawn by the same component, so a row met in a history and the
+   same row met on its own page read alike.
+
+   Open because the address says so and closed by a link that takes that back, like the type pop-up
+   and every other view on these pages. No script and no <dialog>: these pages render statically,
+   the framework's modal needs JavaScript to open at all, and a reader who followed a link here can
+   leave the way they came — the close is a link, the backdrop behind it is the same link, and the
+   browser's own back button undoes the whole thing. *@
+<div class="overlay" id="@Anchor" tabindex="-1">
+    @* The way out that a click anywhere outside is. Kept out of the reading order and out of the
+       accessibility tree: it is the same address as the Close beside the title, and offered twice
+       it would be read out twice. *@
+    <a class="overlay-dismiss" href="@CloseLink" tabindex="-1" aria-hidden="true"></a>
+
+    @* Named by its heading rather than marked aria-modal: nothing here traps focus or hides the
+       page behind it from a screen reader, and saying otherwise would promise a reader something
+       that is not true. What it is instead is a region with a name, which is what it behaves as. *@
+    <section class="dialog" role="dialog" aria-labelledby="@(Anchor)-title">
+        <header class="dialog-header">
+            @* The mark the events pages are entered by, in front of the name the row was written
+               under, as the log's own page heads itself. What kind of thing is open is the
+               title's to say, and which one is said below, where a key as long as the sheet is
+               wide has the width to be read. *@
+            <h2 id="@(Anchor)-title">
+                <SectionMark Kind="SectionKind.Events"/>
+                @DomainTypeDescriber.LabelOfKey(Event.Type)
+            </h2>
+
+            <a class="dialog-close" href="@CloseLink" aria-label="Close" title="Close">&times;</a>
+        </header>
+
+        <div class="dialog-body">
+            @* Which row this is, above the views of it, in the shape the payload sheet says it: the
+               label small and set apart, the value in the face every stored value here is set in.
+               Said here rather than left to the info tab because the other two tabs would otherwise
+               not say which row they are about. The streamed store's key, or the DCB log's
+               position — whichever makes the row unique in its log. *@
+            <p class="dialog-id">
+                <span class="dialog-id-label">@(Streamed ? "Id" : "Position")</span>
+                <code>@(Streamed ? Id : Event.Position.ToString())</code>
+            </p>
+
+            @* The tabs carry their own ids, so they do not collide with the page's own row of them
+               underneath. *@
+            <EventView Event="Event"
+                       Store="Store"
+                       StreamId="@StreamId"
+                       Id="@Id"
+                       Tab="@Tab"
+                       TabLink="TabLink"
+                       Prefix="@($"{Anchor}-tab")"/>
+        </div>
+    </section>
+</div>
+
+@code {
+
+    /// <summary>The stored row being shown.</summary>
+    [Parameter]
+    [EditorRequired]
+    public StoredEvent Event { get; set; } = null!;
+
+    /// <summary>Which store wrote it, for how the row is addressed.</summary>
+    [Parameter]
+    [EditorRequired]
+    public ModelStore Store { get; set; }
+
+    /// <summary>The stream a streamed event was appended to; null for a DCB event.</summary>
+    [Parameter]
+    public string? StreamId { get; set; }
+
+    /// <summary>The key the streamed store wrote the row under; null for a DCB event.</summary>
+    [Parameter]
+    public string? Id { get; set; }
+
+    /// <summary>Which of the three views is open.</summary>
+    [Parameter]
+    [EditorRequired]
+    public string Tab { get; set; } = EventView.InfoTab;
+
+    /// <summary>Where each of them leads, which is this page with another view asked for.</summary>
+    [Parameter]
+    [EditorRequired]
+    public Func<string, string> TabLink { get; set; } = null!;
+
+    /// <summary>This page with nothing asked for, which is what closes it.</summary>
+    [Parameter]
+    [EditorRequired]
+    public string CloseLink { get; set; } = null!;
+
+    /// <summary>
+    /// What this is called in the address, so the link that opens it can land on it and the ids
+    /// inside it have something of their own to be prefixed by.
+    /// </summary>
+    public const string Anchor = "row";
+
+    private bool Streamed => Store == ModelStore.Streamed;
+
+}

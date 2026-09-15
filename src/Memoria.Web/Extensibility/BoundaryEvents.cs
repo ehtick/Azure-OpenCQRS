@@ -116,14 +116,27 @@ public static class BoundaryEvents
                 ? matching.OrderByDescending(row => row.CreatedDate).ThenByDescending(row => row.Position)
                 : matching.OrderBy(row => row.CreatedDate).ThenBy(row => row.Position);
 
+            // The tags projected with the row rather than included, as the log's own page reads
+            // them, and ordered so a tag sits in the same place on every row. They selected the
+            // boundary, and they are also a fact of each row inside it: the sheet a row opens in
+            // over the table lists them, and a row may carry tags beyond the ones the boundary
+            // asked by. Who appended it comes for the same sheet.
             var rows = await ordered
                 .Skip(placed.Skip)
                 .Take(size)
-                .Select(row => new { row.Position, row.EventType, row.Data, row.CreatedDate })
+                .Select(row => new
+                {
+                    row.Position,
+                    row.EventType,
+                    row.Data,
+                    row.CreatedDate,
+                    row.CreatedBy,
+                    Tags = row.Tags.Select(tag => tag.Tag).OrderBy(tag => tag).ToList()
+                })
                 .ToListAsync(cancellationToken);
 
             var read = rows
-                .Select(row => Read(row.Position, row.EventType, row.Data, row.CreatedDate))
+                .Select(row => Read(row.Position, row.EventType, row.Data, row.CreatedDate, row.Tags, row.CreatedBy))
                 .ToList();
 
             return new StoredEvents(read, total, placed.Page, placed.TotalPages, Error: null)
@@ -263,8 +276,7 @@ public static class BoundaryEvents
     /// <param name="data">The stored payload.</param>
     /// <param name="written">When it was appended.</param>
     /// <param name="tags">
-    /// The tags it was appended under, or null when the read did not ask for them — a streamed event
-    /// has none, and a boundary's own read selects through them rather than loading them.
+    /// The tags it was appended under, or null for a streamed event, which has none.
     /// </param>
     /// <remarks>
     /// A row whose type is not registered, or whose payload will not read back, is still listed. The
@@ -274,13 +286,10 @@ public static class BoundaryEvents
     /// <para>
     /// The tags are among those facts, and are kept whatever the payload turns out to be for the
     /// same reason: they are what the log wrote the row under, and a row nothing here can read back
-    /// is exactly the one a reader wants the tags of. So is who appended it, for the read that
-    /// asks.
+    /// is exactly the one a reader wants the tags of. So is who appended it.
     /// </para>
     /// </remarks>
-    /// <param name="writtenBy">
-    /// Who appended it, or null when nobody is named against the row or the read did not ask.
-    /// </param>
+    /// <param name="writtenBy">Who appended it, or null when nobody is named against the row.</param>
     public static StoredEvent Read(long position, string eventType, string data, DateTimeOffset written,
         IReadOnlyList<string>? tags = null, string? writtenBy = null) =>
         Opened(position, eventType, data, written, tags ?? []) with { WrittenBy = writtenBy };
@@ -349,10 +358,9 @@ public sealed record BoundaryHistory(IReadOnlyList<DcbEventHeader> Rows, string?
 /// <param name="State">What its payload holds, or empty when that could not be read.</param>
 /// <param name="Error">Why its payload could not be read, or null when it was.</param>
 /// <param name="Tags">
-/// The tags it was appended under, or empty when the read did not ask for them. Empty is not the
-/// claim that it carries none: a streamed event has no tags to carry, and a boundary's own read
-/// selects through the tag table rather than loading it, so only a read that asks — the log itself,
-/// where the tags are what a row would otherwise be reached by and never say — fills this.
+/// The tags it was appended under. Empty for a streamed event, which has none to carry; every DCB
+/// read, of the log or of a boundary, brings them back with the row — a boundary's read selects
+/// through them, and a row may still carry tags beyond the ones it was selected by.
 /// </param>
 public sealed record StoredEvent(
     long Position,
@@ -364,10 +372,10 @@ public sealed record StoredEvent(
     IReadOnlyList<string> Tags)
 {
     /// <summary>
-    /// Gets who appended it, or null when nobody is named against the row — or when the read did
-    /// not ask. Audit is a store concern an application may leave switched off, so a row nobody
-    /// is named against is an ordinary row; and only the read behind the page about one event
-    /// asks, since no table draws a column of it.
+    /// Gets who appended it, or null when nobody is named against the row. Audit is a store
+    /// concern an application may leave switched off, so a row nobody is named against is an
+    /// ordinary row. Every read brings it back: no table draws a column of it, but the page about
+    /// one event and the sheet a row opens in over a table both list it.
     /// </summary>
     public string? WrittenBy { get; init; }
 

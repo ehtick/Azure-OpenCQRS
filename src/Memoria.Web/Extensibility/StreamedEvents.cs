@@ -348,7 +348,7 @@ public static class StreamedEvents
             .Select(appended => new
             {
                 appended.Id, appended.StreamId, appended.Sequence, appended.EventType,
-                appended.Data, appended.CreatedDate
+                appended.Data, appended.CreatedDate, appended.CreatedBy
             })
             .ToListAsync(cancellationToken);
 
@@ -356,12 +356,14 @@ public static class StreamedEvents
         // same thing wherever it is met — including a row whose type the uploaded assemblies no
         // longer describe, which is listed rather than dropped. The sequence goes where a
         // position goes: both are the number that says where in the log a row sits, counted
-        // within a stream here and across the whole log there.
+        // within a stream here and across the whole log there. Who appended it comes too: a row
+        // opened over the table says so, the same as the page about one event.
         var read = rows
             .Select(row => new StoredStreamEvent(
                 row.StreamId,
                 row.Id,
-                BoundaryEvents.Read(row.Sequence, row.EventType, row.Data, row.CreatedDate)))
+                BoundaryEvents.Read(row.Sequence, row.EventType, row.Data, row.CreatedDate,
+                    writtenBy: row.CreatedBy)))
             .ToList();
 
 

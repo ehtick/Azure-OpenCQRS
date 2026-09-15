@@ -184,6 +184,23 @@ public class CosmosStreamedReadsTests : IAsyncLifetime
         newest.StreamId.Should().Be("c-0009", "event fifty-nine was written to the tenth stream");
         newest.Id.Should().Be("c-0009:5");
         newest.Event.Type.Should().Be("OrderShippedEvent:1");
+        newest.Event.WrittenBy.Should().Be("seeder", "a row opened over the table says who appended it");
+    }
+
+    /// <summary>
+    /// The row at one place in a stream is read the way a page of them is, who appended it
+    /// included.
+    /// </summary>
+    [Fact]
+    public async Task GivenAPlace_WhenTheEventThereIsRead_ThenItSaysWhoAppendedIt()
+    {
+        var placed = await _reads.At(Filter(descending: false) with { StreamPattern = "c-0003" }, index: 1);
+
+        using var scope = new AssertionScope();
+
+        placed.Error.Should().BeNull();
+        placed.Event!.Id.Should().Be("c-0003:1");
+        placed.Event.Event.WrittenBy.Should().Be("seeder");
     }
 
     /// <summary>

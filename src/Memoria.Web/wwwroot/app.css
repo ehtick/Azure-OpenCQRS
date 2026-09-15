@@ -2605,6 +2605,24 @@ h2:focus {
             color: var(--accent);
         }
 
+/* A row on a model's events tab opens too, and has two more cells that are not the row's link: the
+   mark saying whether the snapshot has applied it, which is read out on its own and would be
+   silenced inside a link marked as repeating the row, and the way into comparing the folds either
+   side of it, which is a control of its own. Both keep the padding an ordinary cell has, the mark's
+   own left edge included. And it is the sequence — the first cell that is the row's — that takes
+   the accent the first cell of the other tables takes on hover. */
+.grid.events.compared tr.clickable td.col-applied {
+    padding: 0.5rem 0 0.5rem 1rem;
+}
+
+.grid.events.compared tr.clickable td.col-compare {
+    padding: 0.5rem 0.75rem;
+}
+
+.grid.events.compared tr.clickable:hover td.col-sequence a {
+    color: var(--accent);
+}
+
 /* And the card's own edge on the outermost columns, for the same reason: these were zero from when
    the table ran to the page's edge and had no card around it to stand clear of. Left at zero the
    first column's text sat against the card's left border while every other row's cleared it. */

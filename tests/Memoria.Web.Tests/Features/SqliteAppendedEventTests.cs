@@ -128,6 +128,23 @@ public class SqliteAppendedEventTests : IAsyncLifetime
     /// A row appended under no tag is a row the log allows, and it reads back with none rather than
     /// failing to read.
     /// </summary>
+    /// <summary>
+    /// The page of the log reads the same fact with every row, so a row met there and the same row
+    /// met on its own page say the same about who appended it.
+    /// </summary>
+    [Fact]
+    public async Task GivenAPageOfTheLog_WhenItIsRead_ThenEveryRowSaysWhoAppendedIt()
+    {
+        await using var context = Store();
+
+        var paged = await AppendedEvents.Page(context, eventType: null, text: null, descending: true, page: 1, size: 10);
+
+        using var scope = new AssertionScope();
+
+        paged.Events.Should().HaveCount(3);
+        paged.Events.Should().OnlyContain(stored => stored.WrittenBy == Seeder);
+    }
+
     [Fact]
     public async Task GivenAnEventWithNoTags_WhenItIsRead_ThenItCarriesNone()
     {

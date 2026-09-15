@@ -80,7 +80,7 @@ public sealed class CosmosStreamedReads(
                     document.StreamId,
                     document.Id,
                     BoundaryEvents.Read(document.Sequence, document.EventType, document.Data,
-                        document.CreatedDate)))
+                        document.CreatedDate, writtenBy: document.CreatedBy)))
                 .ToList();
 
             return new StoredStreamEvents(read, total, placed.Page, placed.TotalPages, Error: null)
@@ -244,7 +244,8 @@ public sealed class CosmosStreamedReads(
                     : new StoredStreamEvent(
                         document.StreamId,
                         document.Id,
-                        BoundaryEvents.Read(document.Sequence, document.EventType, document.Data, document.CreatedDate)),
+                        BoundaryEvents.Read(document.Sequence, document.EventType, document.Data,
+                            document.CreatedDate, writtenBy: document.CreatedBy)),
                 Error: null);
         }
         catch (Exception exception)

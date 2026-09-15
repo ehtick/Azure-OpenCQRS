@@ -158,6 +158,8 @@ public class SqliteStreamedReadsTests : IAsyncLifetime
         page.Events.Should().HaveCount(5);
         page.Events[0].Event.Written.Should().Be(_start.AddHours(Events - 1));
         page.Events.Select(appended => appended.Event.Written).Should().BeInDescendingOrder();
+        page.Events.Should().OnlyContain(appended => appended.Event.WrittenBy == Seeder,
+            "a row opened over the table says who appended it");
     }
 
     /// <summary>
@@ -253,6 +255,7 @@ public class SqliteStreamedReadsTests : IAsyncLifetime
 
         third.Error.Should().BeNull();
         third.Event!.Event.Position.Should().Be(2, "the stream's sequences run from zero and the third is at index two");
+        third.Event.Event.WrittenBy.Should().Be(Seeder, "the row is read the way a page of them is");
         newest.Event!.Event.Position.Should().Be(3);
     }
 
