@@ -151,6 +151,7 @@ public class TypeIndexTests
     [InlineData("/dcb/aggregates/types", "SampleDcbAggregate", "aggregate")]
     [InlineData("/dcb/projections/types", "SampleDcbProjection", "projection")]
     [InlineData("/dcb/events/types", "SampleHappened", "event type")]
+    [InlineData("/streamed/streams", "SamplePrefixedStreamId", "stream")]
     public async Task Narrows_every_types_page_the_same_way(string address, string name, string noun)
     {
         using var web = MemoriaWeb.Open().WithSampleTypes();

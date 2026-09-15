@@ -106,8 +106,13 @@
     [Parameter, EditorRequired]
     public required Func<Type, IReadOnlyList<Link>> Links { get; set; }
 
-    /// <summary>One thing folded under a row: where it leads and what it is called.</summary>
-    public sealed record Link(string Href, string Text);
+    /// <summary>
+    /// One thing folded under a row: where it leads, what it is called, and the mark drawn in
+    /// front of the words. The Data tile's mark unless the page says otherwise — what folds under
+    /// a type is what was stored of it, except under a stream, where each row leads to a different
+    /// section and wears that section's mark.
+    /// </summary>
+    public sealed record Link(string Href, string Text, SectionKind Mark = SectionKind.Data);
 
     /// <summary>
     /// The types whose name or class holds what was typed — the name as the store writes it and
@@ -209,11 +214,12 @@
                                 @foreach (var link in links)
                                 {
                                     <li>
-                                        @* The mark the Data tile on the section page is entered
-                                           through, in front of the words: the whole row is the one
-                                           link, and the mark says what kind of place it leads to. *@
+                                        @* The mark the place it leads to is entered through
+                                           everywhere else, in front of the words: the whole row is
+                                           the one link, and the mark says what kind of place it
+                                           leads to. *@
                                         <a href="@link.Href">
-                                            <SectionMark Kind="SectionKind.Data"/>
+                                            <SectionMark Kind="link.Mark"/>
                                             @link.Text
                                         </a>
                                     </li>
