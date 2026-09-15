@@ -25,6 +25,10 @@
         <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="3.0.5" />
         <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.7" />
         <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.0" />
+        <!-- Sends the log, and the requests it was written in, to Application Insights when a connection
+             string is set; see Program. The OpenTelemetry distro rather than the classic SDK, because it
+             is the one Microsoft still adds to. -->
+        <PackageReference Include="Azure.Monitor.OpenTelemetry.AspNetCore" Version="1.6.0" />
     </ItemGroup>
 
     <ItemGroup>

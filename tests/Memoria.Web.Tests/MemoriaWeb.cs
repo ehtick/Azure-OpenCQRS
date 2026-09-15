@@ -191,7 +191,11 @@ internal sealed class MemoriaWeb : WebApplicationFactory<Program>
     public IReadOnlyList<LogEntry> Logged => _logged.ToArray();
 
     /// <summary>One line of the application's log.</summary>
-    public sealed record LogEntry(LogLevel Level, string Category, string Message);
+    /// <param name="Level">How loud it was said.</param>
+    /// <param name="Category">Which logger said it.</param>
+    /// <param name="Event">The name the line is filed under, or null when it was given none.</param>
+    /// <param name="Message">What it said.</param>
+    public sealed record LogEntry(LogLevel Level, string Category, string? Event, string Message);
 
     private readonly ConcurrentQueue<LogEntry> _logged = new();
 
@@ -373,7 +377,7 @@ internal sealed class MemoriaWeb : WebApplicationFactory<Program>
 
             public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception,
                 Func<TState, Exception?, string> formatter) =>
-                entries.Enqueue(new LogEntry(logLevel, category, formatter(state, exception)));
+                entries.Enqueue(new LogEntry(logLevel, category, eventId.Name, formatter(state, exception)));
         }
     }
 

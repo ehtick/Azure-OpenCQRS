@@ -25,6 +25,7 @@ can be overridden without editing a file.
 | `Authorization:RoleClaimType`    | No                              | `roles`                               | The claim the provider puts its groups or roles in |
 | `Authorization:Roles:Administrator` | No                           | —                                     | Claim values that make an operator an Administrator, comma-separated |
 | `Authorization:Roles:Updater`    | No                              | —                                     | Claim values that make an operator an Updater, comma-separated |
+| `APPLICATIONINSIGHTS_CONNECTION_STRING` | No                       | —                                     | Sends the log to Application Insights — see [Logging and hosting](#logging-and-hosting) |
 
 As environment variables, replace each `:` with a double underscore:
 `ConnectionStrings__Memoria`, `Database__Provider`, `Extensions__Directory`,
@@ -330,6 +331,48 @@ Standard ASP.NET Core settings apply. The defaults in `appsettings.json` are:
 Two loggers of the tool's own are worth raising or quieting by name:
 `Memoria.Web.Settings` (uploads, removals and refreshes) and `Memoria.Web.Streamed` /
 `Memoria.Web.Dcb` (snapshot refreshes).
+
+### What each write logs
+
+Every write an operator can make is logged under an event of its own, with a fixed id and name,
+so it can be found by the name rather than by its wording:
+
+| Event                  | Id   | Level       | When                                                        |
+| ---------------------- | ---- | ----------- | ----------------------------------------------------------- |
+| `ExtensionInstalled`   | 1001 | Information | A zip was uploaded and unpacked                             |
+| `ExtensionNotInstalled`| 1002 | Error       | An upload could not be unpacked; carries the exception      |
+| `ExtensionRemoved`     | 1003 | Information | A zip and its assemblies were deleted                       |
+| `ExtensionNotRemoved`  | 1004 | Error       | A removal failed; carries the exception                     |
+| `ExtensionsReread`     | 1005 | Information | **Refresh** was pressed on the Types tab                    |
+| `SnapshotRefreshed`    | 1011 | Information | **Update** wrote a snapshot                                  |
+| `SnapshotUpToDate`     | 1012 | Information | **Update** found no snapshot and no events to fold           |
+| `SnapshotNotRefreshed` | 1013 | Warning     | The store refused the update; carries its reason            |
+| `TypesRegistered`      | 1021 | Information | What a reload of the extensions came back with, after each of the above and at start-up |
+| `ExtensionProblem`     | 1022 | Warning     | One assembly a reload could not read                        |
+| `TelemetrySent`        | 1031 | Information | At start-up: the log is exported to Application Insights     |
+| `TelemetryKept`        | 1032 | Information | At start-up: it is not, and which setting would make it so   |
+
+Each line names the operator who asked, as the name the provider showed and the subject it keys
+them by, and says what it was about: the file, or the model and the instance — a streamed model by
+its stream and id, a DCB model by its identifier's type and the values it was built from.
+
+### Application Insights
+
+Set `APPLICATIONINSIGHTS_CONNECTION_STRING` — the setting App Service sets when Application
+Insights is connected to it, so a deployment there has it already — and every line above is
+exported through OpenTelemetry to that resource, along with the request it was written in. In the
+portal, each is a row in the `traces` table: the wording in `message`, and the named values —
+`FileName`, `Model`, `Instance`, `Operator`, `Error` — with the event's `EventId` and `EventName`
+in `customDimensions`, so a query filters on the name rather than the wording:
+
+```kusto
+traces
+| where customDimensions.EventName in ("SnapshotRefreshed", "ExtensionInstalled", "ExtensionRemoved", "ExtensionsReread")
+| project timestamp, customDimensions.EventName, customDimensions.Operator, customDimensions.Model, customDimensions.Instance, customDimensions.FileName
+```
+
+Left unset, nothing is exported and the start-up log says so. The `Logging` levels above apply to
+what is exported as much as to the console, so a logger quieted there is quiet in the portal too.
 
 Addresses come from `ASPNETCORE_URLS`, or from the launch profile in development — see
 [Deployment](memoria-web-deployment.md).

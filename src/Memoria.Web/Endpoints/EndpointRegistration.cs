@@ -72,12 +72,11 @@ public static class EndpointRegistration
                 {
                     using var content = file.OpenReadStream();
                     store.Install(file.FileName, content);
-                    logger.LogInformation("Installed {FileName}, asked by {Operator}.", file.FileName, asked);
+                    logger.ExtensionInstalled(file.FileName, asked);
                 }
                 catch (Exception exception)
                 {
-                    logger.LogError(exception, "Could not install {FileName}, asked by {Operator}.",
-                        file.FileName, asked);
+                    logger.ExtensionNotInstalled(exception, file.FileName, asked);
                     return Back(error: $"{file.FileName} could not be installed: {exception.Message}");
                 }
             }
@@ -101,11 +100,11 @@ public static class EndpointRegistration
             try
             {
                 store.Remove(name);
-                logger.LogInformation("Removed {FileName}, asked by {Operator}.", name, asked);
+                logger.ExtensionRemoved(name, asked);
             }
             catch (Exception exception)
             {
-                logger.LogError(exception, "Could not remove {FileName}, asked by {Operator}.", name, asked);
+                logger.ExtensionNotRemoved(exception, name, asked);
                 return Back(error: $"{name} could not be removed: {exception.Message}");
             }
 
@@ -139,7 +138,7 @@ public static class EndpointRegistration
 
             // Said as a write, because it is one in every sense but the store's: what every operator
             // resolves changes the moment it runs.
-            logger.LogInformation("Reread the extensions, asked by {Operator}.", Operator.Of(user));
+            logger.ExtensionsReread(Operator.Of(user));
 
             types.Reload();
             logger.LogCatalogue(types.Current);
@@ -291,7 +290,7 @@ public static class EndpointRegistration
 
         var refreshed = await ModelRefresher.Refresh(store, model, created.Instance);
 
-        return Answer(logger, totals, returnUrl, model, refreshed, asked,
+        return Answer(logger, totals, returnUrl, model, Addressed(identifierType, values), refreshed, asked,
             nothingToDo: $"Nothing to refresh — no snapshot, and no events inside the boundary this " +
                          $"{Named(kind)} applies.");
     }
@@ -356,7 +355,7 @@ public static class EndpointRegistration
 
         var refreshed = await ModelRefresher.Refresh(store, model, identity.Stream, identity.Identifier);
 
-        return Answer(logger, totals, returnUrl, model, refreshed, asked,
+        return Answer(logger, totals, returnUrl, model, $"in stream {stream} with id {id}", refreshed, asked,
             nothingToDo: $"Nothing to refresh — no snapshot, and no events in this stream that this " +
                          $"{Named(kind)} folds.");
     }
@@ -368,6 +367,7 @@ public static class EndpointRegistration
     /// <param name="totals">The remembered totals, forgotten when a snapshot was written.</param>
     /// <param name="returnUrl">The page the button was pressed on.</param>
     /// <param name="model">The model that was refreshed, for the log.</param>
+    /// <param name="instance">Which one, the way the page addressed it, for the log.</param>
     /// <param name="refreshed">What the store said.</param>
     /// <param name="asked">Who asked, for the log.</param>
     /// <param name="nothingToDo">
@@ -375,27 +375,44 @@ public static class EndpointRegistration
     /// terms: a boundary the model applies, or a stream it folds.
     /// </param>
     private static IResult Answer(
-        ILogger logger, TotalsCache totals, string returnUrl, Type model, RefreshedModel refreshed,
-        Operator asked, string nothingToDo)
+        ILogger logger, TotalsCache totals, string returnUrl, Type model, string instance,
+        RefreshedModel refreshed, Operator asked, string nothingToDo)
     {
         if (refreshed.Error is not null)
         {
-            logger.LogWarning("Could not refresh {Model}, asked by {Operator}: {Error}",
-                model.Name, asked, refreshed.Error);
+            logger.SnapshotNotRefreshed(model.Name, instance, asked, refreshed.Error);
             return BackToModel(returnUrl, error: refreshed.Error);
         }
 
-        logger.LogInformation("Refreshed the snapshot for {Model}, asked by {Operator}.", model.Name, asked);
-
-        if (refreshed.Refreshed)
+        if (!refreshed.Refreshed)
         {
-            // The one change to the store this tool can see coming: a snapshot written may be a
-            // row a models page did not count.
-            totals.Forget();
+            logger.SnapshotUpToDate(model.Name, instance, asked);
+            return BackToModel(returnUrl, message: nothingToDo);
         }
 
-        return BackToModel(returnUrl,
-            message: refreshed.Refreshed ? "Snapshot refreshed." : nothingToDo);
+        logger.SnapshotRefreshed(model.Name, instance, asked);
+
+        // The one change to the store this tool can see coming: a snapshot written may be a row a
+        // models page did not count.
+        totals.Forget();
+
+        return BackToModel(returnUrl, message: "Snapshot refreshed.");
+    }
+
+    /// <summary>
+    /// How a DCB model is addressed, for the log: the identifier's type and the values it was
+    /// built from, under the names its constructor takes.
+    /// </summary>
+    /// <remarks>
+    /// Only the values the identifier asks for, and never the rest of the form: what else was posted
+    /// — the token, the return address — is nobody's business in a log.
+    /// </remarks>
+    private static string Addressed(Type identifierType, IReadOnlyDictionary<string, string?> values)
+    {
+        var named = IdentifierFactory.Parameters(identifierType)
+            .Select(parameter => $"{parameter.Name}={values.GetValueOrDefault(parameter.Name)}");
+
+        return $"addressed by {identifierType.Name}({string.Join(", ", named)})";
     }
 
     /// <summary>What a kind of model is called in a sentence.</summary>

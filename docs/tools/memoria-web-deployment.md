@@ -162,6 +162,7 @@ their values.
 | `Authentication__Oidc__Authority`        | your provider's issuer                  | See [Signing in through Entra ID](#signing-in-through-entra-id), or your own provider |
 | `Authentication__Oidc__ClientId`         | what the tool is registered as          | Public by design; the provider shows it to every operator who signs in    |
 | `Authorization__Roles__*`                | the claim values that grant each role   | Policy, not secret — see [Roles](memoria-web-configuration.md#roles)      |
+| `APPLICATIONINSIGHTS_CONNECTION_STRING`  | set by connecting Application Insights  | Every line the tool logs about a write is then found in the portal — see [Who did what](#who-did-what) |
 | `Authentication__Oidc__ClientSecret`     | a Key Vault reference                   | What the tool proves its registration with                                |
 | `ConnectionStrings__Memoria`             | a Key Vault reference                   | Unless it carries no password — see [below](#a-connection-string-with-no-password) |
 
@@ -501,14 +502,20 @@ on purpose — and step down to a coarser order rather than ask for it; see
 ### Who did what
 
 Every line the tool logs about a write — an upload, a removal, a reread of the extensions, a
-snapshot refresh, and each of their failures — names the operator who asked for it, as the name the
-provider showed and the subject it keys them by:
+snapshot refresh, and each of their failures — is filed under an event of its own and names the
+operator who asked for it, as the name the provider showed and the subject it keys them by:
 
 ```
-info: Memoria.Web.Settings[0]  Installed orders.zip, asked by Ada Lovelace (3f1c…).
-info: Memoria.Web.Streamed[0]  Refreshed the snapshot for Order, asked by Ada Lovelace (3f1c…).
+info: Memoria.Web.Settings[1001]  Installed orders.zip, asked by Ada Lovelace (3f1c…).
+info: Memoria.Web.Streamed[1011]  Refreshed the snapshot for Order in stream order:42 with id order-42:1, asked by Ada Lovelace (3f1c…).
 ```
 
 So "who put that assembly on the host" is answered by the log the host already keeps. Running open,
 the line says `nobody (running open)`. Nothing else the sign-in carried — no token, no other claim —
 reaches the log.
+
+On App Service, connect Application Insights to the app and every one of these lines is exported
+to it, with the event name and each named value as a column, so the question is answered from the
+portal rather than from the host's console — see
+[Application Insights](memoria-web-configuration.md#application-insights) for the setting and a
+query, and [What each write logs](memoria-web-configuration.md#what-each-write-logs) for the events.

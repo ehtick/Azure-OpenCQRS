@@ -54,6 +54,7 @@ for what to register at the provider.
 | `Authorization:RoleClaimType`      | No                              | `roles`                              |
 | `Authorization:Roles:Administrator` | No                             | —                                    |
 | `Authorization:Roles:Updater`      | No                              | —                                    |
+| `APPLICATIONINSIGHTS_CONNECTION_STRING` | No                         | — (the log stays on the host)        |
 
 PostgreSQL, SQL Server and SQLite are read through Entity Framework Core and carry both consistency
 models. Cosmos DB is read through its own SDK and carries the streamed model only — there is no

@@ -44,6 +44,10 @@ builder.Services.AddRazorComponents()
 
 builder.Services.AddSignIn(authentication, roles);
 
+// Whether the log leaves the host, read from the setting App Service sets when Application
+// Insights is connected. Nothing is exported until it is.
+var sent = builder.AddTelemetry();
+
 builder.Services.AddMemoria(typeof(Program));
 
 // The two event sourcing models side by side. Each store call replaces the default no-op service
@@ -69,6 +73,7 @@ var app = builder.Build();
 // first thing anyone will suspect the connection string of, and this says how it was read.
 app.Logger.LogInformation("Store opened with {Provider}.", database.Provider);
 app.Logger.LogSignIn(authentication, roles);
+app.Logger.LogTelemetry(sent);
 
 var registry = app.Services.GetRequiredService<DomainTypeRegistry>();
 registry.Reload();
