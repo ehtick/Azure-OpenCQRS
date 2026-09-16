@@ -21,7 +21,7 @@ https://lucabriguglia.github.io/Memoria/license.html
 The Commercial Licence has four editions:
 
 - **Community** — free of charge, and always will be, for companies and individuals with less than $5,000,000 USD in annual gross revenue, and for registered non-profits with less than $5,000,000 USD in annual total budget. Government or quasi-government agencies do not qualify, and neither does any organisation that has ever received more than $10,000,000 USD in capital from an outside source, such as private equity or venture capital. The full eligibility terms are at the link above.
-- **Standard**, **Professional** and **Enterprise** — paid annual subscriptions for everyone else, scoped by the size of the organisation using Memoria: $299, $999 and $2,999 USD a year, half price while 2.0.0 is in beta. The details are at the link above.
+- **Standard**, **Professional** and **Enterprise** — paid subscriptions for everyone else, scoped by the size of the organisation using Memoria: $299, $999 and $2,999 USD a year, or $29.90, $99.90 and $299.90 USD a month, half price while 2.0.0 is in beta. The details are at the link above.
 
 ## Earlier versions
 

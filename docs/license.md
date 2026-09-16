@@ -17,7 +17,7 @@ Versions 1.x were released under the [Apache License 2.0](https://github.com/luc
 | Using a 1.x version                                                                                                                                  | Apache License 2.0, as before                                              | Free              |
 | Building software whose source you release under the RPL — including software you only deploy, such as a web application, and never distribute      | Reciprocal Public License 1.5                                              | Free              |
 | A company or individual with less than $5,000,000 USD in annual gross revenue, or a registered non-profit with less than $5,000,000 USD in annual total budget, and you meet the other [Community eligibility terms](#community-edition-eligibility) | Commercial Licence, **Community** edition                                  | Free, always      |
-| Anyone else who does not want to release their source                                                                                                | Commercial Licence, **Standard**, **Professional** or **Enterprise** edition | From $299 USD a year, see [the editions](#the-commercial-licence-editions) |
+| Anyone else who does not want to release their source                                                                                                | Commercial Licence, **Standard**, **Professional** or **Enterprise** edition | From $299 USD a year or $29.90 USD a month, see [the editions](#the-commercial-licence-editions) |
 
 ### The Reciprocal Public License in short
 
@@ -25,18 +25,18 @@ The RPL is an open-source licence approved by the Open Source Initiative. It is 
 
 ### The Commercial Licence editions
 
-| Edition          | Who it is for                                                                                           | Scope                                                                                          | Support                                          | Price, per year          |
-|------------------|---------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------|--------------------------------------------------|--------------------------|
-| **Community**    | Organisations and individuals that meet the [eligibility terms](#community-edition-eligibility)         | The Licensee and its Affiliates, any number of Developers                                     | GitHub issues                                    | Free, and always will be |
-| **Standard**     | Organisations that do not qualify for Community                                                         | One legal entity, up to 10 Developers                                                          | GitHub issues                                    | $299 USD                 |
-| **Professional** | Larger teams                                                                                            | One legal entity, up to 50 Developers                                                          | Email, first response within two business days   | $999 USD                 |
-| **Enterprise**   | Organisations wanting one licence for the whole group                                                   | The Licensee and all its Affiliates, unlimited Developers                                      | Email, first response within one business day    | $2,999 USD               |
+| Edition          | Who it is for                                                                                           | Scope                                                                                          | Support                                          | Per year                 | Per month   |
+|------------------|---------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------|--------------------------------------------------|--------------------------|-------------|
+| **Community**    | Organisations and individuals that meet the [eligibility terms](#community-edition-eligibility)         | The Licensee and its Affiliates, any number of Developers                                     | GitHub issues                                    | Free, and always will be | Free        |
+| **Standard**     | Organisations that do not qualify for Community                                                         | One legal entity, up to 10 Developers                                                          | GitHub issues                                    | $299 USD                 | $29.90 USD  |
+| **Professional** | Larger teams                                                                                            | One legal entity, up to 50 Developers                                                          | Email, first response within two business days   | $999 USD                 | $99.90 USD  |
+| **Enterprise**   | Organisations wanting one licence for the whole group                                                   | The Licensee and all its Affiliates, unlimited Developers                                      | Email, first response within one business day    | $2,999 USD               | $299.90 USD |
 
 Every edition grants the same rights to the software itself: use Memoria in closed-source software, modify it, and ship it as part of your products. The editions differ only in who and how many people are covered, and in the support that comes with them.
 
-A paid edition is an annual subscription: it runs for twelve months from purchase, covers every version of Memoria released during that time, and is renewed for another twelve months at the price then published. It covers any number of projects and products.
+A paid edition is a subscription, paid yearly or monthly. Paid yearly, it runs for twelve months from purchase and renews for another twelve; paid monthly, it runs for a month and renews month by month, at a tenth of the yearly price, so a year paid monthly costs a fifth more than a year paid up front. Either way it covers every version of Memoria released while it runs, any number of projects and products, and renews at the price then published.
 
-**Launch offer.** While 2.0.0 is in beta, any paid edition bought before the stable 2.0.0 release is half price for its first year, and renews at that same half price for as long as the subscription is kept unbroken. Early adopters take a beta on; the offer is what that is worth.
+**Launch offer.** While 2.0.0 is in beta, any paid edition bought before the stable 2.0.0 release is half price for its first term, yearly or monthly, and renews at that same half price for as long as the subscription is kept unbroken. Early adopters take a beta on; the offer is what that is worth.
 
 To license a paid edition, or to ask about any of this, reach out via [LinkedIn](https://www.linkedin.com/in/lucabriguglia).
 
@@ -137,15 +137,15 @@ The Licensee may not:
 
 6.1 The Community Edition is free of charge.
 
-6.2 A paid Edition is an annual subscription. Its fee, per twelve-month term, is:
+6.2 A paid Edition is a subscription with a term of either twelve (12) months or one (1) month, chosen by the Licensee at purchase. Its fee per term is:
 
-(a) Standard: $299 USD;
+(a) Standard: $299 USD per twelve-month term, or $29.90 USD per one-month term;
 
-(b) Professional: $999 USD;
+(b) Professional: $999 USD per twelve-month term, or $99.90 USD per one-month term;
 
-(c) Enterprise: $2,999 USD.
+(c) Enterprise: $2,999 USD per twelve-month term, or $299.90 USD per one-month term.
 
-6.3 Fees are payable in advance for the term and are non-refundable except where the law says otherwise. A subscription renews for a further twelve-month term at the fee published for its Edition on the day of renewal, unless either party gives notice before the term ends.
+6.3 Fees are payable in advance for the term and are non-refundable except where the law says otherwise. A subscription renews for a further term of the same length at the fee published for its Edition and term on the day of renewal, unless either party gives notice before the term ends. The Licensee may change from a one-month to a twelve-month term, or back, at a renewal.
 
 6.4 A paid Edition bought before the stable release of version 2.0.0 is charged at half the fee in 6.2 for its first term, and renews at that same half fee for every consecutive term the subscription is kept without a lapse. A lapsed subscription that is taken up again is charged the full fee.
 
