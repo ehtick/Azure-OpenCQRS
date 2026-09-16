@@ -1,4 +1,4 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Text;
 using Memoria.Messaging.RabbitMq.Configuration;
@@ -12,12 +12,20 @@ namespace Memoria.Messaging.RabbitMq;
 /// <summary>
 /// Provides messaging functionality using RabbitMQ for sending queue and topic messages.
 /// </summary>
+/// <remarks>
+/// The connection is opened on the first send rather than in the constructor: RabbitMQ.Client 7
+/// opens connections asynchronously only, and a constructor cannot await. A connection handed in
+/// through the second constructor is used as it is. Failing to connect surfaces as the send's
+/// <see cref="Failure"/>, the way any other error on the send does.
+/// </remarks>
 public class RabbitMqMessagingProvider : IMessagingProvider, IAsyncDisposable, IDisposable
 {
     private readonly RabbitMqOptions _options;
-    private readonly IConnection _connection;
-    private readonly ConcurrentDictionary<string, IModel> _queueChannels = new();
-    private readonly ConcurrentDictionary<string, IModel> _exchangeChannels = new();
+    private readonly SemaphoreSlim _connecting = new(1, 1);
+    private readonly ConcurrentDictionary<string, IChannel> _queueChannels = new();
+    private readonly ConcurrentDictionary<string, IChannel> _exchangeChannels = new();
+    private IConnection? _connection;
+    private bool _delayedExchangeEnsured;
     private bool _disposed;
 
     /// <summary>
@@ -27,12 +35,6 @@ public class RabbitMqMessagingProvider : IMessagingProvider, IAsyncDisposable, I
     public RabbitMqMessagingProvider(IOptions<RabbitMqOptions> options)
     {
         _options = options.Value;
-        _connection = CreateConnection();
-
-        if (_options.CreateDelayedExchange)
-        {
-            EnsureDelayedExchangeExists();
-        }
     }
 
     /// <summary>
@@ -44,11 +46,6 @@ public class RabbitMqMessagingProvider : IMessagingProvider, IAsyncDisposable, I
     {
         _options = options.Value;
         _connection = connection;
-
-        if (_options.CreateDelayedExchange)
-        {
-            EnsureDelayedExchangeExists();
-        }
     }
 
     /// <summary>
@@ -58,70 +55,78 @@ public class RabbitMqMessagingProvider : IMessagingProvider, IAsyncDisposable, I
     /// <param name="message">The message to send.</param>
     /// <param name="cancellationToken">A cancellation token to cancel the operation.</param>
     /// <returns>A task representing the result of the send operation.</returns>
-    public Task<Result> SendQueueMessage<TMessage>(TMessage message, CancellationToken cancellationToken = default) where TMessage : IQueueMessage
+    public async Task<Result> SendQueueMessage<TMessage>(TMessage message, CancellationToken cancellationToken = default) where TMessage : IQueueMessage
     {
         try
         {
             if (string.IsNullOrEmpty(message.QueueName))
             {
-                return Task.FromResult<Result>(new Failure(Title: "Queue name", Description: "Queue name cannot be null or empty"));
+                return new Failure(Title: "Queue name", Description: "Queue name cannot be null or empty");
             }
 
-            var channel = GetOrCreateQueueChannel(message.QueueName);
+            var connection = await GetConnectionAsync(cancellationToken);
+            var channel = await GetOrCreateChannelAsync(_queueChannels, connection, message.QueueName, cancellationToken);
 
-            channel.QueueDeclare(
+            await channel.QueueDeclareAsync(
                 queue: message.QueueName,
                 durable: true,
                 exclusive: false,
                 autoDelete: false,
-                arguments: null);
+                arguments: null,
+                cancellationToken: cancellationToken);
 
             var body = CreateMessageBody(message);
-            var properties = CreateBasicProperties(channel, message);
+            var properties = CreateBasicProperties(message);
 
             if (message.ScheduledEnqueueTimeUtc.HasValue)
             {
                 var delay = message.ScheduledEnqueueTimeUtc.Value - DateTimeOffset.UtcNow;
                 if (delay.TotalMilliseconds > 0)
                 {
-                    properties.Headers ??= new Dictionary<string, object>();
+                    properties.Headers ??= new Dictionary<string, object?>();
                     properties.Headers["x-delay"] = (int)delay.TotalMilliseconds;
 
-                    channel.BasicPublish(
+                    await channel.BasicPublishAsync(
                         exchange: _options.DelayedExchangeName,
                         routingKey: message.QueueName,
+                        mandatory: false,
                         basicProperties: properties,
-                        body: body);
+                        body: body,
+                        cancellationToken: cancellationToken);
                 }
                 else
                 {
-                    channel.BasicPublish(
+                    await channel.BasicPublishAsync(
                         exchange: string.Empty,
                         routingKey: message.QueueName,
+                        mandatory: false,
                         basicProperties: properties,
-                        body: body);
+                        body: body,
+                        cancellationToken: cancellationToken);
                 }
             }
             else
             {
-                channel.BasicPublish(
+                await channel.BasicPublishAsync(
                     exchange: string.Empty,
                     routingKey: message.QueueName,
+                    mandatory: false,
                     basicProperties: properties,
-                    body: body);
+                    body: body,
+                    cancellationToken: cancellationToken);
             }
 
-            return Task.FromResult(Result.Ok());
+            return Result.Ok();
         }
         catch (Exception ex)
         {
             var tagList = new TagList { { "Operation description", "Sending RabbitMQ queue message" } };
             Activity.Current?.AddException(ex, tagList, DateTimeOffset.UtcNow);
-            return Task.FromResult<Result>(new Failure
+            return new Failure
             (
                 Title: "Error",
                 Description: "There was an error when processing the request"
-            ));
+            );
         }
     }
 
@@ -132,26 +137,28 @@ public class RabbitMqMessagingProvider : IMessagingProvider, IAsyncDisposable, I
     /// <param name="message">The message to send.</param>
     /// <param name="cancellationToken">A cancellation token to cancel the operation.</param>
     /// <returns>A task representing the result of the send operation.</returns>
-    public Task<Result> SendTopicMessage<TMessage>(TMessage message, CancellationToken cancellationToken = default) where TMessage : ITopicMessage
+    public async Task<Result> SendTopicMessage<TMessage>(TMessage message, CancellationToken cancellationToken = default) where TMessage : ITopicMessage
     {
         try
         {
             if (string.IsNullOrEmpty(message.TopicName))
             {
-                return Task.FromResult<Result>(new Failure(Title: "Topic name", Description: "Topic name cannot be null or empty"));
+                return new Failure(Title: "Topic name", Description: "Topic name cannot be null or empty");
             }
 
-            var channel = GetOrCreateExchangeChannel(message.TopicName);
+            var connection = await GetConnectionAsync(cancellationToken);
+            var channel = await GetOrCreateChannelAsync(_exchangeChannels, connection, message.TopicName, cancellationToken);
 
-            channel.ExchangeDeclare(
+            await channel.ExchangeDeclareAsync(
                 exchange: message.TopicName,
                 type: ExchangeType.Topic,
                 durable: true,
                 autoDelete: false,
-                arguments: null);
+                arguments: null,
+                cancellationToken: cancellationToken);
 
             var body = CreateMessageBody(message);
-            var properties = CreateBasicProperties(channel, message);
+            var properties = CreateBasicProperties(message);
 
             var routingKey = GetRoutingKey(message);
 
@@ -160,50 +167,87 @@ public class RabbitMqMessagingProvider : IMessagingProvider, IAsyncDisposable, I
                 var delay = message.ScheduledEnqueueTimeUtc.Value - DateTimeOffset.UtcNow;
                 if (delay.TotalMilliseconds > 0)
                 {
-                    properties.Headers ??= new Dictionary<string, object>();
+                    properties.Headers ??= new Dictionary<string, object?>();
                     properties.Headers["x-delay"] = (int)delay.TotalMilliseconds;
                     properties.Headers["x-original-exchange"] = message.TopicName;
                     properties.Headers["x-original-routing-key"] = routingKey;
 
-                    channel.BasicPublish(
+                    await channel.BasicPublishAsync(
                         exchange: _options.DelayedExchangeName,
                         routingKey: $"topic.{message.TopicName}.{routingKey}",
+                        mandatory: false,
                         basicProperties: properties,
-                        body: body);
+                        body: body,
+                        cancellationToken: cancellationToken);
                 }
                 else
                 {
-                    channel.BasicPublish(
+                    await channel.BasicPublishAsync(
                         exchange: message.TopicName,
                         routingKey: routingKey,
+                        mandatory: false,
                         basicProperties: properties,
-                        body: body);
+                        body: body,
+                        cancellationToken: cancellationToken);
                 }
             }
             else
             {
-                channel.BasicPublish(
+                await channel.BasicPublishAsync(
                     exchange: message.TopicName,
                     routingKey: routingKey,
+                    mandatory: false,
                     basicProperties: properties,
-                    body: body);
+                    body: body,
+                    cancellationToken: cancellationToken);
             }
 
-            return Task.FromResult(Result.Ok());
+            return Result.Ok();
         }
         catch (Exception ex)
         {
             var tagList = new TagList { { "Operation description", "Sending RabbitMQ topic message" } };
             Activity.Current?.AddException(ex, tagList, DateTimeOffset.UtcNow);
-            return Task.FromResult<Result>(new Failure
+            return new Failure
             (
                 Title: "Error",
                 Description: "There was an error when processing the request"
-            ));
+            );
         }
     }
 
-    private IConnection CreateConnection()
+    /// <summary>
+    /// The connection every send goes through, opened on the first call and reused after. The
+    /// delayed exchange, when asked for, is declared once on the same first call, so a
+    /// connection handed in through the constructor is treated the same as one opened here.
+    /// </summary>
+    private async Task<IConnection> GetConnectionAsync(CancellationToken cancellationToken)
+    {
+        if (_connection is not null && (_delayedExchangeEnsured || !_options.CreateDelayedExchange))
+        {
+            return _connection;
+        }
+
+        await _connecting.WaitAsync(cancellationToken);
+        try
+        {
+            _connection ??= await CreateConnectionAsync(cancellationToken);
+
+            if (_options.CreateDelayedExchange && !_delayedExchangeEnsured)
+            {
+                await EnsureDelayedExchangeExistsAsync(_connection, cancellationToken);
+                _delayedExchangeEnsured = true;
+            }
+
+            return _connection;
+        }
+        finally
+        {
+            _connecting.Release();
+        }
+    }
+
+    private Task<IConnection> CreateConnectionAsync(CancellationToken cancellationToken)
     {
         var factory = new ConnectionFactory
         {
@@ -215,25 +259,26 @@ public class RabbitMqMessagingProvider : IMessagingProvider, IAsyncDisposable, I
             TopologyRecoveryEnabled = _options.TopologyRecoveryEnabled
         };
 
-        return factory.CreateConnection();
+        return factory.CreateConnectionAsync(cancellationToken);
     }
 
-    private void EnsureDelayedExchangeExists()
+    private async Task EnsureDelayedExchangeExistsAsync(IConnection connection, CancellationToken cancellationToken)
     {
-        using var channel = _connection.CreateModel();
+        await using var channel = await connection.CreateChannelAsync(cancellationToken: cancellationToken);
         try
         {
-            var arguments = new Dictionary<string, object>
+            var arguments = new Dictionary<string, object?>
             {
                 { "x-delayed-type", "direct" }
             };
 
-            channel.ExchangeDeclare(
+            await channel.ExchangeDeclareAsync(
                 exchange: _options.DelayedExchangeName,
                 type: "x-delayed-message",
                 durable: true,
                 autoDelete: false,
-                arguments: arguments);
+                arguments: arguments,
+                cancellationToken: cancellationToken);
         }
         catch (Exception)
         {
@@ -242,27 +287,19 @@ public class RabbitMqMessagingProvider : IMessagingProvider, IAsyncDisposable, I
         }
     }
 
-    private IModel GetOrCreateQueueChannel(string queueName)
+    private static async Task<IChannel> GetOrCreateChannelAsync(
+        ConcurrentDictionary<string, IChannel> channels,
+        IConnection connection,
+        string name,
+        CancellationToken cancellationToken)
     {
-        if (_queueChannels.TryGetValue(queueName, out var existingChannel) && existingChannel.IsOpen)
+        if (channels.TryGetValue(name, out var existingChannel) && existingChannel.IsOpen)
         {
             return existingChannel;
         }
 
-        var newChannel = _connection.CreateModel();
-        _queueChannels[queueName] = newChannel;
-        return newChannel;
-    }
-
-    private IModel GetOrCreateExchangeChannel(string exchangeName)
-    {
-        if (_exchangeChannels.TryGetValue(exchangeName, out var existingChannel) && existingChannel.IsOpen)
-        {
-            return existingChannel;
-        }
-
-        var newChannel = _connection.CreateModel();
-        _exchangeChannels[exchangeName] = newChannel;
+        var newChannel = await connection.CreateChannelAsync(cancellationToken: cancellationToken);
+        channels[name] = newChannel;
         return newChannel;
     }
 
@@ -272,25 +309,27 @@ public class RabbitMqMessagingProvider : IMessagingProvider, IAsyncDisposable, I
         return Encoding.UTF8.GetBytes(json);
     }
 
-    private static IBasicProperties CreateBasicProperties<TMessage>(IModel channel, TMessage message) where TMessage : IMessage
+    private static BasicProperties CreateBasicProperties<TMessage>(TMessage message) where TMessage : IMessage
     {
-        var properties = channel.CreateBasicProperties();
-        properties.ContentType = "application/json";
-        properties.ContentEncoding = "utf-8";
-        properties.MessageId = Guid.NewGuid().ToString();
-        properties.Timestamp = new AmqpTimestamp(DateTimeOffset.UtcNow.ToUnixTimeSeconds());
-        properties.Persistent = true;
+        var properties = new BasicProperties
+        {
+            ContentType = "application/json",
+            ContentEncoding = "utf-8",
+            MessageId = Guid.NewGuid().ToString(),
+            Timestamp = new AmqpTimestamp(DateTimeOffset.UtcNow.ToUnixTimeSeconds()),
+            Persistent = true
+        };
 
         if (message.Properties.Count > 0)
         {
-            properties.Headers = new Dictionary<string, object>();
+            properties.Headers = new Dictionary<string, object?>();
             foreach (var property in message.Properties)
             {
                 properties.Headers[property.Key] = property.Value;
             }
         }
 
-        properties.Headers ??= new Dictionary<string, object>();
+        properties.Headers ??= new Dictionary<string, object?>();
         properties.Headers.Add("AssemblyQualifiedName", message.GetType().AssemblyQualifiedName);
 
         return properties;
@@ -317,33 +356,19 @@ public class RabbitMqMessagingProvider : IMessagingProvider, IAsyncDisposable, I
         {
             foreach (var channel in _queueChannels.Values)
             {
-                if (channel.IsOpen)
-                {
-                    channel.Close();
-                }
-
                 channel.Dispose();
             }
 
             foreach (var channel in _exchangeChannels.Values)
             {
-                if (channel.IsOpen)
-                {
-                    channel.Close();
-                }
-
                 channel.Dispose();
             }
 
-            if (_connection.IsOpen)
-            {
-                _connection.Close();
-            }
-
-            _connection.Dispose();
+            _connection?.Dispose();
 
             _queueChannels.Clear();
             _exchangeChannels.Clear();
+            _connecting.Dispose();
         }
         catch (Exception ex)
         {
@@ -356,9 +381,57 @@ public class RabbitMqMessagingProvider : IMessagingProvider, IAsyncDisposable, I
         }
     }
 
-    public ValueTask DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
-        Dispose();
-        return ValueTask.CompletedTask;
+        if (_disposed)
+        {
+            return;
+        }
+
+        try
+        {
+            foreach (var channel in _queueChannels.Values)
+            {
+                await CloseAsync(channel);
+            }
+
+            foreach (var channel in _exchangeChannels.Values)
+            {
+                await CloseAsync(channel);
+            }
+
+            if (_connection is not null)
+            {
+                if (_connection.IsOpen)
+                {
+                    await _connection.CloseAsync();
+                }
+
+                await _connection.DisposeAsync();
+            }
+
+            _queueChannels.Clear();
+            _exchangeChannels.Clear();
+            _connecting.Dispose();
+        }
+        catch (Exception ex)
+        {
+            var tagList = new TagList { { "Operation description", "Disposing RabbitMQ messaging provider" } };
+            Activity.Current?.AddException(ex, tagList, DateTimeOffset.UtcNow);
+        }
+        finally
+        {
+            _disposed = true;
+        }
+    }
+
+    private static async Task CloseAsync(IChannel channel)
+    {
+        if (channel.IsOpen)
+        {
+            await channel.CloseAsync();
+        }
+
+        await channel.DisposeAsync();
     }
 }

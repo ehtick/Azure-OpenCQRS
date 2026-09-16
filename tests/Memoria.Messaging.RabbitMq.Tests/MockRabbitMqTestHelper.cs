@@ -15,7 +15,6 @@ public class MockRabbitMqTestHelper
     public IConnection MockConnection { get; }
     public IOptions<RabbitMqOptions> MockOptions { get; }
 
-    private readonly ConcurrentDictionary<string, IModel> _mockChannels = new();
     private readonly ConcurrentBag<SentMessage> _sentMessages = [];
     private readonly Dictionary<string, Exception> _publishFailures = new();
 
@@ -48,49 +47,34 @@ public class MockRabbitMqTestHelper
 
     private void SetupDefaultBehavior()
     {
-        MockConnection.CreateModel().Returns(_ => CreateMockChannel());
+        MockConnection
+            .CreateChannelAsync(Arg.Any<CreateChannelOptions?>(), Arg.Any<CancellationToken>())
+            .Returns(_ => Task.FromResult(CreateMockChannel()));
         MockConnection.IsOpen.Returns(true);
     }
 
-    private IModel CreateMockChannel()
+    /// <summary>
+    /// A channel that records what is published on it instead of sending it anywhere. The
+    /// properties arrive as the real <see cref="BasicProperties"/> the provider builds, so what is
+    /// captured is exactly what a broker would have received.
+    /// </summary>
+    private IChannel CreateMockChannel()
     {
-        var channel = Substitute.For<IModel>();
+        var channel = Substitute.For<IChannel>();
         channel.IsOpen.Returns(true);
 
-        channel.CreateBasicProperties().Returns(_ =>
-        {
-            var props = Substitute.For<IBasicProperties>();
-
-            string? contentType = null;
-            string? messageId = null;
-            var persistent = false;
-            IDictionary<string, object>? headers = null;
-
-            props.When(p => p.ContentType = Arg.Any<string>()).Do(callInfo => contentType = callInfo.Arg<string>());
-            props.ContentType.Returns(_ => contentType);
-
-            props.When(p => p.MessageId = Arg.Any<string>()).Do(callInfo => messageId = callInfo.Arg<string>());
-            props.MessageId.Returns(_ => messageId);
-
-            props.When(p => p.Persistent = Arg.Any<bool>()).Do(callInfo => persistent = callInfo.Arg<bool>());
-            props.Persistent.Returns(_ => persistent);
-
-            props.When(p => p.Headers = Arg.Any<IDictionary<string, object>>()).Do(callInfo => headers = callInfo.Arg<IDictionary<string, object>>());
-            props.Headers.Returns(_ => headers);
-
-            return props;
-        });
-
-        channel.When(x => x.BasicPublish(
+        channel.When(x => x.BasicPublishAsync(
             Arg.Any<string>(),
             Arg.Any<string>(),
-            Arg.Any<IBasicProperties>(),
-            Arg.Any<ReadOnlyMemory<byte>>()))
+            Arg.Any<bool>(),
+            Arg.Any<BasicProperties>(),
+            Arg.Any<ReadOnlyMemory<byte>>(),
+            Arg.Any<CancellationToken>()))
             .Do(call =>
             {
                 var exchange = call.ArgAt<string>(0);
                 var routingKey = call.ArgAt<string>(1);
-                var properties = call.Arg<IBasicProperties>();
+                var properties = call.Arg<BasicProperties>();
                 var body = call.Arg<ReadOnlyMemory<byte>>();
 
                 var entityName = string.IsNullOrEmpty(exchange) ? routingKey : exchange;
@@ -111,7 +95,7 @@ public class MockRabbitMqTestHelper
                     MessageBody = messageBody,
                     ContentType = properties.ContentType,
                     MessageId = properties.MessageId,
-                    Headers = properties.Headers?.ToDictionary(kvp => kvp.Key, kvp => kvp.Value) ?? new Dictionary<string, object>(),
+                    Headers = properties.Headers?.ToDictionary(kvp => kvp.Key, kvp => kvp.Value) ?? new Dictionary<string, object?>(),
                     OriginalMessageType = GetOriginalMessageType(messageBody),
                     Persistent = properties.Persistent,
                     Body = body,
@@ -119,22 +103,6 @@ public class MockRabbitMqTestHelper
                     ScheduledEnqueueTime = ExtractScheduledTime(properties)
                 });
             });
-
-        channel.When(x => x.QueueDeclare(
-            Arg.Any<string>(),
-            Arg.Any<bool>(),
-            Arg.Any<bool>(),
-            Arg.Any<bool>(),
-            Arg.Any<IDictionary<string, object>>()))
-            .Do(_ => { });
-
-        channel.When(x => x.ExchangeDeclare(
-            Arg.Any<string>(),
-            Arg.Any<string>(),
-            Arg.Any<bool>(),
-            Arg.Any<bool>(),
-            Arg.Any<IDictionary<string, object>>()))
-            .Do(_ => { });
 
         return channel;
     }
@@ -163,7 +131,7 @@ public class MockRabbitMqTestHelper
         }
     }
 
-    private static DateTime? ExtractScheduledTime(IBasicProperties properties)
+    private static DateTime? ExtractScheduledTime(IReadOnlyBasicProperties properties)
     {
         if (properties.Headers != null && properties.Headers.TryGetValue("x-delay", out var delayObj))
         {
@@ -184,7 +152,9 @@ public class MockRabbitMqTestHelper
 
     public void SetupCreateChannelFailure(string errorMessage = "Mock create channel error")
     {
-        MockConnection.CreateModel().Throws(new InvalidOperationException(errorMessage));
+        MockConnection
+            .CreateChannelAsync(Arg.Any<CreateChannelOptions?>(), Arg.Any<CancellationToken>())
+            .Throws(new InvalidOperationException(errorMessage));
     }
 
     public void ClearPublishFailure(string entityName)
@@ -289,6 +259,6 @@ public class MockRabbitMqTestHelper
 
     public void VerifyCreateChannelCalled(int expectedTimes = 1)
     {
-        MockConnection.Received(expectedTimes).CreateModel();
+        MockConnection.Received(expectedTimes).CreateChannelAsync(Arg.Any<CreateChannelOptions?>(), Arg.Any<CancellationToken>());
     }
 }
