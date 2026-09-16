@@ -17,7 +17,7 @@ Versions 1.x were released under the [Apache License 2.0](https://github.com/luc
 | Using a 1.x version                                                                                                                                  | Apache License 2.0, as before                                              | Free              |
 | Building software whose source you release under the RPL — including software you only deploy, such as a web application, and never distribute      | Reciprocal Public License 1.5                                              | Free              |
 | A company or individual with less than $5,000,000 USD in annual gross revenue, or a registered non-profit with less than $5,000,000 USD in annual total budget, and you meet the other [Community eligibility terms](#community-edition-eligibility) | Commercial Licence, **Community** edition                                  | Free, always      |
-| Anyone else who does not want to release their source                                                                                                | Commercial Licence, **Standard**, **Professional** or **Enterprise** edition | Pricing to be announced |
+| Anyone else who does not want to release their source                                                                                                | Commercial Licence, **Standard**, **Professional** or **Enterprise** edition | From $299 USD a year, see [the editions](#the-commercial-licence-editions) |
 
 ### The Reciprocal Public License in short
 
@@ -25,14 +25,18 @@ The RPL is an open-source licence approved by the Open Source Initiative. It is 
 
 ### The Commercial Licence editions
 
-| Edition          | Who it is for                                                                                           | Scope                                                                                          | Price                    |
-|------------------|---------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------|--------------------------|
-| **Community**    | Organisations and individuals that meet the [eligibility terms](#community-edition-eligibility)         | The Licensee and its Affiliates, any number of Developers                                     | Free, and always will be |
-| **Standard**     | Organisations that do not qualify for Community                                                         | One legal entity, up to 10 Developers                                                          | To be announced          |
-| **Professional** | Larger teams                                                                                            | One legal entity, up to 50 Developers                                                          | To be announced          |
-| **Enterprise**   | Organisations wanting one licence for the whole group                                                   | The Licensee and all its Affiliates, unlimited Developers                                      | To be announced          |
+| Edition          | Who it is for                                                                                           | Scope                                                                                          | Support                                          | Price, per year          |
+|------------------|---------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------|--------------------------------------------------|--------------------------|
+| **Community**    | Organisations and individuals that meet the [eligibility terms](#community-edition-eligibility)         | The Licensee and its Affiliates, any number of Developers                                     | GitHub issues                                    | Free, and always will be |
+| **Standard**     | Organisations that do not qualify for Community                                                         | One legal entity, up to 10 Developers                                                          | GitHub issues                                    | $299 USD                 |
+| **Professional** | Larger teams                                                                                            | One legal entity, up to 50 Developers                                                          | Email, first response within two business days   | $999 USD                 |
+| **Enterprise**   | Organisations wanting one licence for the whole group                                                   | The Licensee and all its Affiliates, unlimited Developers                                      | Email, first response within one business day    | $2,999 USD               |
 
-Every edition grants the same rights to the software itself: use Memoria in closed-source software, modify it, and ship it as part of your products. The editions differ only in who and how many people are covered. Support, response times and any further terms per edition will be published together with the prices.
+Every edition grants the same rights to the software itself: use Memoria in closed-source software, modify it, and ship it as part of your products. The editions differ only in who and how many people are covered, and in the support that comes with them.
+
+A paid edition is an annual subscription: it runs for twelve months from purchase, covers every version of Memoria released during that time, and is renewed for another twelve months at the price then published. It covers any number of projects and products.
+
+**Launch offer.** While 2.0.0 is in beta, any paid edition bought before the stable 2.0.0 release is half price for its first year, and renews at that same half price for as long as the subscription is kept unbroken. Early adopters take a beta on; the offer is what that is worth.
 
 To license a paid edition, or to ask about any of this, reach out via [LinkedIn](https://www.linkedin.com/in/lucabriguglia).
 
@@ -93,7 +97,9 @@ This Memoria Commercial Licence Agreement (the "Agreement") is between Luca Camm
 
 3.4 **Enterprise.** Covers the Licensee and all its Affiliates, with no limit on the number of Developers.
 
-3.5 A Licensee whose use exceeds the scope of its Edition must license an Edition that covers it. Fees, support terms and any further conditions per paid Edition are published at [lucabriguglia.github.io/Memoria/license.html](https://lucabriguglia.github.io/Memoria/license.html) and form part of this Agreement for that Edition from the day the Licensee accepts them.
+3.5 A Licensee whose use exceeds the scope of its Edition must license an Edition that covers it. The fees and support terms per Edition are those in section 6 as published at [lucabriguglia.github.io/Memoria/license.html](https://lucabriguglia.github.io/Memoria/license.html) on the day the Licensee accepts the Edition, and form part of this Agreement for that Edition.
+
+3.6 A paid Edition covers any number of projects and Licensee Products.
 
 ### 4. Community Edition eligibility
 
@@ -131,7 +137,19 @@ The Licensee may not:
 
 6.1 The Community Edition is free of charge.
 
-6.2 The fees for a paid Edition are those published for it at the time the Licensee accepts it. Fees are payable in advance for the licence term and are non-refundable except where the law says otherwise.
+6.2 A paid Edition is an annual subscription. Its fee, per twelve-month term, is:
+
+(a) Standard: $299 USD;
+
+(b) Professional: $999 USD;
+
+(c) Enterprise: $2,999 USD.
+
+6.3 Fees are payable in advance for the term and are non-refundable except where the law says otherwise. A subscription renews for a further twelve-month term at the fee published for its Edition on the day of renewal, unless either party gives notice before the term ends.
+
+6.4 A paid Edition bought before the stable release of version 2.0.0 is charged at half the fee in 6.2 for its first term, and renews at that same half fee for every consecutive term the subscription is kept without a lapse. A lapsed subscription that is taken up again is charged the full fee.
+
+6.5 Support is provided as follows, by email for the Professional and Enterprise Editions and through the GitHub issue tracker for the others. Professional: a first response within two business days. Enterprise: a first response within one business day. A response is an acknowledgement and a first assessment by the Licensor; it is not a guarantee of a fix or of a fix within any time. The Licensor may revise these support terms for future versions of the Software under section 13.2.
 
 ### 7. Term and termination
 
