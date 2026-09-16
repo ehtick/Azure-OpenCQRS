@@ -1,4 +1,4 @@
-using FluentAssertions;
+using AwesomeAssertions;
 using Memoria.EventSourcing.Store.EntityFrameworkCore.Entities;
 using Memoria.EventSourcing.Store.EntityFrameworkCore.Extensions.DbContextExtensions;
 using Memoria.EventSourcing.Store.Tests.Models.Aggregates;

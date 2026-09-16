@@ -1,4 +1,4 @@
-using FluentAssertions;
+using AwesomeAssertions;
 using Memoria.Web.Components.Shared;
 using Memoria.Web.Data;
 using Memoria.Web.Extensibility;

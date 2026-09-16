@@ -1,4 +1,4 @@
-using FluentAssertions;
+using AwesomeAssertions;
 using Xunit;
 
 namespace Memoria.EventSourcing.Dcb.Tests.Features;

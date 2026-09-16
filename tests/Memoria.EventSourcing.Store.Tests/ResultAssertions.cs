@@ -1,4 +1,4 @@
-using FluentAssertions;
+using AwesomeAssertions;
 using Memoria.Results;
 
 namespace Memoria.EventSourcing.Store.Tests;

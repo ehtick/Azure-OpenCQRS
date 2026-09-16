@@ -1,5 +1,5 @@
-using FluentAssertions;
-using FluentAssertions.Execution;
+using AwesomeAssertions;
+using AwesomeAssertions.Execution;
 using Memoria.EventSourcing;
 using Memoria.EventSourcing.Dcb;
 using Memoria.EventSourcing.Domain;

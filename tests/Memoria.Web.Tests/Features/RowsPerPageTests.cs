@@ -1,6 +1,6 @@
 using System.Net.Http;
 using System.Threading.Tasks;
-using FluentAssertions;
+using AwesomeAssertions;
 using Memoria.EventSourcing.Store.EntityFrameworkCore.Entities;
 using Memoria.Web.Data;
 using Memoria.Web.Extensibility;

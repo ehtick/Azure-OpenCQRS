@@ -1,4 +1,4 @@
-using FluentAssertions;
+using AwesomeAssertions;
 using Memoria.EventSourcing.Dcb.Store.EntityFrameworkCore.Entities;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;

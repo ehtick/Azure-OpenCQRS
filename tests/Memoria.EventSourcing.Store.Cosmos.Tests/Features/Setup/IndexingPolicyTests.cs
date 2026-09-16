@@ -1,6 +1,6 @@
 using System.Text.Json;
-using FluentAssertions;
-using FluentAssertions.Execution;
+using AwesomeAssertions;
+using AwesomeAssertions.Execution;
 using Memoria.EventSourcing.Store.Cosmos.Configuration;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Options;

@@ -1,6 +1,6 @@
 using System;
 using System.IO;
-using FluentAssertions;
+using AwesomeAssertions;
 using Memoria.EventSourcing.Store.Cosmos;
 using Memoria.Web.Data;
 using Memoria.Web.Samples.Seeding;

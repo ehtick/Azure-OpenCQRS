@@ -2,7 +2,7 @@ using System.Reflection;
 using Memoria.EventSourcing.Dcb.Tests.Models.Events;
 using Memoria.EventSourcing.Dcb.Tests.Models.Projections;
 using Memoria.EventSourcing.Domain;
-using FluentAssertions;
+using AwesomeAssertions;
 using Xunit;
 
 namespace Memoria.EventSourcing.Dcb.Tests.Features;

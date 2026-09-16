@@ -1,5 +1,5 @@
-using FluentAssertions;
-using FluentAssertions.Execution;
+using AwesomeAssertions;
+using AwesomeAssertions.Execution;
 using Memoria.EventSourcing.Store.EntityFrameworkCore.Containers.Tests.Fixtures;
 using Memoria.EventSourcing.Store.EntityFrameworkCore.Entities;
 using Memoria.EventSourcing.Store.EntityFrameworkCore.Relational.Tests.Data;

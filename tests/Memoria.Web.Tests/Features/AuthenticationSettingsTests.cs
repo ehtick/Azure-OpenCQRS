@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using FluentAssertions;
+using AwesomeAssertions;
 using Memoria.Web.Security;
 using Microsoft.Extensions.Configuration;
 using Xunit;

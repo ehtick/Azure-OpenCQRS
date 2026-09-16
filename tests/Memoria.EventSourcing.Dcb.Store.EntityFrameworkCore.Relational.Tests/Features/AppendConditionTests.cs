@@ -1,4 +1,4 @@
-using FluentAssertions;
+using AwesomeAssertions;
 using Memoria.EventSourcing.Dcb.Store.EntityFrameworkCore.Extensions.DbContextExtensions;
 using Memoria.EventSourcing.Dcb.Store.EntityFrameworkCore.Relational.Tests.Models;
 using Memoria.EventSourcing.Domain;

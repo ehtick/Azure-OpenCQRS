@@ -1,4 +1,4 @@
-using FluentAssertions;
+using AwesomeAssertions;
 using Memoria.Messaging.ServiceBus.Tests.Models.Commands;
 using Memoria.Messaging.ServiceBus.Tests.Models.Messages;
 using Xunit;

@@ -1,5 +1,5 @@
-using FluentAssertions;
-using FluentAssertions.Execution;
+using AwesomeAssertions;
+using AwesomeAssertions.Execution;
 using FluentValidation;
 using Memoria.Validation.FluentValidation.Extensions;
 using Memoria.Validation.FluentValidation.Tests.Models.Commands;

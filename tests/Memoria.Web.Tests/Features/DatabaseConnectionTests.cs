@@ -1,5 +1,5 @@
 using System;
-using FluentAssertions;
+using AwesomeAssertions;
 using Memoria.EventSourcing.Dcb.Store.EntityFrameworkCore;
 using Memoria.Web.Data;
 using Microsoft.AspNetCore.Http;

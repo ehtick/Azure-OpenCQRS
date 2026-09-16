@@ -1,5 +1,5 @@
 using Memoria.EventSourcing.Domain;
-using FluentAssertions;
+using AwesomeAssertions;
 using Memoria.Web.Extensibility;
 using Xunit;
 

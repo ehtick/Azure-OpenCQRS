@@ -1,4 +1,4 @@
-using FluentAssertions;
+using AwesomeAssertions;
 using Memoria.EventSourcing.Store.Cosmos.Extensions;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;

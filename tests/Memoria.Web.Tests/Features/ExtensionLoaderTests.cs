@@ -1,4 +1,4 @@
-using FluentAssertions;
+using AwesomeAssertions;
 using Memoria.Web.Extensibility;
 using Xunit;
 
@@ -84,7 +84,7 @@ public class ExtensionLoaderTests : IDisposable
         var second = ExtensionLoader.Load(Store()).Assemblies.Single().Assembly.GetName().Name;
 
         first.Should().Be("Memoria.Web.Tests");
-        second.Should().Be("FluentAssertions");
+        second.Should().Be("AwesomeAssertions");
     }
 
     /// <summary>

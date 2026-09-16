@@ -1,4 +1,4 @@
-using FluentAssertions;
+using AwesomeAssertions;
 using Memoria.EventSourcing.Store.EntityFrameworkCore.Entities;
 using Microsoft.EntityFrameworkCore;
 using Xunit;

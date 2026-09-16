@@ -1,4 +1,4 @@
-using FluentAssertions;
+using AwesomeAssertions;
 using Memoria.EventSourcing.Dcb.Tests.Models.Aggregates;
 using Memoria.EventSourcing.Dcb.Tests.Models.Projections;
 using Xunit;

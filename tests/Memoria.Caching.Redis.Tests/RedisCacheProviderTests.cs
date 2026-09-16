@@ -1,4 +1,4 @@
-﻿using FluentAssertions;
+﻿using AwesomeAssertions;
 using Memoria.Caching.Redis.Configuration;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;

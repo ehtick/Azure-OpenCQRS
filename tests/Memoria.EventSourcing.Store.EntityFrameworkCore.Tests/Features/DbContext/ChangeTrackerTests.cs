@@ -1,4 +1,4 @@
-using FluentAssertions;
+using AwesomeAssertions;
 using Memoria.EventSourcing.Domain;
 using Memoria.EventSourcing.Store.Tests.Models.Aggregates;
 using Memoria.EventSourcing.Store.Tests.Models.Events;

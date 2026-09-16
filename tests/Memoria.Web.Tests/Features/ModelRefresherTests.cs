@@ -1,4 +1,4 @@
-using FluentAssertions;
+using AwesomeAssertions;
 using Memoria.EventSourcing;
 using Memoria.EventSourcing.Dcb;
 using Memoria.EventSourcing.Domain;

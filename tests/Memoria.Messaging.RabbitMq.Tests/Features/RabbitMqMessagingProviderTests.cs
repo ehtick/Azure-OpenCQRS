@@ -1,4 +1,4 @@
-using FluentAssertions;
+using AwesomeAssertions;
 using Memoria.Messaging.RabbitMq.Tests.Models.Messages;
 using Xunit;
 

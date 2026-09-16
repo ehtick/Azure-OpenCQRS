@@ -1,4 +1,4 @@
-using FluentAssertions;
+using AwesomeAssertions;
 using Memoria.EventSourcing.Dcb.Store.EntityFrameworkCore.Relational.Tests;
 using Memoria.EventSourcing.Store.EntityFrameworkCore.Containers.Tests.Fixtures;
 using Microsoft.EntityFrameworkCore;
