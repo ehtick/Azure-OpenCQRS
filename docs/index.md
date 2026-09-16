@@ -68,3 +68,4 @@ Memoria is a .NET framework that can be used as a simple mediator or as an Event
 
 - [Examples](examples.md)
 - [Release Notes](release-notes.md)
+- [Licence](license.md)
