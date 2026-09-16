@@ -387,6 +387,12 @@ traces
 Everything one person did is `| where subject == "3f1c…"`, whatever the provider showed as their
 name at the time.
 
+The requests themselves, in the `requests` table, carry the operator too: the subject as
+`user_AuthenticatedId`, which the portal's own views filter and chart by, and `OperatorName` and
+`OperatorSubject` in `customDimensions` under the same names as the write lines. So the request a
+write was made in, and every page the same person opened, answer to the same clause. A request made
+running open carries none of the three.
+
 Left unset, nothing is exported and the start-up log says so. The `Logging` levels above apply to
 what is exported as much as to the console, so a logger quieted there is quiet in the portal too.
 

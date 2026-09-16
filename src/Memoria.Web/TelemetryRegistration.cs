@@ -1,4 +1,7 @@
+using System.Diagnostics;
 using Azure.Monitor.OpenTelemetry.AspNetCore;
+using Memoria.Web.Security;
+using OpenTelemetry.Instrumentation.AspNetCore;
 
 namespace Memoria.Web;
 
@@ -38,7 +41,35 @@ public static partial class TelemetryRegistration
         builder.Services.AddOpenTelemetry()
             .UseAzureMonitor(options => options.ConnectionString = connectionString);
 
+        // Each request exported names who made it. At the response rather than the request,
+        // because the request begins before authentication has run and the operator is nobody
+        // until it has.
+        builder.Services.Configure<AspNetCoreTraceInstrumentationOptions>(options =>
+            options.EnrichWithHttpResponse = (activity, response) =>
+                Name(activity, Operator.Of(response.HttpContext.User)));
+
         return true;
+    }
+
+    /// <summary>
+    /// Puts the operator on a request's span: the subject under the attribute Application Insights
+    /// shows as the request's authenticated user, and the name and the subject under the same two
+    /// columns the write lines carry, so one query answers for requests and writes alike.
+    /// </summary>
+    /// <remarks>
+    /// Nothing is written when nobody is signed in. A blank would read as a name that was not
+    /// sent, where the log line says in words that there was nobody to send one.
+    /// </remarks>
+    private static void Name(Activity activity, Operator asked)
+    {
+        if ((asked.Subject ?? asked.Name) is not { } id)
+        {
+            return;
+        }
+
+        activity.SetTag("enduser.id", id);
+        activity.SetTag("OperatorName", asked.Name);
+        activity.SetTag("OperatorSubject", asked.Subject);
     }
 
     /// <summary>

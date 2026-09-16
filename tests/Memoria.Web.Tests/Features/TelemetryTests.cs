@@ -1,3 +1,5 @@
+using System.Diagnostics;
+using System.Linq;
 using System.Threading.Tasks;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
@@ -11,12 +13,9 @@ namespace Memoria.Web.Tests.Features;
 /// Application Insights connection string, it sends them there; told none, it says so at start-up
 /// rather than leaving whoever looks for them in the portal to wonder why nothing arrived.
 /// </summary>
+[Collection(TelemetryCollection.Name)]
 public class TelemetryTests
 {
-    private const string ConnectionString =
-        "InstrumentationKey=00000000-0000-0000-0000-000000000000;" +
-        "IngestionEndpoint=http://127.0.0.1:9/;LiveEndpoint=http://127.0.0.1:9/";
-
     [Fact]
     public async Task Says_at_start_up_that_nothing_is_sent_when_no_connection_string_is_set()
     {
@@ -32,10 +31,51 @@ public class TelemetryTests
             "nothing exports what the host's own log already keeps");
     }
 
+    /// <summary>
+    /// A request exported carries who made it, under the attribute Application Insights shows as
+    /// the authenticated user of the request, and under the same two columns the write lines
+    /// carry — so the request a write was made in, and every other request by the same person,
+    /// answer to the same query.
+    /// </summary>
+    [Fact]
+    public async Task Names_the_operator_on_the_request_exported()
+    {
+        using var web = MemoriaWeb.SignedInAs("Ada Lovelace")
+            .SendingTelemetry();
+
+        await web.Client.GetAsync("/");
+
+        var requests = await web.Requests();
+        requests.Should().NotBeEmpty();
+        requests.Should().AllSatisfy(request =>
+        {
+            request.GetTagItem("enduser.id").Should().Be("ada lovelace");
+            request.GetTagItem("OperatorName").Should().Be("Ada Lovelace");
+            request.GetTagItem("OperatorSubject").Should().Be("ada lovelace");
+        });
+    }
+
+    [Fact]
+    public async Task Names_nobody_on_a_request_made_running_open()
+    {
+        using var web = MemoriaWeb.Open().SendingTelemetry();
+
+        await web.Client.GetAsync("/");
+
+        var requests = await web.Requests();
+        requests.Should().NotBeEmpty();
+        requests.Should().AllSatisfy(request =>
+        {
+            request.GetTagItem("enduser.id").Should().BeNull("nobody is signed in, and a blank would read as a missing name");
+            request.GetTagItem("OperatorName").Should().BeNull();
+            request.GetTagItem("OperatorSubject").Should().BeNull();
+        });
+    }
+
     [Fact]
     public async Task Sends_the_log_to_application_insights_when_told_where()
     {
-        using var web = MemoriaWeb.Open().With("APPLICATIONINSIGHTS_CONNECTION_STRING", ConnectionString);
+        using var web = MemoriaWeb.Open().SendingTelemetry();
 
         await web.Client.GetAsync("/");
 

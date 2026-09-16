@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Net.Http;
 using System.Security.Claims;
@@ -17,7 +18,11 @@ using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Azure.Core.Pipeline;
+using Azure.Monitor.OpenTelemetry.AspNetCore;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
+using OpenTelemetry;
+using OpenTelemetry.Trace;
 
 namespace Memoria.Web.Tests;
 
@@ -117,6 +122,25 @@ internal sealed class MemoriaWeb : WebApplicationFactory<Program>
         return this;
     }
 
+    private bool _telemetry;
+
+    /// <summary>
+    /// The same instance told where to send telemetry, so it builds the pipeline that exports
+    /// the log and the requests — and sends them to a transport of this test's own that accepts
+    /// everything and never touches the network. A real address that answers nothing is not the
+    /// same: on this machine a closed local port swallows the connection rather than refusing
+    /// it, and every export then waits out a connect timeout, keeping the host alive past its
+    /// disposal.
+    /// </summary>
+    public MemoriaWeb SendingTelemetry()
+    {
+        _settings["APPLICATIONINSIGHTS_CONNECTION_STRING"] =
+            "InstrumentationKey=00000000-0000-0000-0000-000000000000;" +
+            "IngestionEndpoint=http://telemetry.invalid/;LiveEndpoint=http://telemetry.invalid/";
+        _telemetry = true;
+        return this;
+    }
+
     private IStreamedReads? _reads;
 
     private Memoria.EventSourcing.IDomainService? _domainService;
@@ -203,6 +227,37 @@ internal sealed class MemoriaWeb : WebApplicationFactory<Program>
         LogLevel Level, string Category, string? Event, string Message, IReadOnlyDictionary<string, object?> Columns);
 
     private readonly ConcurrentQueue<LogEntry> _logged = new();
+
+    /// <summary>
+    /// The requests the application has exported so far: what a tool like Application Insights
+    /// would have been sent as its <c>requests</c> rows. Empty unless the instance was told where
+    /// to send them, since nothing is exported until it is.
+    /// </summary>
+    /// <remarks>
+    /// Waited for, briefly, because a request's span ends after its response has been read: the
+    /// host stops it as it disposes the request, which is after the client already holds the
+    /// body. On a quiet machine the span is there by the time the client returns; on a busy one,
+    /// after hundreds of tests, it is not yet, and a test that looked straight away would find the
+    /// exporter empty and say so wrongly.
+    /// </remarks>
+    public async Task<IReadOnlyList<Activity>> Requests()
+    {
+        var deadline = DateTime.UtcNow.AddSeconds(5);
+
+        while (true)
+        {
+            var requests = _spans.Where(span => span.Kind == ActivityKind.Server).ToList();
+
+            if (requests.Count > 0 || DateTime.UtcNow > deadline)
+            {
+                return requests;
+            }
+
+            await Task.Delay(20);
+        }
+    }
+
+    private readonly ConcurrentQueue<Activity> _spans = new();
 
     /// <summary>
     /// A client that stops at the first redirect rather than following it, since following it
@@ -292,6 +347,26 @@ internal sealed class MemoriaWeb : WebApplicationFactory<Program>
                     EndSessionEndpoint = Provider.EndSessionEndpoint
                 });
 
+            // Only ever built when the application registered a pipeline to build, so an instance
+            // told nowhere to send telemetry records nothing here either.
+            services.ConfigureOpenTelemetryTracerProvider((_, tracing) =>
+                tracing.AddProcessor(new SpanCapture(_spans)));
+
+            if (_telemetry)
+            {
+                // Registered after the application's own, so it is applied after: the address the
+                // application read stays, and what is sent there goes to the accepting transport
+                // instead. Live metrics and offline storage are off because both would reach
+                // outside the process — the one for a channel to the portal, the other for a
+                // directory under the profile of whoever runs the tests.
+                services.Configure<AzureMonitorOptions>(options =>
+                {
+                    options.Transport = new HttpClientTransport(new Accepting());
+                    options.EnableLiveMetrics = false;
+                    options.DisableOfflineStorage = true;
+                });
+            }
+
             if (_host is { } host)
             {
                 // Registered after the application's own, so it is the one resolved — and the one
@@ -363,6 +438,29 @@ internal sealed class MemoriaWeb : WebApplicationFactory<Program>
             return Task.FromResult(AuthenticateResult.Success(
                 new AuthenticationTicket(new ClaimsPrincipal(identity), Scheme)));
         }
+    }
+
+    /// <summary>
+    /// Answers every export as the ingestion endpoint would have, in the shape the exporter reads
+    /// back, without a connection: what leaves the process is what is being tested, not whether
+    /// it arrived.
+    /// </summary>
+    private sealed class Accepting : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request, System.Threading.CancellationToken cancellationToken) =>
+            Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK)
+            {
+                Content = new StringContent(
+                    """{"itemsReceived":1,"itemsAccepted":1,"errors":[]}""",
+                    System.Text.Encoding.UTF8, "application/json")
+            });
+    }
+
+    /// <summary>Keeps every span as it ends, so a test can ask what would have been exported.</summary>
+    private sealed class SpanCapture(ConcurrentQueue<Activity> spans) : BaseProcessor<Activity>
+    {
+        public override void OnEnd(Activity data) => spans.Enqueue(data);
     }
 
     /// <summary>A logger that keeps every line, so a test can ask what the application said.</summary>

@@ -516,7 +516,7 @@ reaches the log.
 
 On App Service, connect Application Insights to the app and every one of these lines is exported
 to it, with the event name and each named value as a column — the operator's name and subject each
-as one of their own — so the question is answered from the portal rather than from the host's
-console — see
+as one of their own, on every request as well as on every write — so the question is answered from
+the portal rather than from the host's console — see
 [Application Insights](memoria-web-configuration.md#application-insights) for the setting and a
 query, and [What each write logs](memoria-web-configuration.md#what-each-write-logs) for the events.
