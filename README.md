@@ -56,7 +56,7 @@ If you're using this repository for your learning, samples, workshop, or your pr
 - Event property filtering across aggregates and stream queries
 
 ### 🕙 To Follow
-- Authentication and authorization in Memoria Web, so it no longer depends on a proxy in front of it
+- Memoria Web to support multiple services
 - Option to automatically validate commands
 - Event Grid messaging provider
 - Kafka messaging provider
