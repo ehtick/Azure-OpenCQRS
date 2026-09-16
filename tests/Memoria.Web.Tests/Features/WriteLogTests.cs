@@ -194,6 +194,32 @@ public class WriteLogTests
                 entry.Message.Contains(Ada));
     }
 
+    /// <summary>
+    /// The operator is one value in the wording and two beside it: the name a person recognises
+    /// and the subject the provider keys them by, each a column of its own, so a tool like
+    /// Application Insights can be asked for everything one subject did without matching text.
+    /// </summary>
+    [Fact]
+    public async Task Says_the_operator_as_a_name_column_and_a_subject_column()
+    {
+        using var web = Administrator().WithSampleTypes().WithDomainService(Answering(new SampleAggregate()));
+        var client = web.Client;
+
+        await client.PostAsync("/settings/upload", await Upload(client));
+        await client.PostAsync("/streamed/aggregates/update", await Update(client));
+
+        var lines = web.Logged
+            .Where(entry => entry.Event is "ExtensionInstalled" or "SnapshotRefreshed")
+            .ToList();
+        lines.Should().HaveCount(2);
+        lines.Should().AllSatisfy(entry =>
+        {
+            entry.Columns.Should().Contain("Operator", Ada);
+            entry.Columns.Should().Contain("OperatorName", "Ada Lovelace");
+            entry.Columns.Should().Contain("OperatorSubject", "ada lovelace");
+        });
+    }
+
     [Fact]
     public async Task Says_nobody_when_running_open()
     {

@@ -356,20 +356,36 @@ Each line names the operator who asked, as the name the provider showed and the 
 them by, and says what it was about: the file, or the model and the instance — a streamed model by
 its stream and id, a DCB model by its identifier's type and the values it was built from.
 
+The operator is three columns: `Operator` is the two together as the wording says them, and
+`OperatorName` and `OperatorSubject` are each apart, so everything one subject did can be asked for
+without matching text, and is still found after a rename. Running open, `Operator` says
+`nobody (running open)` and the other two are empty.
+
 ### Application Insights
 
 Set `APPLICATIONINSIGHTS_CONNECTION_STRING` — the setting App Service sets when Application
 Insights is connected to it, so a deployment there has it already — and every line above is
 exported through OpenTelemetry to that resource, along with the request it was written in. In the
 portal, each is a row in the `traces` table: the wording in `message`, and the named values —
-`FileName`, `Model`, `Instance`, `Operator`, `Error` — with the event's `EventId` and `EventName`
-in `customDimensions`, so a query filters on the name rather than the wording:
+`FileName`, `Model`, `Instance`, `Operator`, `OperatorName`, `OperatorSubject`, `Error` — with the
+event's `EventId` and `EventName` in `customDimensions`, so a query filters on the name rather than
+the wording:
 
 ```kusto
 traces
 | where customDimensions.EventName in ("SnapshotRefreshed", "ExtensionInstalled", "ExtensionRemoved", "ExtensionsReread")
-| project timestamp, customDimensions.EventName, customDimensions.Operator, customDimensions.Model, customDimensions.Instance, customDimensions.FileName
+| project timestamp,
+    event    = tostring(customDimensions.EventName),
+    subject  = tostring(customDimensions.OperatorSubject),
+    operator = tostring(customDimensions.OperatorName),
+    model    = tostring(customDimensions.Model),
+    instance = tostring(customDimensions.Instance),
+    file     = tostring(customDimensions.FileName)
+| order by timestamp desc
 ```
+
+Everything one person did is `| where subject == "3f1c…"`, whatever the provider showed as their
+name at the time.
 
 Left unset, nothing is exported and the start-up log says so. The `Logging` levels above apply to
 what is exported as much as to the console, so a logger quieted there is quiet in the portal too.

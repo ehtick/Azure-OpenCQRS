@@ -195,7 +195,12 @@ internal sealed class MemoriaWeb : WebApplicationFactory<Program>
     /// <param name="Category">Which logger said it.</param>
     /// <param name="Event">The name the line is filed under, or null when it was given none.</param>
     /// <param name="Message">What it said.</param>
-    public sealed record LogEntry(LogLevel Level, string Category, string? Event, string Message);
+    /// <param name="Columns">
+    /// The named values it was said with — what a tool like Application Insights shows as columns
+    /// beside the message — by name, without the template itself.
+    /// </param>
+    public sealed record LogEntry(
+        LogLevel Level, string Category, string? Event, string Message, IReadOnlyDictionary<string, object?> Columns);
 
     private readonly ConcurrentQueue<LogEntry> _logged = new();
 
@@ -377,7 +382,19 @@ internal sealed class MemoriaWeb : WebApplicationFactory<Program>
 
             public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception,
                 Func<TState, Exception?, string> formatter) =>
-                entries.Enqueue(new LogEntry(logLevel, category, eventId.Name, formatter(state, exception)));
+                entries.Enqueue(new LogEntry(
+                    logLevel, category, eventId.Name, formatter(state, exception), Columns(state)));
+
+            /// <summary>
+            /// The named values, as every structured logger hands them over: pairs, the last of
+            /// which is the template under a name of its own that is not a value.
+            /// </summary>
+            private static IReadOnlyDictionary<string, object?> Columns<TState>(TState state) =>
+                state is IReadOnlyList<KeyValuePair<string, object?>> pairs
+                    ? pairs.Where(pair => pair.Key != "{OriginalFormat}")
+                        .GroupBy(pair => pair.Key)
+                        .ToDictionary(group => group.Key, group => group.First().Value)
+                    : new Dictionary<string, object?>();
         }
     }
 
