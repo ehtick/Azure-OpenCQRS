@@ -1,5 +1,6 @@
 ---
 title: Publish to Service Bus
+description: "Publish in-process notifications and Azure Service Bus messages when a command handler succeeds, and read the result of each."
 parent: Guides
 nav_order: 4
 ---

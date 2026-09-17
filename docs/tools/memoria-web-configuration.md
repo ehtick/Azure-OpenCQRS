@@ -1,5 +1,6 @@
 ---
 title: Configuration
+description: "Every setting Memoria Web reads: a connection string per service, how operators sign in, the manifest an uploaded zip carries, and the roles it grants."
 parent: Tools
 nav_order: 2
 ---

@@ -1,5 +1,6 @@
 ---
 title: Providers
+description: "The abstractions Memoria is built on — storage, messaging, caching and validation — and the providers that implement each of them."
 parent: Concepts
 nav_order: 6
 redirect_from:

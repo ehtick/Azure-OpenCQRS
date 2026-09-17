@@ -1,5 +1,6 @@
 ---
 title: Run a sequence of commands
+description: "Run several commands in order through the dispatcher, threading each result into the handler that follows it."
 parent: Guides
 nav_order: 3
 ---

@@ -1,5 +1,6 @@
 ---
 title: Validation
+description: "Register a validation provider so commands are validated before their handlers run."
 parent: Configuration
 grand_parent: Reference
 nav_order: 7

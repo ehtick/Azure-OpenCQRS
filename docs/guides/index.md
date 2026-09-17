@@ -1,5 +1,6 @@
 ---
 title: Guides
+description: "Directions for a task you already know you want to do, each ending with links to the reference pages behind it."
 nav_order: 4
 has_children: true
 ---

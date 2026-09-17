@@ -1,5 +1,6 @@
 ---
 title: Dynamic Consistency Boundaries
+description: "A consistency boundary as a query over tags, chosen per decision and evaluated when the decision is made, rather than a stream fixed when the aggregate was designed."
 parent: Concepts
 nav_order: 3
 ---

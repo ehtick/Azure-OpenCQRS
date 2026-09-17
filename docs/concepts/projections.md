@@ -1,5 +1,6 @@
 ---
 title: Projections
+description: "Read models built by applying domain events and stored as snapshots, and how they differ from the aggregates that produced those events."
 parent: Concepts
 nav_order: 4
 ---

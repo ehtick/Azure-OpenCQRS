@@ -1,5 +1,6 @@
 ---
 title: Test without external dependencies
+description: "Register the in-process variants of Cosmos DB, Service Bus and RabbitMQ so a test suite needs nothing running."
 parent: Guides
 nav_order: 12
 ---

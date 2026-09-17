@@ -1,5 +1,6 @@
 ---
 title: Licence
+description: "Memoria 2.x is dual-licensed: the Reciprocal Public License 1.5, or a commercial licence whose Community edition is free. Which one you need, and the full terms of both."
 nav_order: 10
 redirect_from:
   - /licence.html

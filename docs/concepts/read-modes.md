@@ -1,5 +1,6 @@
 ---
 title: Read Modes
+description: "The four ways GetAggregate can reconstruct an aggregate, and how each trades freshness against I/O and reconstruction cost."
 parent: Concepts
 nav_order: 5
 ---

@@ -1,5 +1,6 @@
 ---
 title: Release Notes
+description: "What changed in each released version of Memoria, newest first."
 nav_order: 9
 redirect_from:
   - /Release-Notes.html

@@ -1,5 +1,6 @@
 ---
 title: Caching
+description: "Register an in-process or Redis caching provider for query results."
 parent: Configuration
 grand_parent: Reference
 nav_order: 10

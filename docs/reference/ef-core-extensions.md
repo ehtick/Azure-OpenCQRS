@@ -1,5 +1,6 @@
 ---
 title: Entity Framework Core Extensions
+description: "The DbContext extension methods the Entity Framework Core store provides for working with aggregates and events directly."
 parent: Reference
 nav_order: 2
 redirect_from:

@@ -1,5 +1,6 @@
 ---
 title: Memoria Web
+description: "Read a Memoria store through your own uploaded domain assemblies: the events appended to it, the aggregates and projections snapshotted from them, and what each page shows."
 parent: Tools
 nav_order: 1
 ---

@@ -1,5 +1,6 @@
 ---
 title: Tools
+description: "Memoria Web, a browser tool for reading a Memoria store through your own domain assemblies."
 nav_order: 6
 has_children: true
 ---

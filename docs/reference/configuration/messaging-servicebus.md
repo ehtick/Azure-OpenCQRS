@@ -1,5 +1,6 @@
 ---
 title: "Messaging: Service Bus"
+description: "Register the Azure Service Bus messaging provider, and the in-memory variant for tests."
 parent: Configuration
 grand_parent: Reference
 nav_order: 8

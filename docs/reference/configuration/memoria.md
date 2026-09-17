@@ -1,5 +1,6 @@
 ---
 title: Memoria Core
+description: "Register the Memoria mediator core in the service collection, and the options it takes."
 parent: Configuration
 grand_parent: Reference
 nav_order: 1

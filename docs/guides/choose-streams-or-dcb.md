@@ -1,5 +1,6 @@
 ---
 title: Streams or DCB?
+description: "How to pick between Memoria's two consistency models — event streams and dynamic consistency boundaries — and when an application can use both."
 parent: Guides
 nav_order: 8
 ---

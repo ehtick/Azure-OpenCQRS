@@ -1,5 +1,6 @@
 ---
 title: Domain Service
+description: "The IDomainService API: saving and retrieving aggregates and projections, the four read modes, and querying a stream's events."
 parent: Reference
 nav_order: 1
 redirect_from:

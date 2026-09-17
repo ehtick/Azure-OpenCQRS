@@ -1,5 +1,6 @@
 ---
 title: Upgrade to 2.0.0
+description: "Choosing a licence for 2.x, where a RabbitMQ connection failure now surfaces, and the manifest an uploaded Memoria Web zip must carry."
 parent: Upgrading
 nav_order: 1
 ---

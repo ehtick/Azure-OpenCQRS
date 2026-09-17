@@ -1,5 +1,6 @@
 ---
 title: Replay events in memory
+description: "Reconstruct an aggregate without writing a snapshot, up to a given event sequence or date, for audit, debugging or a model change."
 parent: Guides
 nav_order: 9
 ---

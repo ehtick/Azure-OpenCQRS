@@ -1,5 +1,6 @@
 ---
 title: Entity Framework Core (DCB)
+description: "Register the Entity Framework Core store for dynamic consistency boundaries, which is independent of the streamed store."
 parent: Configuration
 grand_parent: Reference
 nav_order: 6

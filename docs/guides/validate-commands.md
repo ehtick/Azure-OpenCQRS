@@ -1,5 +1,6 @@
 ---
 title: Validate commands
+description: "Run a validator over a command before its handler sees it, and read every failure out of the returned Result."
 parent: Guides
 nav_order: 1
 ---

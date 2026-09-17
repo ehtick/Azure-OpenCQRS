@@ -1,5 +1,6 @@
 ---
 title: Use PostgreSQL with jsonb
+description: "Why event-property filtering silently stops matching when the EF Core event data column is jsonb, and the Npgsql package that fixes it."
 parent: Guides
 nav_order: 10
 redirect_from:

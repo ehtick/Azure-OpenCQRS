@@ -1,5 +1,6 @@
 ---
 title: Deployment
+description: "Build, publish and host Memoria Web yourself, and what to settle about access before deciding where to put it."
 parent: Tools
 nav_order: 3
 ---

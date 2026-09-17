@@ -1,5 +1,6 @@
 ---
 title: Result Pattern
+description: "Why every handler and provider returns a Result instead of throwing, and how a caller reads success or failure out of one."
 parent: Concepts
 nav_order: 7
 ---

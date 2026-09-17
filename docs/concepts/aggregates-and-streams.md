@@ -1,5 +1,6 @@
 ---
 title: Aggregates and Streams
+description: "How Memoria models state as a stream of immutable domain events: what an aggregate, a stream and their identifiers are, and how each is addressed."
 parent: Concepts
 nav_order: 2
 redirect_from:

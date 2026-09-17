@@ -1,5 +1,6 @@
 ---
 title: Glossary
+description: "Definitions for the terms used across the Memoria documentation."
 parent: Concepts
 nav_order: 8
 ---

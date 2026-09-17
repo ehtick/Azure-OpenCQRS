@@ -1,5 +1,6 @@
 ---
 title: Integrate with ASP.NET Core Identity
+description: "Share one DbContext between ASP.NET Core Identity and Memoria's EF Core store, so user data and event-sourced aggregates sit in the same database."
 parent: Guides
 nav_order: 11
 ---

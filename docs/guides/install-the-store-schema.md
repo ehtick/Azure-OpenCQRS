@@ -1,5 +1,6 @@
 ---
 title: Install the store schema
+description: "Get the three Entity Framework Core store tables into a database, whichever way you manage schema."
 parent: Guides
 nav_order: 13
 ---

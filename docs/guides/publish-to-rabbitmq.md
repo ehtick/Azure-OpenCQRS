@@ -1,5 +1,6 @@
 ---
 title: Publish to RabbitMQ
+description: "Publish in-process notifications and RabbitMQ messages when a command handler succeeds, and read the result of each."
 parent: Guides
 nav_order: 5
 ---

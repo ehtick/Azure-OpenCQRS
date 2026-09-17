@@ -1,5 +1,6 @@
 ---
 title: Getting started
+description: "Install Memoria, then take the quickstart for the mediator or the one for event sourcing. They are independent of each other."
 nav_order: 2
 has_children: true
 ---

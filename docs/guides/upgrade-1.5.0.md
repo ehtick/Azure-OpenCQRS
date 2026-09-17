@@ -1,5 +1,6 @@
 ---
 title: Upgrade to 1.5.0
+description: "Four changes need attention in Memoria 1.5.0: the first three affect code, the fourth affects your database."
 parent: Upgrading
 nav_order: 6
 ---

@@ -1,5 +1,6 @@
 ---
 title: Multiple aggregates per stream
+description: "Hold events for more than one aggregate in a single stream, with each aggregate filtering the events it cares about."
 parent: Guides
 nav_order: 7
 redirect_from:

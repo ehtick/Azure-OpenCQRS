@@ -1,5 +1,6 @@
 ---
 title: Event Sourcing
+description: "Register the Memoria.EventSourcing package, and the options it takes."
 parent: Configuration
 grand_parent: Reference
 nav_order: 2

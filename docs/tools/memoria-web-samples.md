@@ -1,5 +1,6 @@
 ---
 title: Try it with sample data
+description: "Fill a store with a sample ecommerce domain modelled in both consistency models, to try Memoria Web before you have a domain of your own."
 parent: Tools
 nav_order: 4
 ---

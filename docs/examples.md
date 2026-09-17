@@ -1,5 +1,6 @@
 ---
 title: Examples
+description: "The runnable sample projects in the repository, what each one demonstrates, and the documentation behind it."
 nav_order: 8
 ---
 

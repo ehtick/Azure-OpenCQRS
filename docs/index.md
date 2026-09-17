@@ -1,5 +1,6 @@
 ---
 title: Home
+description: "Memoria is a .NET framework for DDD, CQRS and Event Sourcing: a mediator on its own, or an event store with classic event streams or dynamic consistency boundaries."
 nav_order: 1
 ---
 

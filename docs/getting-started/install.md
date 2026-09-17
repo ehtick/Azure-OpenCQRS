@@ -1,5 +1,6 @@
 ---
 title: Install
+description: "Add the Memoria package with the .NET CLI, Package Manager or Paket, and pick the store, messaging, caching and validation packages you need."
 parent: Getting started
 nav_order: 1
 redirect_from:

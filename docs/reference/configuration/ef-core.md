@@ -1,5 +1,6 @@
 ---
 title: Entity Framework Core
+description: "Register the Entity Framework Core store for event sourcing, and the settings it reads."
 parent: Configuration
 grand_parent: Reference
 nav_order: 3

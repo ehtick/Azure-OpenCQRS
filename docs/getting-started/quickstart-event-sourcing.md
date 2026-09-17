@@ -1,5 +1,6 @@
 ---
 title: "Quickstart: Event Sourcing"
+description: "A ten-minute walk-through: persist an aggregate, reconstruct it from its events and replay its history in memory, with no database required."
 parent: Getting started
 nav_order: 3
 ---

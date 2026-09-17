@@ -1,5 +1,6 @@
 ---
 title: Cache query results
+description: "Cache query results automatically with CacheableQuery, giving each query a cache key and a time to live."
 parent: Guides
 nav_order: 6
 ---

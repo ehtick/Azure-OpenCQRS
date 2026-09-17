@@ -1,5 +1,6 @@
 ---
 title: Cosmos DB
+description: "Register the Azure Cosmos DB store provider for event sourcing, and the settings it reads."
 parent: Configuration
 grand_parent: Reference
 nav_order: 5

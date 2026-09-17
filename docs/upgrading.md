@@ -1,5 +1,6 @@
 ---
 title: Upgrading
+description: "One guide per release that needed one: what changed, what breaks, and the edit to make."
 nav_order: 7
 has_children: true
 ---

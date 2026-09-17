@@ -1,5 +1,6 @@
 ---
 title: Reference
+description: "What each Memoria API and configuration key does, for looking something up rather than reading end to end."
 nav_order: 5
 has_children: true
 ---

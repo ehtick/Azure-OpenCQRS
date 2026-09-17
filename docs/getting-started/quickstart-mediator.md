@@ -1,5 +1,6 @@
 ---
 title: "Quickstart: Mediator"
+description: "A five-minute walk-through of the three message kinds Memoria dispatches: commands, queries and notifications, each returning a Result rather than throwing."
 parent: Getting started
 nav_order: 2
 redirect_from:

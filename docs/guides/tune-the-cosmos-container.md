@@ -1,5 +1,6 @@
 ---
 title: Tune the Cosmos DB container
+description: "Why the default Cosmos DB indexing policy is the wrong one for an event store, and what to index in its place."
 parent: Guides
 nav_order: 14
 ---

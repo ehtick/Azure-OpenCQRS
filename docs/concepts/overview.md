@@ -1,5 +1,6 @@
 ---
 title: Overview
+description: "When the mediator on its own is enough, when to add event sourcing, and what each half of Memoria gives you."
 parent: Concepts
 nav_order: 1
 redirect_from:

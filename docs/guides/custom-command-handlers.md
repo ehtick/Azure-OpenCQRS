@@ -1,5 +1,6 @@
 ---
 title: Use a custom command handler
+description: "Bypass the dispatcher's registered handler and supply a delegate for a command instead."
 parent: Guides
 nav_order: 2
 ---

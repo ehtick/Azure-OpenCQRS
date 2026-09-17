@@ -1,5 +1,6 @@
 ---
 title: "+ ASP.NET Core Identity"
+description: "Register the Entity Framework Core store alongside ASP.NET Core Identity in one IdentityDbContext."
 parent: Configuration
 grand_parent: Reference
 nav_order: 4

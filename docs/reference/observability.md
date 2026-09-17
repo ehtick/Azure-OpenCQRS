@@ -1,5 +1,6 @@
 ---
 title: Observability
+description: "The activity tags Memoria's event stores write as they work, and how to read them when an aggregate is in a state nobody expects."
 parent: Reference
 nav_order: 3
 ---

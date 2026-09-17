@@ -1,5 +1,6 @@
 ---
 title: Concepts
+description: "What the pieces of Memoria are and why they are shaped the way they are, for when a quickstart has worked and you want to know what it did."
 nav_order: 3
 has_children: true
 ---
