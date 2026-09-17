@@ -14,9 +14,15 @@ you to take both.
 From Latin _memoria_ (memory).
 
 📘 [Documentation](https://lucabriguglia.github.io/Memoria/) ·
-📣 [Release notes](https://lucabriguglia.github.io/Memoria/release-notes.html) ·
-📚 [Examples](https://github.com/lucabriguglia/Memoria/tree/main/examples) ·
-🔎 [Memoria Web](https://lucabriguglia.github.io/Memoria/tools/memoria-web.html)
+🚀 [Getting started](https://lucabriguglia.github.io/Memoria/getting-started/) ·
+💡 [Concepts](https://lucabriguglia.github.io/Memoria/concepts/) ·
+🧭 [Guides](https://lucabriguglia.github.io/Memoria/guides/) ·
+📗 [Reference](https://lucabriguglia.github.io/Memoria/reference/)
+
+📚 [Examples](https://lucabriguglia.github.io/Memoria/examples.html) ·
+🔎 [Memoria Web](https://lucabriguglia.github.io/Memoria/tools/memoria-web.html) ·
+⬆️ [Upgrading](https://lucabriguglia.github.io/Memoria/upgrading.html) ·
+📣 [Release notes](https://lucabriguglia.github.io/Memoria/release-notes.html)
 
 ## 📄 Licence at a glance
 
@@ -31,6 +37,11 @@ Memoria 2.x is dual-licensed. You choose which licence you use it under.
 Versions 1.x remain under the [Apache License 2.0](https://github.com/lucabriguglia/Memoria/blob/1.9.1/LICENSE).
 Exclusions and full terms are in [the licence section below](#-licence) and on the
 [licence page](https://lucabriguglia.github.io/Memoria/license.html).
+
+**Already on 1.x?**
+[Upgrade to 2.0.0](https://lucabriguglia.github.io/Memoria/guides/upgrade-2.0.0.html) walks through
+the licence decision and the two behaviours that move with it. Nothing in the store changes, so
+there is no data migration.
 
 ## 📥 Install
 
@@ -93,6 +104,11 @@ See the [Event Sourcing quickstart](https://lucabriguglia.github.io/Memoria/gett
 for the full aggregate definition, and
 [Streams or DCB?](https://lucabriguglia.github.io/Memoria/guides/choose-streams-or-dcb.html) for
 choosing a consistency model.
+
+Past that, the [guides](https://lucabriguglia.github.io/Memoria/guides/) cover one task each, and
+the [reference](https://lucabriguglia.github.io/Memoria/reference/) has the
+[`IDomainService` API](https://lucabriguglia.github.io/Memoria/reference/domain-service.html) and a
+[configuration page per package](https://lucabriguglia.github.io/Memoria/reference/configuration/).
 
 ## ⚡ What you get
 
