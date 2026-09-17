@@ -271,3 +271,10 @@ BenchmarkDotNet.Artifacts/
 
 # Assemblies uploaded through the Memoria.Web settings page
 src/Memoria.Web/App_Data/
+
+# Jekyll, when previewing the docs site locally
+docs/_site/
+docs/.jekyll-cache/
+docs/.jekyll-metadata
+docs/Gemfile.lock
+docs/vendor/

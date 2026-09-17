@@ -104,7 +104,40 @@ a single file:
 
 `docs/` is the source of the [documentation site](https://lucabriguglia.github.io/Memoria/). If your
 change alters behaviour, a configuration key, or anything the docs describe, update the docs in the
-same pull request. A new page also needs a link from `docs/index.md`, or nothing will find it.
+same pull request.
+
+A new page needs front matter, or it will not appear in the sidebar. Copy the shape from a page
+beside it:
+
+```yaml
+---
+title: Tune the Cosmos DB container
+parent: Guides
+nav_order: 14
+---
+```
+
+`title` is what the sidebar shows, `parent` is the exact title of the section page it belongs under,
+and `nav_order` is its position within that section. A page three levels deep also needs
+`grand_parent`. Link to other pages by their path with the `.md` extension — the site rewrites those
+to `.html` when it builds.
+
+### Previewing the site
+
+The docs are Jekyll, themed with [Just the Docs](https://just-the-docs.com/) and served by GitHub
+Pages. `docs/Gemfile` pins the same `github-pages` gem GitHub itself runs, so what you see locally is
+what deploys.
+
+You need Ruby with the DevKit — on Windows, [RubyInstaller](https://rubyinstaller.org/) — then:
+
+```bash
+cd docs
+bundle install
+bundle exec jekyll serve --livereload
+```
+
+That serves the site at `http://127.0.0.1:4000/Memoria/`. The trailing `/Memoria/` matters: it is the
+`baseurl`, and without it you get a 404.
 
 ## Opening the pull request
 
