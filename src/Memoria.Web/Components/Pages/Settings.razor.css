@@ -8,21 +8,20 @@
 }
 
     .grid.archives .col-file {
-        width: 42%;
+        width: 36%;
     }
 
     .grid.archives .col-size {
-        width: 12%;
+        width: 10%;
     }
 
     .grid.archives .col-uploaded {
-        width: 32%;
+        width: 26%;
     }
 
-    /* The way into what a row brought, and nothing else: a mark and the word above it. Taken from
-       the file, which is the column with room to spare. */
-    .grid.archives .col-types {
-        width: 6%;
+    /* The services the manifest declares, by name: what the row is about, said in the row. */
+    .grid.archives .col-services {
+        width: 20%;
     }
 
     .grid.archives .col-actions {
@@ -35,11 +34,86 @@
         font-family: var(--font);
     }
 
-    /* The row's one link, held at the end of the row it acts on. */
+    /* The services are names too, chosen by whoever wrote the manifest. */
+    .grid.archives .services {
+        font-family: var(--font);
+    }
+
+    /* One service to a line, each the way into its own sheet and nothing else in the row a link:
+       no markers, since the mark in front of each name is what says it is a place to go. */
+    .grid.archives .service-links {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+    }
+
+        .grid.archives .service-links li + li {
+            margin-top: 0.25rem;
+        }
+
+        .grid.archives .service-link {
+            align-items: center;
+            color: var(--ink);
+            display: inline-flex;
+            gap: 0.4rem;
+            text-decoration: none;
+        }
+
+            .grid.archives .service-link:hover {
+                color: var(--accent);
+            }
+
+            /* The mark, at the weight the tiles hold theirs at, and in the soft ink until the
+               name beside it is gone near. Reached with ::deep because SectionMark draws it. */
+            .grid.archives .service-link ::deep .glyph {
+                color: var(--ink-faint);
+                flex: none;
+                height: 1.05rem;
+                width: 1.05rem;
+            }
+
+            .grid.archives .service-link:hover ::deep .glyph {
+                color: var(--accent);
+            }
+
+    /* Why an archive declares nothing, where its services would be: the page's own words, in the
+       soft ink, since something is missing rather than wrong. */
+    .grid.archives .services .none {
+        color: var(--ink-soft);
+        font-size: var(--text-sm);
+    }
+
+    /* The mark on an archive that declares nothing, beside its name so it is not mistaken for one
+       that is installed: the sheet says why. Set the way the site marks a retired type — a small
+       word in a soft box — rather than as an alert, since nothing failed; something is missing. */
+    .grid.archives .flag {
+        background: var(--sunk);
+        border: 1px solid var(--rule);
+        border-radius: 0.25rem;
+        color: var(--ink-soft);
+        font-size: var(--text-sm);
+        margin-left: 0.5rem;
+        padding: 0.05rem 0.4rem;
+        vertical-align: middle;
+        white-space: nowrap;
+    }
+
+    /* The row's one control, held at the end of the row it acts on, with the bin at its own size
+       inside the padding an ordinary cell has. */
     .grid.archives td.actions {
         text-align: right;
         white-space: nowrap;
     }
+
+        .grid.archives td.actions .icon-link {
+            color: var(--ink-soft);
+            display: inline-flex;
+            padding: 0.25rem;
+        }
+
+            .grid.archives td.actions .icon-link:hover {
+                color: var(--accent);
+            }
 
 /* The space under the pair, which the tables used to carry themselves. Moved up here because a
    table's own bottom margin is measured below each of them — which is right when they are stacked

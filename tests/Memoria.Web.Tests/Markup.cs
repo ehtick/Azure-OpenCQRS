@@ -81,8 +81,37 @@ internal static class Markup
         return [.. labels];
     }
 
+    /// <summary>
+    /// The labels of what is the operator's own, at the far end of the bar, in the order written:
+    /// the name heading the menu when there is one, then each link and button under it. Open,
+    /// there is no heading and the links stand on the bar in its place.
+    /// </summary>
+    public static string[] OperatorMenu(string page)
+    {
+        var header = Header(page);
+        var own = Regex.Match(
+            header,
+            "<(?<tag>nav|details) class=\"[^\"]*operator[^\"]*\"[^>]*>(?<inner>.*?)</\\k<tag>>",
+            RegexOptions.Singleline);
+
+        return Regex.Matches(
+                Unmarked(own.Groups["inner"].Value),
+                "<(?<tag>summary|a|button)\\b[^>]*>(?<label>[^<]*)</\\k<tag>>")
+            .Select(item => item.Groups["label"].Value.Trim())
+            .ToArray();
+    }
+
     /// <summary>One thing in a menu, and whether a mark is drawn in front of its words.</summary>
     public sealed record MenuItem(string Label, bool Marked);
+
+    /// <summary>
+    /// The links the Installed table's Services column carries, in order: where each leads and
+    /// the name it shows, without the mark drawn in front of it.
+    /// </summary>
+    public static (string Href, string Name)[] ServiceLinks(string page) =>
+        Regex.Matches(page, "<a class=\"service-link\" href=\"(?<href>[^\"]+)\">(?<inner>.*?)</a>", RegexOptions.Singleline)
+            .Select(match => (match.Groups["href"].Value, Unmarked(match.Groups["inner"].Value).Trim()))
+            .ToArray();
 
     /// <summary>
     /// Everything in the header's menus that can be chosen — each heading, each link and each

@@ -5,10 +5,11 @@ repository, and you build it, publish it, and host it yourself.
 
 > **Read [Security](memoria-web.md#security) before deciding where to put it.** Operators sign in
 > through your OpenID Connect provider — see [Signing operators in](#signing-operators-in) — and
-> what each may do is decided by a role mapped from a claim the provider sends. Until a mapping is
-> configured every operator is a Reader; map the Administrator role only to people you would give
-> shell access on the host to, because an Administrator uploads assemblies this process will load
-> and execute.
+> what each may do is decided by a role mapped from a claim the provider sends — by each service's
+> manifest for that service, or by the configuration for every service. Until one or the other
+> names a claim an operator holds, they see no service; map the Administrator role only to people
+> you would give shell access on the host to, because an Administrator uploads assemblies this
+> process will load and execute.
 
 ## Run it locally
 
@@ -158,13 +159,13 @@ their values.
 | `ASPNETCORE_FORWARDEDHEADERS_ENABLED`    | `true`                                  | App Service terminates TLS in front of the application — see [HTTPS](#https) |
 | `Extensions__Directory`                  | `/home/data/extensions`                 | `/home` is the one path App Service keeps across deployments and restarts |
 | `WEBSITE_RUN_FROM_PACKAGE`               | `1`                                     | The published files are mounted read-only, so nothing can be written next to them |
-| `Database__Provider`                     | `Npgsql`, `SqlServer` or `Cosmos`       | Only when the connection string does not say which engine it is for      |
+| `Databases__{name}__Provider`            | `Npgsql`, `SqlServer` or `Cosmos`       | Only when the connection string of that name does not say which engine it is for |
 | `Authentication__Oidc__Authority`        | your provider's issuer                  | See [Signing in through Entra ID](#signing-in-through-entra-id), or your own provider |
 | `Authentication__Oidc__ClientId`         | what the tool is registered as          | Public by design; the provider shows it to every operator who signs in    |
 | `Authorization__Roles__*`                | the claim values that grant each role   | Policy, not secret — see [Roles](memoria-web-configuration.md#roles)      |
 | `APPLICATIONINSIGHTS_CONNECTION_STRING`  | set by connecting Application Insights  | Every line the tool logs about a write is then found in the portal — see [Who did what](#who-did-what) |
 | `Authentication__Oidc__ClientSecret`     | a Key Vault reference                   | What the tool proves its registration with                                |
-| `ConnectionStrings__Memoria`             | a Key Vault reference                   | Unless it carries no password — see [below](#a-connection-string-with-no-password) |
+| `ConnectionStrings__{name}`              | a Key Vault reference, one per store    | One under each name the installed manifests read — `Memoria` for the samples — unless it carries no password — see [below](#a-connection-string-with-no-password) |
 
 ```bash
 az webapp config appsettings set --name <app> --resource-group memoria-web --settings \
@@ -185,7 +186,8 @@ deployment removes them.
 Any provider that publishes a discovery document will do — see
 [Signing operators in](#signing-operators-in) — and Microsoft Entra ID is the one the subscription
 already has. Registering the tool there produces the authority, the client id and the client secret
-the settings above need, and the app roles that make some operators more than Readers.
+the settings above need, and the app roles that grant operators a role for every service — or that
+a service's manifest names, for that service alone.
 
 **Register the tool** as a confidential web client, with both addresses the tool sends operators
 back to. Entra checks the post-sign-out address against the same list as the sign-in one, so both
@@ -251,18 +253,18 @@ Then **assign people to the roles**. That is done on the service principal the l
 created, in the portal: **Entra ID → Enterprise applications → memoria-web → Users and groups →
 Add user/group**, pick the operator or a group they are in, pick the role. A group works as well as
 a person, and is the usual choice: membership of the group is then the whole of who may upload an
-assembly. Nobody needs assigning to be a Reader.
+assembly. A team's own role — `orders-team`, say — needs no mapping in the settings: the team's
+service names it in its manifest, and Entra sends it in the same claim.
 
-**Decide who may sign in at all.** As registered, every account in the tenant can sign in and is a
-Reader. If only the assigned operators should get that far, require an assignment:
+**Decide who may sign in at all.** As registered, every account in the tenant can sign in — and
+sees nothing until a manifest or the settings name a role they hold. If only the assigned operators
+should get that far, require an assignment:
 
 ```bash
 az ad sp update --id <appId> --set appRoleAssignmentRequired=true
 ```
 
-Anyone else is then turned away by Entra before the tool sees them. Give Readers a role of their own
-if you take this route — an app role with any value the settings do not map grants nothing beyond
-Reader, and lets them in.
+Anyone else is then turned away by Entra before the tool sees them.
 
 The tool asks Entra for `openid profile email` by default, which is enough: the name shown in the
 log lines comes from `profile`, and the roles ride along without being asked for. Sign-out ends
@@ -271,9 +273,9 @@ above.
 
 ### Where the secrets live
 
-The client secret and the connection string go into a Key Vault, and the App Service reads them
+The client secret and the connection strings go into a Key Vault, and the App Service reads them
 from there through an identity of its own. The application is none the wiser: it still finds
-`Authentication:Oidc:ClientSecret` and `ConnectionStrings:Memoria` in its configuration. What
+`Authentication:Oidc:ClientSecret` and each `ConnectionStrings:{name}` in its configuration. What
 changes is who can see the values. Anyone who can read the App Service's settings — the deploy
 identity included — sees a reference, not a secret; rotation is one write to the vault; and the
 vault logs every read.

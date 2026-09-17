@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.IO.Compression;
 using System.Net.Http;
 using System.Security.Claims;
 using System.Text.Encodings.Web;
@@ -82,9 +83,41 @@ internal sealed class MemoriaWeb : WebApplicationFactory<Program>
 
     /// <summary>
     /// The assembly this instance knows the domain types of, as if it had been uploaded; null for
-    /// an instance knowing none.
+    /// an instance knowing none. Scanned as the application's own assembly is, and attributed to
+    /// the one service the instance declares, <see cref="ServiceName"/>, by a manifest-only
+    /// archive naming the file it would be called — so the types are browsed under
+    /// <c>/samples/...</c> the way an upload's would be.
     /// </summary>
     private System.Reflection.Assembly? _host;
+
+    /// <summary>The service every instance knowing types declares them under.</summary>
+    public const string ServiceName = "samples";
+
+    private readonly List<(string Name, string ConnectionString, System.Reflection.Assembly? Assembly, string[] Read, string[] Update, string? Description)> _services = [];
+
+    /// <summary>
+    /// The same instance declaring one more service, under the name given as a manifest would
+    /// write it, over the connection string named — <c>Memoria</c>, the one every instance is
+    /// given, unless said — and naming the assembly given, or the host's when none is: so the
+    /// same types, or an emitted assembly's, are browsed under a second address made from that
+    /// name, over a second store when one is named. The roles are the claim values the manifest
+    /// writes under <c>roles.read</c> and <c>roles.update</c>; none, unless said. The description
+    /// is the sentence the manifest writes under <c>description</c>; none, unless said.
+    /// </summary>
+    public MemoriaWeb WithService(
+        string name, string connectionString = "Memoria", System.Reflection.Assembly? assembly = null,
+        string[]? read = null, string[]? update = null, string? description = null)
+    {
+        _services.Add((name, connectionString, assembly, read ?? [], update ?? [], description));
+        return this;
+    }
+
+    /// <summary>The values as a JSON array's items, quoted and comma-separated.</summary>
+    private static string Quoted(string[] values) => string.Join(", ", values.Select(value => $"\"{value}\""));
+
+    /// <summary>The description as the manifest would write it, or nothing when there is none.</summary>
+    private static string Described(string? description) =>
+        description is null ? string.Empty : $"\"description\": \"{description}\",";
 
     /// <summary>
     /// The same instance knowing the sample domain types this test assembly carries, as if they
@@ -165,9 +198,36 @@ internal sealed class MemoriaWeb : WebApplicationFactory<Program>
         return this;
     }
 
+    /// <summary>
+    /// A scope inside one of this instance's services, the way a request under it would be — so a
+    /// test seeding or reading the store through the application's own container resolves that
+    /// service's context, over that service's store, and not nothing.
+    /// </summary>
+    public IServiceScope Scope(string service = ServiceName)
+    {
+        var scope = Services.CreateScope();
+        var types = Services.GetRequiredService<DomainTypeRegistry>();
+
+        scope.ServiceProvider.GetRequiredService<CurrentService>().Enter(
+            types.Current.ServiceAt(service) ?? throw new InvalidOperationException($"No service is at /{service}."),
+            types.Current);
+
+        return scope;
+    }
+
+    /// <summary>Where one of this instance's services remembers its list totals between pages.</summary>
+    public TotalsCache Totals(string service = ServiceName)
+    {
+        var types = Services.GetRequiredService<DomainTypeRegistry>();
+
+        return Services.GetRequiredService<Memoria.Web.Data.ServiceStores>()
+            .For(types.Current.ServiceAt(service) ?? throw new InvalidOperationException($"No service is at /{service}."))
+            .Totals;
+    }
+
     /// <summary>The address of the sample aggregate's detail page, on the tab asked for.</summary>
     public static string SampleAggregateDetail(string tab) =>
-        $"/streamed/aggregates/detail?type={typeof(SampleAggregate).FullName}&stream=sample:1&id=sample-1:1&tab={tab}";
+        $"/{ServiceName}/streamed/aggregates/detail?type={typeof(SampleAggregate).FullName}&stream=sample:1&id=sample-1:1&tab={tab}";
 
     private static Dictionary<string, string?> ProviderSettings => new()
     {
@@ -307,6 +367,39 @@ internal sealed class MemoriaWeb : WebApplicationFactory<Program>
     {
         Directory.CreateDirectory(_scratch);
 
+        // The services this instance declares: a manifest-only archive each, put in the directory
+        // the way a zip from before manifests would be, naming the file the assembly would be
+        // called. Nothing is extracted from them; the registry scans the assemblies it was given
+        // — the host and any an extra service brought — and attributes their types to the service
+        // naming each by that name. The host's own service comes first, when there is a host.
+        var declared = new List<(string Name, string ConnectionString, System.Reflection.Assembly Assembly, string[] Read, string[] Update, string? Description)>();
+
+        if (_host is { } host)
+        {
+            declared.Add((ServiceName, "Memoria", host, [], [], null));
+        }
+
+        declared.AddRange(_services
+            .Where(service => service.Assembly is not null || _host is not null)
+            .Select(service => (service.Name, service.ConnectionString, service.Assembly ?? _host!, service.Read, service.Update, service.Description)));
+
+        if (declared.Count > 0)
+        {
+            var zips = Path.Combine(ExtensionsDirectory, "zips");
+            Directory.CreateDirectory(zips);
+
+            foreach (var ((name, connectionString, assembly, read, update, description), index) in declared.Select((service, index) => (service, index)))
+            {
+                using var archive = ZipFile.Open(Path.Combine(zips, $"service-{index}.zip"), ZipArchiveMode.Create);
+                using var manifest = new StreamWriter(archive.CreateEntry("memoria.json").Open());
+                manifest.Write($$"""
+                    { "services": [ { "name": "{{name}}", {{Described(description)}} "assemblies": ["{{assembly.GetName().Name}}.dll"],
+                                      "connectionString": "{{connectionString}}",
+                                      "roles": { "read": [{{Quoted(read)}}], "update": [{{Quoted(update)}}] } } ] }
+                    """);
+            }
+        }
+
         // Everything the application's own settings files say about authentication is unset
         // first, so that the development file's choice to run open does not reach these tests.
         // UseSetting rather than a configuration source: it is what reaches the application's
@@ -367,12 +460,22 @@ internal sealed class MemoriaWeb : WebApplicationFactory<Program>
                 });
             }
 
+            var scanned = new List<System.Reflection.Assembly>();
+
             if (_host is { } host)
             {
+                scanned.Add(host);
+            }
+
+            scanned.AddRange(_services.Select(service => service.Assembly).OfType<System.Reflection.Assembly>());
+
+            if (scanned.Count > 0)
+            {
                 // Registered after the application's own, so it is the one resolved — and the one
-                // Program reloads at start-up. Over the same store, so an upload still lands.
+                // Program reloads at start-up. Over the same store, so an upload still lands. Every
+                // assembly a declared service names is scanned the way the application's own is.
                 services.AddSingleton(provider =>
-                    new DomainTypeRegistry(provider.GetRequiredService<ExtensionStore>(), host));
+                    new DomainTypeRegistry(provider.GetRequiredService<ExtensionStore>(), scanned.ToArray()));
             }
 
             if (_reads is { } reads)

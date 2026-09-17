@@ -23,7 +23,7 @@ namespace Memoria.Web.Tests.Features;
 public class DcbEventRowTests
 {
     private static string EventsTab(string? row = null, string? show = null) =>
-        $"/dcb/aggregates/detail?type={typeof(SampleCarryingDcbAggregate).FullName}" +
+        $"/samples/dcb/aggregates/detail?type={typeof(SampleCarryingDcbAggregate).FullName}" +
         $"&id={typeof(SampleCarryingId).FullName}&sampleId=abc&tab=events" +
         (row is null ? string.Empty : $"&row={row}") +
         (show is null ? string.Empty : $"&show={show}");
@@ -38,7 +38,7 @@ public class DcbEventRowTests
     /// </summary>
     private static async Task SeedTwoEvents(MemoriaWeb web)
     {
-        using var scope = web.Services.CreateScope();
+        using var scope = web.Scope();
         scope.ServiceProvider.GetRequiredService<IHttpContextAccessor>().HttpContext = new DefaultHttpContext
         {
             User = new ClaimsPrincipal(new ClaimsIdentity(

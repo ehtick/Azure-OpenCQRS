@@ -1,8 +1,9 @@
 # Memoria Web
 
 Memoria Web is a browser tool for reading a Memoria store. Point it at a database, upload a zip of
-your own domain assemblies, and it shows you the events that were appended, the aggregates and
-projections snapshotted from them, and the types both were written through.
+your own domain assemblies — with a `memoria.json` at its root naming the services in it — and it
+shows you the events that were appended, the aggregates and projections snapshotted from them, and
+the types both were written through.
 
 It is not a sample application and not a package. It lives in the repository at
 [`src/Memoria.Web`](https://github.com/lucabriguglia/Memoria/tree/main/src/Memoria.Web), and you
@@ -47,10 +48,19 @@ The assemblies are read from bytes rather than from their path, and the registra
 from scratch on every upload, removal and refresh. Nothing restarts, and a type you removed from a
 rebuilt assembly stops being offered rather than lingering from the previous load.
 
-The Settings page lists what each archive brought. A **Types** mark on each row of the installed
-archives table opens every assembly file in that zip and, under each, the domain types registered
-from it — and a file that registered nothing says so on a line of its own, which is the case worth
-noticing: a dependency the domain needs, or an assembly that did not load.
+Every zip carries a manifest, `memoria.json`, declaring the services in it — each a name, the
+assembly files its domain types are read from, the name of the connection string it is read over,
+and who may read and update it. Only the assemblies a service names are scanned; the rest of the
+zip is loaded as dependencies and registers nothing. A zip without a manifest is refused. See
+[What to put in a zip](memoria-web-configuration.md#what-to-put-in-a-zip).
+
+The Settings page lists what each archive declares: the file, its size and upload time, and each
+service on a line of its own. A service opens a sheet over the table, read two ways. **Info** is
+the address it is browsed under, the connection string it reads over and whether that is
+configured, and who may read and update it. **Types** is its assemblies with the domain types
+registered from each; a file that registered nothing says so on a line of its own, which is the
+case worth noticing: an assembly that did not load, or one built against another Memoria. A zip
+already there without a manifest is listed, marked **No manifest**, and its row says why.
 
 A type carrying `[Obsolete]` is marked as such wherever it is named, and says the attribute's own
 message wherever it is opened. Retired is not the same as old: a type with a later version beside it
@@ -59,7 +69,15 @@ attribute is the only place the domain says that.
 
 ## What it shows
 
-The two consistency models sit side by side from the home page, and each is laid out the same way:
+The home page lists the services installed — each a named set of domain assemblies, declared by
+the manifest in the zip that brought it — and each is browsed under its own name: a service called
+`orders` lives at `/orders`, its streamed events at `/orders/streamed/events`, and so on. A name no
+manifest declares is not found, and so is an address under no service at all. Inside a service the
+bar carries Home, the service's name, and the menus over its models; outside one, Home and Settings.
+
+A service's own page sets the two consistency models side by side when it registered types under
+both, and lays the one model out directly when it registered types under one alone. Each model is
+laid out the same way:
 
 - **Overview** — what is registered under that model, counted per section
 - **Events**, **Aggregates**, **Projections** (and **Streams**, streamed only) — each a section with
@@ -204,9 +222,10 @@ which provider, or told in so many words to run open. See
 for the settings and [Deployment](memoria-web-deployment.md#signing-operators-in) for what to
 register at the provider.
 
-**What an operator may do is their role.** A Reader reads every page; an Updater may also press
-**Update**; an Administrator may also use Settings. Every signed-in operator is a Reader until a
-claim the provider sends is mapped to one of the other two — see
+**What an operator may do is their role, for each service.** A Reader reads a service's pages; an
+Updater may also press **Update**; an Administrator may also use Settings. A service's manifest
+names the claim values that read and update it; the configuration maps claim values to each role
+for every service. An operator named by neither sees no service — see
 [Roles](memoria-web-configuration.md#roles). Map Administrator only to the people you would give
 shell access on the host to, and treat it as exactly that.
 

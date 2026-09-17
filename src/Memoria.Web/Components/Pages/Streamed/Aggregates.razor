@@ -1,25 +1,33 @@
-@page "/streamed/aggregates"
+@page "/{service}/streamed/aggregates"
+@using Memoria.Web.Extensibility
+@inject CurrentService Current
 
 <PageTitle>Streamed @Heading</PageTitle>
 
 <nav class="breadcrumb" aria-label="Breadcrumb">
     <a href="">Home</a>
     <span aria-hidden="true">/</span>
+    <a href="@Service">@Current.Name</a>
+    <span aria-hidden="true">/</span>
     <ModelCrumb Model="ModelStore.Streamed"/>
     <span aria-current="page">Aggregates</span>
 </nav>
 
 <h1>@Heading</h1>
-<p class="lede">
-    The streamed write models, and what has been stored of them.
-</p>
 
-<SectionTiles TypesHref="streamed/aggregates/types" DataHref="streamed/aggregates/data">
-    <TypesDetail>The write models the model declares, and the streams they are held in.</TypesDetail>
+<SectionTiles TypesHref="@($"{Service}/streamed/aggregates/types")" DataHref="@($"{Service}/streamed/aggregates/data")">
+    <TypesDetail>
+        @Count(Catalogue.StreamedAggregates.Count, "aggregate") the model declares, addressed by
+        @Count(Catalogue.StreamedAggregateIds.Count, "identifier").
+    </TypesDetail>
     <DataDetail>The aggregates that have been stored, read one stream at a time.</DataDetail>
 </SectionTiles>
 
 @code {
+
+    /// <summary>The service this page sits under: the first segment of its address.</summary>
+    [Parameter]
+    public string Service { get; set; } = string.Empty;
 
     /// <summary>
     /// What the page is, for the heading and the title. One value for both, so they cannot drift
@@ -27,5 +35,10 @@
     /// breadcrumb that says which section this is.
     /// </summary>
     private const string Heading = "Aggregates";
+
+    private DomainTypeCatalogue Catalogue => Current.Catalogue;
+
+    private static string Count(int count, string noun) =>
+        count == 1 ? $"1 {noun}" : $"{count} {noun}s";
 
 }

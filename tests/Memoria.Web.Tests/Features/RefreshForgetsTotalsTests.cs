@@ -36,14 +36,14 @@ public class RefreshForgetsTotalsTests
             .WithSampleTypes()
             .WithDomainService(store);
         var client = web.Client;
-        var totals = web.Services.GetRequiredService<TotalsCache>();
+        var totals = web.Totals();
 
         var before = await totals.Total("events", () => Task.FromResult(1));
-        await client.PostAsync("/streamed/aggregates/update", await Form(client,
+        await client.PostAsync("/samples/streamed/aggregates/update", await Form(client,
             ("type", typeof(SampleAggregate).FullName!),
             ("stream", "sample:1"),
             ("id", "sample-1:1"),
-            ("returnUrl", "/streamed/aggregates")));
+            ("returnUrl", "/samples/streamed/aggregates")));
         var after = await totals.Total("events", () => Task.FromResult(2));
 
         before.Should().Be(1);

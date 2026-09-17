@@ -1,8 +1,8 @@
 # Memoria Web: configuration
 
 Everything [Memoria Web](memoria-web.md) needs is configuration, and only two things are required:
-the store to open, and how operators sign in. The rest have defaults that are right for a store
-installed under Memoria's own default names.
+a connection string for each store the installed services read, and how operators sign in. The
+rest have defaults that are right for a store installed under Memoria's own default names.
 
 Settings are read the way ASP.NET Core reads any of them — `appsettings.json`,
 `appsettings.{Environment}.json`, environment variables, then command-line arguments — so a setting
@@ -12,10 +12,13 @@ can be overridden without editing a file.
 
 | Setting                          | Required                        | Default                               | What it is                                       |
 | -------------------------------- | ------------------------------- | ------------------------------------- | ------------------------------------------------ |
-| `ConnectionStrings:Memoria`      | Yes                             | —                                     | The store to open                                |
-| `Database:Provider`              | Only when the string is unclear | Read off the connection string        | `Npgsql`, `SqlServer`, `Sqlite` or `Cosmos`      |
-| `Database:Cosmos:DatabaseName`   | No                              | `Memoria`                             | Cosmos only: the database the container is in    |
-| `Database:Cosmos:ContainerName`  | No                              | `Domain`                              | Cosmos only: the container the store writes into |
+| `ConnectionStrings:{name}`       | One per store a service reads   | —                                     | A store to open, under the name a service's manifest reads it by — see [The connection strings](#the-connection-strings) |
+| `Databases:{name}:Provider`      | Only when that string is unclear | Read off the connection string       | `Npgsql`, `SqlServer`, `Sqlite` or `Cosmos`, for the string of that name |
+| `Databases:{name}:Cosmos:DatabaseName` | No                        | `Memoria`                             | Cosmos only: the database the container is in, for the string of that name |
+| `Databases:{name}:Cosmos:ContainerName` | No                       | `Domain`                              | Cosmos only: the container the store writes into, for the string of that name |
+| `Database:Provider`              | No                              | —                                     | The older form of the three above, still read for the string called `Memoria` alone |
+| `Database:Cosmos:DatabaseName`   | No                              | `Memoria`                             | Likewise                                         |
+| `Database:Cosmos:ContainerName`  | No                              | `Domain`                              | Likewise                                         |
 | `Extensions:Directory`           | No                              | `<content root>/App_Data/extensions`  | Where uploaded archives and assemblies are kept  |
 | `Authentication:Oidc:Authority`  | Unless running open             | —                                     | The OpenID Connect provider operators sign in through |
 | `Authentication:Oidc:ClientId`   | Unless running open             | —                                     | What the tool is registered as at that provider  |
@@ -24,38 +27,64 @@ can be overridden without editing a file.
 | `Authentication:Disabled`        | Unless signing in               | —                                     | `true` runs the tool open, with nobody signed in |
 | `Authorization:RoleClaimType`    | No                              | `roles`                               | The claim the provider puts its groups or roles in |
 | `Authorization:Roles:Administrator` | No                           | —                                     | Claim values that make an operator an Administrator, comma-separated |
-| `Authorization:Roles:Updater`    | No                              | —                                     | Claim values that make an operator an Updater, comma-separated |
+| `Authorization:Roles:Updater`    | No                              | —                                     | Claim values that make an operator an Updater of every service, comma-separated |
+| `Authorization:Roles:Reader`     | No                              | —                                     | Claim values that make an operator a Reader of every service, comma-separated — see [Roles](#roles) |
 | `APPLICATIONINSIGHTS_CONNECTION_STRING` | No                       | —                                     | Sends the log to Application Insights — see [Logging and hosting](#logging-and-hosting) |
 
 As environment variables, replace each `:` with a double underscore:
-`ConnectionStrings__Memoria`, `Database__Provider`, `Extensions__Directory`,
+`ConnectionStrings__Orders`, `Databases__Orders__Provider`, `Extensions__Directory`,
 `Authentication__Oidc__ClientSecret`, `Authorization__Roles__Administrator`.
 
 ## When it is not configured
 
-A tool told nothing about its store, or nothing about how operators sign in, does not serve its
-pages. It answers every address with one page instead — at status 503, so a health check or a
-monitor reads it as a deployment that is not up — saying which settings would have let it start
-and linking back here. Nothing else is mapped while it does: not a page, not the upload form. The
-same is said in the log, as an error, for whoever is looking at the host rather than the browser.
-The messages quoted below are what that page and that log say.
+A tool told nothing about how operators sign in, or holding a connection string it cannot read,
+does not serve its pages. It answers every address with one page instead — at status 503, so a
+health check or a monitor reads it as a deployment that is not up — saying which settings would
+have let it start and linking back here. Nothing else is mapped while it does: not a page, not the
+upload form. The same is said in the log, as an error, for whoever is looking at the host rather
+than the browser. The messages quoted below are what that page and that log say.
 
-## The connection string
+A connection string that is missing is not that. The tool starts, and the service that named it is
+[unreachable](#the-connection-strings) until the string is there.
+
+## The connection strings
+
+Each service's manifest names the connection string it is read over — `"connectionString":
+"Orders"` in [the manifest](#what-to-put-in-a-zip) — and the configuration holds a string under
+that name:
 
 ```json
 {
   "ConnectionStrings": {
-    "Memoria": "Host=localhost;Port=5432;Database=memoria_samples;Username=postgres;Password=password"
+    "Orders": "Host=localhost;Port=5432;Database=orders;Username=postgres;Password=password",
+    "Billing": "Data Source=C:\\stores\\billing.db"
   }
 }
 ```
 
-Without it, the tool answers only [the page that says so](#when-it-is-not-configured):
+One instance holds as many strings as its services name, and two services may name one string
+and read one store. No name is required, `Memoria` — the one name the tool read before it had
+services — included. A service naming a string the configuration lacks is listed on the home
+page as unreachable, *not configured*, and each of its pages says so in place of its rows, until
+the string is added and the tool restarted. The manifest is not refused for it: the zip may well
+be uploaded before the deployment it is meant for is configured.
 
-> Connection string 'Memoria' is not configured in appsettings.json.
+A string that is there but cannot be read is a different thing — a mistake in the file rather than
+a service ahead of its deployment — and the tool answers only
+[the page that says so](#when-it-is-not-configured), whatever the string is called:
 
-The tool opens a store somebody else created. It creates nothing — no database, no container, no
-table — so the store has to exist and carry the 1.9.0 schema already. See
+> Connection string 'Orders' could not be read: …
+
+Start-up logs one line per service, so a store that answers nothing can be traced to the string
+it was opened over, or to the string it was not:
+
+```
+info: Memoria.Web[0]  Service Orders reads connection string Orders with PostgreSQL.
+warn: Memoria.Web[0]  Service Billing names connection string Billing, which is not configured.
+```
+
+The tool opens stores somebody else created. It creates nothing — no database, no container, no
+table — so each store has to exist and carry the 1.9.0 schema already. See
 [Install the store schema](../guides/install-the-store-schema.md).
 
 ### Which engine it is
@@ -63,33 +92,31 @@ table — so the store has to exist and carry the 1.9.0 schema already. See
 The engine is read off the connection string. Most strings say plainly which one they are for,
 because each provider takes keywords the others do not:
 
-| Engine     | Recognised by                                                                            | `Database:Provider` |
-| ---------- | ---------------------------------------------------------------------------------------- | ------------------- |
-| PostgreSQL | `Host=`, `Port=`, `Username=`, `SslMode=`, …                                             | `Npgsql`            |
-| SQL Server | `Initial Catalog=`, `Trusted_Connection=`, `(localdb)`, `tcp:`, `.database.windows.net`   | `SqlServer`         |
-| SQLite     | `Data Source=` naming a `.db`/`.sqlite` file, `Mode=`, `Cache=`                           | `Sqlite`            |
-| Cosmos DB  | `AccountEndpoint=`, `AccountKey=`                                                        | `Cosmos`            |
+| Engine     | Recognised by                                                                            | `Databases:{name}:Provider` |
+| ---------- | ---------------------------------------------------------------------------------------- | --------------------------- |
+| PostgreSQL | `Host=`, `Port=`, `Username=`, `SslMode=`, …                                             | `Npgsql`                    |
+| SQL Server | `Initial Catalog=`, `Trusted_Connection=`, `(localdb)`, `tcp:`, `.database.windows.net`   | `SqlServer`                 |
+| SQLite     | `Data Source=` naming a `.db`/`.sqlite` file, `Mode=`, `Cache=`                           | `Sqlite`                    |
+| Cosmos DB  | `AccountEndpoint=`, `AccountKey=`                                                        | `Cosmos`                    |
 
 Keywords all of them take — `Database`, `Server`, `User Id`, `Password` — settle nothing and are
 ignored for this purpose.
 
-Set `Database:Provider` when the string carries signals for more than one engine, or for none. The
-tool refuses to guess in either case, and says which it met:
+Set `Databases:{name}:Provider`, under the string's own name, when that string carries signals
+for more than one engine, or for none. The tool refuses to guess in either case, and says which it
+met:
 
-> The provider for connection string 'Memoria' could not be read off it: it carries keywords for
-> more than one provider. Set Database:Provider to Npgsql, SqlServer, Sqlite or Cosmos.
+> The provider for connection string 'Orders' could not be read off it: it carries keywords for
+> more than one provider. Set Databases:Orders:Provider to Npgsql, SqlServer, Sqlite or Cosmos.
 
 The setting is not checked against the string. It is the way out of a string the tool cannot read, so
 second-guessing it would close the door it opens. The names are matched case-insensitively and
 without spaces, hyphens or underscores, so `SQL Server`, `sql_server` and `sqlserver` are one answer;
 `postgres`, `postgresql` and `npgsql` are another; `cosmos`, `cosmosdb` and `azurecosmosdb` a third.
 
-Which provider was chosen is logged at start-up, because a store that answers nothing is the first
-thing anyone suspects the connection string of:
-
-```
-info: Memoria.Web[0]  Store opened with Npgsql.
-```
+The string called `Memoria` also reads the older, unnamed `Database:Provider`, so a configuration
+written for the tool before it had services settles it as it always did. The named setting wins
+where both are set.
 
 ### In-memory SQLite is refused
 
@@ -109,20 +136,24 @@ separately:
 ```json
 {
   "ConnectionStrings": {
-    "Memoria": "AccountEndpoint=https://localhost:8081/;AccountKey=<key>"
+    "Orders": "AccountEndpoint=https://localhost:8081/;AccountKey=<key>"
   },
-  "Database": {
-    "Cosmos": {
-      "DatabaseName": "memoria_samples",
-      "ContainerName": "Domain"
+  "Databases": {
+    "Orders": {
+      "Cosmos": {
+        "DatabaseName": "orders",
+        "ContainerName": "Domain"
+      }
     }
   }
 }
 ```
 
-Both default to what `CosmosOptions` itself defaults to — `Memoria` and `Domain` — so an account
-installed under those names needs neither setting. Set them to the same values the application that
-wrote the store uses, or the tool opens a container nothing has written to.
+Both sit under the string's own name and default to what `CosmosOptions` itself defaults to —
+`Memoria` and `Domain` — so an account installed under those names needs neither setting. Set them
+to the same values the application that wrote the store uses, or the tool opens a container nothing
+has written to. The string called `Memoria` also reads the older `Database:Cosmos:DatabaseName` and
+`Database:Cosmos:ContainerName`, as with [the provider](#which-engine-it-is).
 
 The client is built in `Gateway` connection mode. The tool asks most of its questions across
 partitions, and gateway mode is the one that works from wherever an operator happens to be running
@@ -183,16 +214,18 @@ info: Memoria.Web[0]  Operators sign in through https://login.example.com/realms
 
 ### Roles
 
-Signed in, an operator holds one of three roles, each including the one before it:
+Signed in, an operator may hold one of three roles for a service, each including the one before it:
 
 | Role            | May                                                                        |
 | --------------- | -------------------------------------------------------------------------- |
-| Reader          | Read every page                                                            |
-| Updater         | Also press **Update** on a model's detail page, which writes a snapshot    |
+| Reader          | Read the service's pages                                                   |
+| Updater         | Also press **Update** on one of its models' detail pages, which writes a snapshot |
 | Administrator   | Also install, remove and reread uploaded assemblies on the Settings page — running code on the host |
 
-Every signed-in operator is a Reader. The other two are granted by mapping the values of a claim
-the provider sends:
+A role is granted in two places. A service's [manifest](#what-to-put-in-a-zip) names, under
+`roles.read` and `roles.update`, the claim values that may read and update that service alone.
+The tool's configuration maps claim values to the same roles for every service, Administrator
+among them — there is no per-service Settings:
 
 ```json
 {
@@ -200,45 +233,56 @@ the provider sends:
     "RoleClaimType": "roles",
     "Roles": {
       "Administrator": "memoria-admins",
-      "Updater": "memoria-updaters, memoria-support"
+      "Updater": "memoria-updaters, memoria-support",
+      "Reader": "memoria-auditors"
     }
   }
 }
 ```
+
+Both places read the values off the same claim, so `orders-team` in a manifest means what
+`memoria-admins` means here. Nothing is granted until it is said, in one place or the other: an
+operator whose claims match no mapping and no manifest is nobody. They see no service on the home
+page — which says instead that nothing their sign-in carries names one, and who to ask — and an
+address they type under a service sends them to the page that says which service and which role.
 
 `RoleClaimType` names the claim the provider puts its groups or roles in. Every provider does this
 differently — Entra ID sends app roles under `roles` and group ids under `groups`, Cognito sends
 `cognito:groups`, Keycloak sends realm roles nested under `realm_access` unless a mapper flattens
 them into a claim of their own — so the tool asks rather than guesses. The default is `roles`.
 
-Each of the two lists is comma-separated, so it fits in one environment variable:
+Each of the three lists is comma-separated, so it fits in one environment variable:
 
 ```bash
 Authorization__RoleClaimType=cognito:groups
 Authorization__Roles__Administrator=memoria-admins
 ```
 
-An operator whose claim carries a mapped value holds that role; one whose claims match nothing is
-a Reader. A group the provider happens to call `Administrator` grants nothing until it is mapped
-here. A Reader does not see the Settings link at all, and on a model's detail page sees the
-**Update** tab but, in place of the button, a note saying the tab needs the Updater role. An
-operator who types an address they may not use is told which role it needed and where they were
-going, on a page that says so. The log lines at start-up say what was mapped:
+An operator whose claim carries a mapped value holds that role for every service; one whose claim
+carries a value a manifest names holds that role for that service. A group the provider happens
+to call `Administrator` grants nothing until it is mapped here. An operator without Administrator
+does not see the Settings link at all; one who may read a service but not update it sees, on a
+model's detail page, the **Update** tab but, in place of the button, a note saying the tab needs
+the Updater role and where it could be granted. An operator who types an address they may not use
+is told which role it needed, which service it was under, and where they were going, on a page
+that says so. The log lines at start-up say what was mapped:
 
 ```
-info: Memoria.Web[0]  Roles are read off the roles claim: Administrator for memoria-admins, Updater for memoria-updaters, memoria-support.
+info: Memoria.Web[0]  Roles are read off the roles claim: Administrator for memoria-admins, Updater for memoria-updaters, memoria-support, Reader for memoria-auditors.
 ```
 
-With no `Authorization` section at all, every signed-in operator is a Reader — nobody can update a
-snapshot or use Settings — and start-up says so:
+With no `Authorization` section at all, only the manifests grant anything — nobody can use
+Settings — and start-up says so:
 
 ```
-info: Memoria.Web[0]  No roles are mapped: every signed-in operator is a Reader, and nobody can update
-      a snapshot or use Settings. Set Authorization:Roles:Administrator and Authorization:Roles:Updater
-      to the claim values that grant them.
+info: Memoria.Web[0]  No roles are mapped: a signed-in operator sees only the services whose manifest
+      names a claim value they hold, and nobody can use Settings. Set Authorization:Roles:Administrator,
+      Authorization:Roles:Updater and Authorization:Roles:Reader to the claim values that grant each
+      role for every service.
 ```
 
-Running open, roles do not apply: there is nobody to hold one, and every page and button answers.
+Running open, roles do not apply — the manifests' as much as the configuration's: there is nobody
+to hold one, and every service is listed and every page and button answers.
 
 ### Running open
 
@@ -301,8 +345,46 @@ directory does.
 
 ### What to put in a zip
 
-The assembly holding your domain types, plus any dependency of its own that the tool does not already
-carry — a validation library, say. The loader resolves those from `lib/`.
+Three things: a manifest, the assemblies holding your domain types, and any dependency of theirs
+that the tool does not already carry — a validation library, say. The loader resolves those from
+`lib/`.
+
+**The manifest is required.** A file called `memoria.json` at the root of the archive — not in a
+folder — declaring the services the zip brings. A zip without one is refused, and so is one whose
+manifest breaks a rule below; the Settings page says which.
+
+```json
+{
+  "services": [
+    {
+      "name": "orders",
+      "description": "Orders placed in the shop, one stream a customer.",
+      "assemblies": ["Contoso.Orders.Domain.dll", "Contoso.Orders.Contracts.dll"],
+      "connectionString": "Orders",
+      "roles": {
+        "read": ["orders-team"],
+        "update": ["orders-leads"]
+      }
+    }
+  ]
+}
+```
+
+| Key | Required | What it is |
+| --- | --- | --- |
+| `services` | Yes, at least one | The services the archive declares. One archive may carry several |
+| `name` | Yes | The service's name, shown as written — `Samples Streamed`, `Orders (EU)`. The address it is browsed under is made from it: letters and digits kept, everything else dropped, each run of spaces one dash, lower case — `/samples-streamed`, `/orders-eu`, and `/orders-eu/streamed/events` under it. That address is unique across every installed archive, so two names that make one address are refused; a name with no letter or digit in it is refused; and a name whose address is one the tool already answers on is refused — `settings`, `preferences`, `about`, `forbidden`, `signed-out`, `login`, `logout`, `error`, `not-found` |
+| `assemblies` | Yes, at least one | The assembly files the service's domain types are read from, by file name. Each must be in the zip. **Only these are scanned**; every other assembly in the zip is loaded as a dependency and registers nothing, whatever it carries |
+| `connectionString` | Yes | The **name** of an entry under `ConnectionStrings` in the tool's configuration — never the string itself, which stays with the deployment. Not checked at upload, since the configuration may be filled in afterwards; the archive's sheet on the Settings page says whether it is configured and which engine opens it |
+| `roles` | No | `read` and `update` are lists of claim values, read from the claim `Authorization:RoleClaimType` names, the same way the values under `Authorization:Roles:*` are. Update includes read. Absent, only the [global roles](#roles) reach the service |
+| `description` | No | A sentence saying what the service is, shown on the service's sheet under Settings. Absent or blank, the sheet says nothing |
+
+Keys the manifest carries that the tool does not read are ignored, so a later version may add to the
+shape without an older tool refusing what it wrote.
+
+An archive already in the directory without a manifest — from before one was required — stays
+listed, marked **No manifest**, registers nothing, and its row says why. Add a manifest to the zip
+and upload it again.
 
 **Never include a `Memoria*` assembly.** Uploaded types must bind to the ones the process already
 loaded, or nothing they declare satisfies `IEvent` or `IAggregateRoot`. An assembly compiled against

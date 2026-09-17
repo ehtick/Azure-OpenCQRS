@@ -1,162 +1,161 @@
 @page "/"
+@using Memoria.Web.Data
 @using Memoria.Web.Extensibility
 @inject DomainTypeRegistry Types
-@inject Memoria.Web.Data.StoreCapabilities Store
+@inject ServiceStores Stores
+@inject ServiceAccess Access
 
 <PageTitle>Memoria</PageTitle>
 
 <h1>Memoria</h1>
 
-@* Laid out for the models the store has something registered under. Both: two columns, each
-   headed by its model and the way into it. One alone: that model's tiles as the page, with no
-   heading over them, because a heading names a choice and there is none to make. *@
-@if (Shown.Both)
+@* The services installed that this operator may read, each the way into its own page. A service
+   is a named set of domain assemblies read over one store, declared by the manifest in the zip
+   that brought it; what a reader picks here is which one to read. Drawn as the tiles every
+   section of the site is entered by, one a service, so the front door and the doors behind it
+   are the same shape. *@
+@if (Services.Count == 0)
 {
     <p class="lede">
-        Two models of the same domain, side by side: streams addressed by aggregate, and dynamic
-        consistency boundaries addressed by identifier.
+        No services are installed. A zip uploaded under
+        <a href="settings">Settings</a> declares the services it brings, and each is listed here.
     </p>
-
-    <div class="models">
-        <section class="model">
-            <h2><a href="streamed">Streamed</a></h2>
-            @StreamedTiles
-        </section>
-
-        <section class="model">
-            <h2><a href="dcb">DCB</a></h2>
-            @DcbTiles
-        </section>
-    </div>
 }
-else if (Shown.Streamed)
+else if (Visible.Count == 0)
 {
+    @* Silence is nobody: an operator whose sign-in carries nothing a manifest or the
+       configuration names sees no service, and is told that is why, and who can change it —
+       rather than a page that looks like a tool with nothing in it. *@
     <p class="lede">
-        Streams addressed by aggregate: the events, the models folded from them, and the streams
-        they are held in.
+        Nothing your sign-in carries names a service. A service is read by the operators its
+        manifest names, or by anyone the tool's configuration maps to a role for every service.
+        Ask whoever runs the service you were after, or whoever runs this tool, to name yours.
     </p>
-
-    @StreamedTiles
 }
 else
 {
     <p class="lede">
-        Dynamic consistency boundaries addressed by identifier: the events, and the models folded
-        from them.
+        The services installed, each a set of domain assemblies read over its own store. Pick one
+        to read its events, and the aggregates and projections snapshotted from them.
     </p>
 
-    @DcbTiles
+    @* One to a row: a service is read by its name and the sentence under it, and a sentence wants
+       the measure the page gives prose, not the third of it a tile in a grid gets. *@
+    <ul class="tiles services">
+        @foreach (var service in Visible)
+        {
+            <li>
+                @* Shown by the name the manifest wrote; reached by the address that name makes. *@
+                <a href="@service.Slug">
+                    <SectionMark Kind="SectionKind.Overview"/>
+                    <span class="body">
+                        <span class="head">
+                            <span class="name">@service.Name</span>
+                            @* Beside the name, for a store that can be reached: how much domain is
+                               behind the door — the types registered, counted by kind, the empty
+                               kinds left out. Each kind is its section's mark with the number
+                               after it, the same mark the service's page enters that section by,
+                               and the words are kept on the span for whoever cannot see the mark.
+                               Nothing names a model; the service's own page lays those out. An
+                               unreachable store counts nothing here: a count would suggest a door
+                               that opens. *@
+                            @if (Stores.For(service).Reachable)
+                            {
+                                <span class="facts">
+                                    @foreach (var fact in Facts(Types.Current.For(service)))
+                                    {
+                                        <span class="fact" title="@fact.Label" aria-label="@fact.Label">
+                                            @if (fact.Kind is { } kind)
+                                            {
+                                                <SectionMark Kind="kind"/>
+                                            }
+                                            @fact.Text
+                                        </span>
+                                    }
+                                </span>
+                            }
+                        </span>
+                        @* What the service is, in its manifest's own words, when the manifest
+                           says. Not which models it registered under: every service said one of
+                           three things there, which told a reader nothing its own page does not
+                           lay out better. A store that cannot be reached is still said here,
+                           first, where the person who can fix the configuration is looking. *@
+                        @if (Detail(service) is { } detail)
+                        {
+                            <span class="detail">@detail</span>
+                        }
+                    </span>
+                </a>
+            </li>
+        }
+    </ul>
 }
 
 @code {
 
-    private ShownModels Shown => ShownModels.Of(Types.Current, Store);
+    /// <summary>Who is asking, as the sign-in says; open, nobody, and everything is theirs to read.</summary>
+    [CascadingParameter]
+    public Task<AuthenticationState>? AuthenticationState { get; set; }
 
-    // The same tiles the rest of the site is entered by, one under the other because a column is
-    // half the page rather than the whole of it — and, alone, still one under the other, which is
-    // how the overview under them lays its own out. Each names a section and goes to it; what is
-    // under a section — the types the model declares and what has been stored of them — is on the
-    // page the tile leads to, which is where a reader is asked to choose between them rather than
-    // twice. Templates rather than components so the two layouts above draw the one markup.
-    //
-    // The Overview tile only while both models are laid out: it is the model's own page, the one
-    // its heading here leads to, and with one model alone there is no heading and nothing for the
-    // page to stand apart from — the sections it would count are the tiles beside it.
-    private RenderFragment StreamedTiles =>
-        @<ul class="tiles">
-            @if (Shown.Both)
-            {
-            <li>
-                <a href="streamed">
-                    <SectionMark Kind="SectionKind.Overview"/>
-                    <span class="body">
-                        <span class="name">Overview</span>
-                        <span class="detail">What is registered under the streamed model.</span>
-                    </span>
-                </a>
-            </li>
-            }
-            <li>
-                <a href="streamed/events">
-                    <SectionMark Kind="SectionKind.Events"/>
-                    <span class="body">
-                        <span class="name">Events</span>
-                        <span class="detail">The events the model can apply.</span>
-                    </span>
-                </a>
-            </li>
-            <li>
-                <a href="streamed/aggregates">
-                    <SectionMark Kind="SectionKind.Aggregates"/>
-                    <span class="body">
-                        <span class="name">Aggregates</span>
-                        <span class="detail">The write models they are held in.</span>
-                    </span>
-                </a>
-            </li>
-            <li>
-                <a href="streamed/projections">
-                    <SectionMark Kind="SectionKind.Projections"/>
-                    <span class="body">
-                        <span class="name">Projections</span>
-                        <span class="detail">The read models built from those events.</span>
-                    </span>
-                </a>
-            </li>
-            @* Last, and the one the DCB side has nothing to set against it: a boundary there is a
-               query over tags rather than a place events are kept. *@
-            <li>
-                <a href="streamed/streams">
-                    <SectionMark Kind="SectionKind.Streams"/>
-                    <span class="body">
-                        <span class="name">Streams</span>
-                        <span class="detail">The streams the events are held in.</span>
-                    </span>
-                </a>
-            </li>
-        </ul>;
+    private IReadOnlyList<Service> Services => Types.Current.Services;
 
-    private RenderFragment DcbTiles =>
-        @<ul class="tiles">
-            @if (Shown.Both)
+    /// <summary>
+    /// The services this operator may read — named by their manifest, or by a global role — by
+    /// name, the same list in the same order the bar's Services menu folds.
+    /// </summary>
+    private IReadOnlyList<Service> Visible { get; set; } = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        var user = AuthenticationState is { } state ? (await state).User : new System.Security.Claims.ClaimsPrincipal();
+
+        Visible = Access.Readable(user, Services);
+    }
+
+    /// <summary>
+    /// The line under a service's name: that its store cannot be reached, and why, before
+    /// anything else; else what its manifest says it is; else nothing, and no line is drawn.
+    /// </summary>
+    private string? Detail(Service service) =>
+        Stores.For(service).Problem is { } problem ? $"Unreachable: {problem}" : service.Description;
+
+    /// <summary>
+    /// One thing said beside a service's name: a kind's mark and the number registered under it,
+    /// with the words the mark stands for kept for whoever cannot see it; or, with no mark, that
+    /// nothing is registered at all.
+    /// </summary>
+    private sealed record Fact(SectionKind? Kind, string Text, string? Label);
+
+    /// <summary>
+    /// The types a service registered, counted by kind in the order its own page lays the sections
+    /// out, with the kinds it registered none of left out; or that it registered none at all. The
+    /// same numbers that page counts on its tiles, folded up: an aggregate or projection whichever
+    /// model it is registered under, the streams the streamed model's events are held in, and an
+    /// event once however many models apply it — and only if some model does. An event no model
+    /// folds is declared and bound, but it is behind neither door, and counting it here made this
+    /// row disagree with the page it leads to.
+    /// </summary>
+    private static IReadOnlyList<Fact> Facts(DomainTypeCatalogue catalogue)
+    {
+        var counted = new[]
             {
-            <li>
-                <a href="dcb">
-                    <SectionMark Kind="SectionKind.Overview"/>
-                    <span class="body">
-                        <span class="name">Overview</span>
-                        <span class="detail">What is registered under the DCB model.</span>
-                    </span>
-                </a>
-            </li>
+                Count(SectionKind.Events, catalogue.StreamedEvents.Union(catalogue.DcbEvents).Count(), "event"),
+                Count(SectionKind.Aggregates, catalogue.StreamedAggregates.Count + catalogue.DcbAggregates.Count, "aggregate"),
+                Count(SectionKind.Projections, catalogue.StreamedProjections.Count + catalogue.DcbProjections.Count, "projection"),
+                Count(SectionKind.Streams, catalogue.StreamedStreamIds.Count, "stream")
             }
-            <li>
-                <a href="dcb/events">
-                    <SectionMark Kind="SectionKind.Events"/>
-                    <span class="body">
-                        <span class="name">Events</span>
-                        <span class="detail">The events the model can apply.</span>
-                    </span>
-                </a>
-            </li>
-            <li>
-                <a href="dcb/aggregates">
-                    <SectionMark Kind="SectionKind.Aggregates"/>
-                    <span class="body">
-                        <span class="name">Aggregates</span>
-                        <span class="detail">The write models they are addressed by.</span>
-                    </span>
-                </a>
-            </li>
-            <li>
-                <a href="dcb/projections">
-                    <SectionMark Kind="SectionKind.Projections"/>
-                    <span class="body">
-                        <span class="name">Projections</span>
-                        <span class="detail">The read models they are addressed by.</span>
-                    </span>
-                </a>
-            </li>
-        </ul>;
+            .OfType<Fact>()
+            .ToList();
+
+        return counted.Count == 0 ? [new Fact(null, "no types registered", null)] : counted;
+    }
+
+    /// <summary>The count under a kind's mark, worded for a reader, or nothing when there is nothing to count.</summary>
+    private static Fact? Count(SectionKind kind, int count, string noun) => count switch
+    {
+        0 => null,
+        1 => new Fact(kind, "1", $"1 {noun}"),
+        _ => new Fact(kind, count.ToString(), $"{count} {noun}s")
+    };
 
 }
