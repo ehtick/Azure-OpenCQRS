@@ -58,7 +58,7 @@ Uses `DomainDbContext` with three entities: `EventEntity`, `AggregateEntity`, `A
 
 - **xUnit** 2.9.3 — test framework
 - **AwesomeAssertions** 9.6.0 — assertion library (the Apache 2.0 community fork of FluentAssertions; the namespace is `AwesomeAssertions`)
-- **NSubstitute** 5.3.0 — mocking library
+- **NSubstitute** 6.2.0 — mocking library
 
 Test projects mirror source projects (e.g., `Memoria.Tests` tests `Memoria`, `Memoria.Caching.Memory.Tests` tests `Memoria.Caching.Memory`). Tests are organized under `Features/` and `Models/` directories.
 
