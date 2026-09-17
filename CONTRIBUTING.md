@@ -1,0 +1,125 @@
+# Contributing to Memoria
+
+Thank you for being here. Memoria is a small project, and a good bug report is worth as much to it
+as a pull request.
+
+Everything here assumes you have read the [Code of Conduct](CODE_OF_CONDUCT.md), which applies
+everywhere the project has a presence.
+
+## Where to put what
+
+| You want to… | Go to |
+|--------------|-------|
+| Report a bug | [Open an issue](https://github.com/lucabriguglia/Memoria/issues/new), with the version, the store provider and the smallest code that reproduces it |
+| Ask how something works | [Open a discussion](https://github.com/lucabriguglia/Memoria/discussions) — the [documentation](https://lucabriguglia.github.io/Memoria/) may answer it first |
+| Suggest a feature | Open an issue describing the problem you hit, before the solution you have in mind |
+| Fix a typo or improve the docs | A pull request straight to `docs/` is welcome, no issue needed |
+| Change code | **Open an issue first** — see below |
+| Report a security problem | Email the maintainer rather than opening a public issue |
+
+## Open an issue before you write code
+
+Please agree the shape of a code change in an issue before you build it. This is not ceremony: it
+saves you writing something that does not fit, and it lets the licensing question below be settled
+before you have spent your evening on it.
+
+Documentation and typo fixes are the exception — send those directly.
+
+## The contributor licence agreement
+
+Memoria 2.x is [dual-licensed](https://lucabriguglia.github.io/Memoria/license.html): every version
+is offered under either the Reciprocal Public License 1.5 or the Memoria Commercial Licence, and the
+person using it chooses which. Only a contribution's copyright holder can allow it to be offered
+under both, so before a code contribution can be merged you need to agree to the
+[Memoria Contributor Licence Agreement](CLA.md).
+
+It grants a licence. **You keep the copyright in your work**, and you stay free to use your own
+contribution anywhere else on any terms you like. Read it in full — it is short — and then comment
+on your pull request with this line:
+
+```
+I have read the Memoria Contributor Licence Agreement and I agree to it. Signed, <your full name>.
+```
+
+You agree once and it covers everything you contribute afterwards. If you are contributing work your
+employer has rights in, please read [section 4](CLA.md#4-what-you-promise) before you agree.
+
+Issues, discussions and bug reports need none of this.
+
+## Building and testing
+
+Memoria targets .NET 10.0. The solution file is `Memoria.slnx`.
+
+```bash
+dotnet restore
+dotnet build --configuration Release
+dotnet test --configuration Release --filter "Category!=Container&Category!=Emulator"
+```
+
+That last filter is what CI runs, and it excludes two sets of tests that need something running:
+
+| Category | Needs | What happens without it |
+|----------|-------|-------------------------|
+| `Container` | Docker, for real SQL Server and PostgreSQL | The tests skip themselves |
+| `Emulator` | The Azure Cosmos DB emulator on `https://localhost:8081` | The tests **fail**, they do not skip |
+
+No CI job runs the `Emulator` tests, so they are a local gate. **If you change anything under
+`src/Memoria.EventSourcing.Store.Cosmos`, start the emulator and run them before you open the pull
+request:**
+
+```bash
+dotnet test tests/Memoria.EventSourcing.Store.Cosmos.Tests
+```
+
+To run one project or one class:
+
+```bash
+dotnet test tests/Memoria.Tests
+dotnet test --filter "FullyQualifiedName~CommandResponseTests"
+```
+
+## How the code is written
+
+Read the code around what you are changing and follow it. The conventions that are not obvious from
+a single file:
+
+- **Nullable reference types and implicit usings are on everywhere.** Do not turn either off for a
+  project.
+- **Handlers return `Result` and `Result<T>`, not exceptions.** A failure is a value the caller can
+  see in the type. Follow the [result pattern](https://lucabriguglia.github.io/Memoria/concepts/result-pattern.html)
+  rather than throwing for an outcome a caller should handle.
+- **Public types carry XML documentation**, including the `<example>` blocks that the reference docs
+  and IntelliSense show.
+- **Test projects mirror source projects.** `Memoria.Caching.Memory` is tested by
+  `Memoria.Caching.Memory.Tests`; tests within a project live under `Features/` and `Models/`.
+- **The test stack is xUnit, [AwesomeAssertions](https://github.com/AwesomeAssertions/AwesomeAssertions)
+  and NSubstitute.** Assertions read `result.Should().BeOfType<Success>()`. Do not add another
+  assertion or mocking library.
+- **A behaviour change comes with a test that would have failed before it.** A bug fix without a
+  test that pins the bug is not finished.
+- **A provider is a package.** New stores, message buses, caches and validators go in their own
+  project behind the existing abstraction rather than into the core.
+
+## Documentation lives with the change
+
+`docs/` is the source of the [documentation site](https://lucabriguglia.github.io/Memoria/). If your
+change alters behaviour, a configuration key, or anything the docs describe, update the docs in the
+same pull request. A new page also needs a link from `docs/index.md`, or nothing will find it.
+
+## Opening the pull request
+
+- Branch from `main` and target `main`.
+- Write the commit subject as what the change does, in plain words and without a prefix or a trailing
+  full stop — `Publish the aggregate version alongside the event sequence`, not `feat: version`. Look
+  at `git log` for the tone.
+- Keep the pull request to one change. Two unrelated fixes are two pull requests.
+- Say in the description what the change does and why, and link the issue it came from.
+- **Do not change the version number** in `Directory.Build.props`. Releases are cut by the
+  maintainer.
+- CI must be green: restore, build, and the test run above.
+
+## What to expect
+
+This is a project maintained by one person alongside other work, so a response may take a few days.
+An issue that goes quiet has not been dismissed. If a pull request is not merged, you will be told
+why.
