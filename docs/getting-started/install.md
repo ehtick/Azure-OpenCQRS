@@ -32,6 +32,8 @@ Only `Memoria` is required. Add the others when you need them.
 |------------------------------------------------------------|--------------------------------------------------------------------------------------------------|
 | Memoria                                                    | **Required.** Mediator core: commands, queries, notifications, dispatcher.                       |
 | Memoria.EventSourcing                                      | When you want aggregates, streams, and an `IDomainService`. Pairs with one of the stores below. |
+| Memoria.EventSourcing.Dcb                                  | When a decision's consistency boundary spans more than one aggregate, rather than one stream.    |
+| Memoria.EventSourcing.Dcb.Store.EntityFrameworkCore        | The DCB model on top of EF Core.                                                                 |
 | Memoria.EventSourcing.Store.EntityFrameworkCore            | Event sourcing on top of EF Core (SQL Server, SQLite, PostgreSQL, MySQL, In-Memory).            |
 | Memoria.EventSourcing.Store.EntityFrameworkCore.Identity   | Above, plus ASP.NET Core Identity in the same DbContext.                                         |
 | Memoria.EventSourcing.Store.EntityFrameworkCore.Npgsql     | Adds PostgreSQL `jsonb`-aware event-property filtering to the EF Core store.                     |
