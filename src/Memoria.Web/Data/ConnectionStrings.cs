@@ -19,6 +19,19 @@ public static class ConnectionStrings
     public const string Section = "ConnectionStrings";
 
     /// <summary>
+    /// What a host puts on the end of a name for the entry beside the string holding its ADO.NET
+    /// provider rather than a store.
+    /// </summary>
+    /// <remarks>
+    /// App Service writes one for every connection string type but Custom: a string named
+    /// <c>Memoria</c> there arrives as <c>ConnectionStrings:Memoria</c> and
+    /// <c>ConnectionStrings:Memoria_ProviderName</c>, the second holding <c>System.Data.SqlClient</c>,
+    /// <c>Npgsql</c> or <c>MySql.Data.MySqlClient</c>. A provider name is not a connection string,
+    /// so reading it as one had every such deployment refuse to start.
+    /// </remarks>
+    private const string ProviderNameSuffix = "_ProviderName";
+
+    /// <summary>
     /// What the configuration says about the connection string of that name: nothing, a store an
     /// engine opens, or a string that could not be read and why.
     /// </summary>
@@ -60,6 +73,11 @@ public static class ConnectionStrings
     {
         foreach (var entry in configuration.GetSection(Section).GetChildren())
         {
+            if (entry.Key.EndsWith(ProviderNameSuffix, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
             if (Named(configuration, entry.Key).Problem is { } problem)
             {
                 throw new InvalidOperationException(problem);

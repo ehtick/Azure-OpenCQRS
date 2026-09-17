@@ -181,6 +181,11 @@ Without the first, the address the sign-in asks the provider to send the operato
 as `http://` and refused. Without the second, uploads land beside the application and the next
 deployment removes them.
 
+The connection strings are application settings here, `ConnectionStrings__{name}`. The App
+Service's own **Connection strings** blade works too: a string set there arrives under the same
+name, with a `_ProviderName` entry beside it that the tool passes over — see
+[Configuration](memoria-web-configuration.md#every-setting).
+
 ### Signing in through Entra ID
 
 Any provider that publishes a discovery document will do — see

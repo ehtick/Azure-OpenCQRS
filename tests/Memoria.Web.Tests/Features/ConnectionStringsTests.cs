@@ -117,6 +117,36 @@ public class ConnectionStringsTests
         validate.Should().NotThrow();
     }
 
+    /// <summary>
+    /// What a host puts beside a connection string it was given a type for: a second entry under
+    /// the same name with <c>_ProviderName</c> on the end, holding the ADO.NET provider rather than
+    /// a store. App Service writes one for every type but Custom, so a deployment that named its
+    /// string there arrives with one, and reading it as a connection string refused the whole tool.
+    /// </summary>
+    [Theory]
+    [InlineData("System.Data.SqlClient")]
+    [InlineData("Npgsql")]
+    [InlineData("MySql.Data.MySqlClient")]
+    public void Accepts_at_start_up_the_provider_name_a_host_puts_beside_a_string(string providerName)
+    {
+        var validate = () => ConnectionStrings.Validate(Configuration(
+            ("ConnectionStrings:Memoria", Postgres), ("ConnectionStrings:Memoria_ProviderName", providerName)));
+
+        validate.Should().NotThrow();
+    }
+
+    /// <summary>
+    /// The entry beside it is passed over; the string itself is read as it always was.
+    /// </summary>
+    [Fact]
+    public void Still_refuses_at_start_up_a_string_beside_a_provider_name_when_it_cannot_be_read()
+    {
+        var validate = () => ConnectionStrings.Validate(Configuration(
+            ("ConnectionStrings:Memoria", "nonsense"), ("ConnectionStrings:Memoria_ProviderName", "Npgsql")));
+
+        validate.Should().Throw<InvalidOperationException>().WithMessage("*Memoria*could not be read*");
+    }
+
     [Fact]
     public void Reads_the_cosmos_names_from_the_setting_under_its_own_name()
     {

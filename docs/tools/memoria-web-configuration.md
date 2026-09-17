@@ -35,6 +35,13 @@ As environment variables, replace each `:` with a double underscore:
 `ConnectionStrings__Orders`, `Databases__Orders__Provider`, `Extensions__Directory`,
 `Authentication__Oidc__ClientSecret`, `Authorization__Roles__Administrator`.
 
+A host that gives a connection string a type of its own writes a second entry beside it. App
+Service does, for every type its **Connection strings** blade offers but Custom: a string named
+`Orders` there arrives as both `ConnectionStrings:Orders` and
+`ConnectionStrings:Orders_ProviderName`, the second holding `System.Data.SqlClient`, `Npgsql` or
+`MySql.Data.MySqlClient`. That second entry is an ADO.NET provider name rather than a store, so the
+tool passes over it and reads the engine [off the string itself](#which-engine-it-is) as ever.
+
 ## When it is not configured
 
 A tool told nothing about how operators sign in, or holding a connection string it cannot read,
