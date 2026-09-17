@@ -23,10 +23,20 @@ A command that opts in returns a `CommandResponse` carrying:
 ## Define the contracts
 
 ```csharp
+using Memoria.Messaging;
+
 public record DoSomething(string Name) : ICommand<CommandResponse>;
 public record SomethingHappened(string Name) : INotification;
-public record SomethingToSendToServiceBus(string Name);
+
+public class SomethingToSendToServiceBus : QueueMessage
+{
+    public string Name { get; set; } = string.Empty;
+}
 ```
+
+A notification is any record implementing `INotification`. A message must derive from
+`QueueMessage` or `TopicMessage`, whose `QueueName` and `TopicName` are `required` and say where it
+is published.
 
 ## Implement the handlers
 
@@ -38,7 +48,11 @@ public class DoSomethingHandler : ICommandHandler<DoSomething, CommandResponse>
         CancellationToken cancellationToken = default)
     {
         var notification = new SomethingHappened(command.Name);
-        var message = new SomethingToSendToServiceBus(command.Name);
+        var message = new SomethingToSendToServiceBus
+        {
+            QueueName = "something-happened",
+            Name = command.Name
+        };
 
         var response = new CommandResponse(
             notification,

@@ -1,7 +1,7 @@
 ---
 title: Upgrade to 1.5.0
 parent: Upgrading
-nav_order: 5
+nav_order: 6
 ---
 
 # Upgrade to 1.5.0
@@ -196,3 +196,9 @@ After applying, `events` should hold `IX_Events_EventType`, `IX_Events_StreamId_
 Both scripts are exercised against real SQL Server and PostgreSQL containers on every CI run,
 starting from a database in the pre-1.5.0 shape, and are checked to produce exactly the index set the
 model declares and to be safe to run twice.
+
+## Related
+
+- [Upgrading](../upgrading.md) — every upgrade guide, newest first
+- [Upgrade to 1.6.0](upgrade-1.6.0.md) — the next one
+- [Release notes](../release-notes.md)

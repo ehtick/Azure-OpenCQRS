@@ -1,10 +1,17 @@
 ---
 title: Upgrade to 1.7.0
 parent: Upgrading
-nav_order: 3
+nav_order: 4
 ---
 
 # Upgrade to 1.7.0
+{: .no_toc }
+
+## On this page
+{: .no_toc .text-delta }
+
+1. TOC
+{:toc}
 
 Memoria 1.7.0 removes the link between aggregates and events — the Entity Framework Core
 `DomainAggregateEvents` table and the Cosmos DB `AggregateEvent` document. Four things need

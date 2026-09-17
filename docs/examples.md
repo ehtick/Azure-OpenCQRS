@@ -11,6 +11,7 @@ Runnable sample projects live under [`examples/`](https://github.com/lucabrigugl
 |------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------|--------------------------------------------------------------------|
 | [Memoria.Examples.EventSourcing.EntityFrameworkCore](https://github.com/lucabriguglia/Memoria/tree/main/examples/Memoria.Examples.EventSourcing.EntityFrameworkCore) | Aggregate + EF Core store + DbContext extensions                           | [Quickstart: Event Sourcing](getting-started/quickstart-event-sourcing.md) · [Configuration: EF Core](reference/configuration/ef-core.md) · [EF Core Extensions](reference/ef-core-extensions.md) |
 | [Memoria.Examples.EventSourcing.Dcb.EntityFrameworkCore](https://github.com/lucabriguglia/Memoria/tree/main/examples/Memoria.Examples.EventSourcing.Dcb.EntityFrameworkCore) | Course subscription under a dynamic consistency boundary; union and intersection boundaries side by side, `SaveAggregate` and a query-read projection, both with snapshots | [Dynamic consistency boundaries](concepts/dynamic-consistency-boundaries.md) · [Streams or DCB?](guides/choose-streams-or-dcb.md) · [Configuration: EF Core (DCB)](reference/configuration/dcb-ef-core.md) |
+| [Memoria.Examples.Ecommerce.Dcb](https://github.com/lucabriguglia/Memoria/tree/main/examples/Memoria.Examples.Ecommerce.Dcb) | A full Blazor Server storefront on dynamic consistency boundaries: commands, queries, notifications, FluentValidation and read models over EF Core and PostgreSQL. The largest example here. | [Dynamic consistency boundaries](concepts/dynamic-consistency-boundaries.md) · [Streams or DCB?](guides/choose-streams-or-dcb.md) · [Configuration: EF Core (DCB)](reference/configuration/dcb-ef-core.md) |
 | [Memoria.Examples.EventSourcing.Cosmos](https://github.com/lucabriguglia/Memoria/tree/main/examples/Memoria.Examples.EventSourcing.Cosmos)                         | Aggregate + Cosmos DB store                                                | [Configuration: Cosmos](reference/configuration/cosmos.md)         |
 | [Memoria.Examples.Messaging.ServiceBus](https://github.com/lucabriguglia/Memoria/tree/main/examples/Memoria.Examples.Messaging.ServiceBus)                         | `SendAndPublish` with Azure Service Bus                                    | [Publish to Service Bus](guides/publish-to-service-bus.md)         |
 | [Memoria.Examples.Messaging.RabbitMq](https://github.com/lucabriguglia/Memoria/tree/main/examples/Memoria.Examples.Messaging.RabbitMq)                             | `SendAndPublish` with RabbitMQ                                             | [Publish to RabbitMQ](guides/publish-to-rabbitmq.md)               |
@@ -20,3 +21,10 @@ Runnable sample projects live under [`examples/`](https://github.com/lucabrigugl
 ## Also worth a look
 
 [EventShop](https://github.com/lucabriguglia/EventShop) — a full ecommerce demo built on Memoria, larger than anything in this repo's `examples/`.
+
+## Related
+
+- [Quickstart: Mediator](getting-started/quickstart-mediator.md)
+- [Quickstart: Event Sourcing](getting-started/quickstart-event-sourcing.md)
+- [Install](getting-started/install.md) — which package each example needs
+- [Try Memoria Web with sample data](tools/memoria-web-samples.md) — a store filled for you to browse

@@ -1,7 +1,7 @@
 ---
 title: Upgrade to 1.6.0
 parent: Upgrading
-nav_order: 4
+nav_order: 5
 ---
 
 # Upgrade to 1.6.0

@@ -1,7 +1,7 @@
 ---
 title: Upgrade to 1.9.0
 parent: Upgrading
-nav_order: 1
+nav_order: 2
 ---
 
 # Upgrade to 1.9.0

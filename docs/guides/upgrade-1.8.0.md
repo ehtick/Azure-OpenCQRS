@@ -1,7 +1,7 @@
 ---
 title: Upgrade to 1.8.0
 parent: Upgrading
-nav_order: 2
+nav_order: 3
 ---
 
 # Upgrade to 1.8.0
@@ -148,3 +148,9 @@ release is the property move above and nothing more.
 
 To choose between the two models, see
 [Streams or DCB](choose-streams-or-dcb.md).
+
+## Related
+
+- [Upgrading](../upgrading.md) — every upgrade guide, newest first
+- [Upgrade to 1.9.0](upgrade-1.9.0.md) — the next one
+- [Release notes](../release-notes.md)
