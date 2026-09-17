@@ -1,3 +1,8 @@
+---
+title: Examples
+nav_order: 8
+---
+
 # Examples
 
 Runnable sample projects live under [`examples/`](https://github.com/lucabriguglia/Memoria/tree/main/examples) in the repository. Each demonstrates one feature area against a real (or in-memory) backing service.

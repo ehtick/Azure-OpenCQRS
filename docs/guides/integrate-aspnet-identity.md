@@ -1,3 +1,9 @@
+---
+title: Integrate with ASP.NET Core Identity
+parent: Guides
+nav_order: 11
+---
+
 # Integrate with ASP.NET Core Identity
 
 Memoria's EF Core store can share a `DbContext` with ASP.NET Core Identity, so user data and event-sourced aggregates live side by side in the same database, in the same transaction.
@@ -16,7 +22,7 @@ If neither of these applies, the plain [`Memoria.EventSourcing.Store.EntityFrame
 
 Your `DbContext` inherits from `IdentityDomainDbContext` instead of `DomainDbContext`. Everything else looks like a normal Memoria + EF Core setup:
 
-```C#
+```csharp
 public class ApplicationDbContext(
     DbContextOptions<DomainDbContext> options,
     TimeProvider timeProvider,
@@ -52,7 +58,7 @@ services.AddMemoriaEntityFrameworkCore<ApplicationDbContext>();
 
 Use the `TrackAggregate` / `TrackEventEntities` / `Save` extensions on `IDomainDbContext` to combine an event-sourced write with Identity changes:
 
-```C#
+```csharp
 await userManager.CreateAsync(newUser, password);
 
 var trackAggregateResult = await dbContext.TrackAggregate(

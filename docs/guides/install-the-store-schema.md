@@ -1,3 +1,9 @@
+---
+title: Install the store schema
+parent: Guides
+nav_order: 13
+---
+
 # Install the store schema
 
 The Entity Framework Core store needs three tables: `DomainEvents`, `DomainAggregates`, and

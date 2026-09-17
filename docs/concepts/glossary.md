@@ -1,3 +1,9 @@
+---
+title: Glossary
+parent: Concepts
+nav_order: 8
+---
+
 # Glossary
 
 Definitions for terms used across the Memoria documentation. See also [Overview](overview.md) and [Aggregates and Streams](aggregates-and-streams.md).

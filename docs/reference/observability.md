@@ -1,3 +1,9 @@
+---
+title: Observability
+parent: Reference
+nav_order: 3
+---
+
 # Observability
 
 Memoria's event stores write to the current `System.Diagnostics.Activity` as they work. Nothing is

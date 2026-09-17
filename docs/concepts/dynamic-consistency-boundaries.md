@@ -1,3 +1,9 @@
+---
+title: Dynamic Consistency Boundaries
+parent: Concepts
+nav_order: 3
+---
+
 # Dynamic consistency boundaries
 
 A consistency boundary is the set of events a decision must be consistent with. In the streamed
@@ -33,7 +39,7 @@ There is no right answer, because the decision's boundary is not the same shape 
 
 An event carries **tags** naming the things it concerns:
 
-```C#
+```csharp
 Add(new StudentSubscribedEvent(studentId, courseId),
     new Tag("course", courseId), new Tag("student", studentId));
 ```
@@ -41,7 +47,7 @@ Add(new StudentSubscribedEvent(studentId, courseId),
 A [`TagQuery`](../reference/configuration/dcb-ef-core.md) is a boundary. The commonest shape is the
 events carrying any of its tags:
 
-```C#
+```csharp
 var boundary = TagQuery.AnyOf(new Tag("course", "maths"), new Tag("student", "alice"));
 ```
 
@@ -54,7 +60,7 @@ their ten. One event, two meanings, no duplication.
 `AnyOf` is a **union**: the events carrying *any* of its tags. `AllOf` is an **intersection**: only
 the events carrying *all* of them.
 
-```C#
+```csharp
 // Everything about the course, plus everything about the student.
 var union = TagQuery.AnyOf(new Tag("course", "maths"), new Tag("student", "alice"));
 
@@ -95,7 +101,7 @@ per-boundary filter on event type: `EventTypeFilter` on the model does that job.
 Positions are global to the log, not per stream. A decision reads where its boundary stands, decides,
 and then appends **on condition that the boundary has not moved**:
 
-```C#
+```csharp
 var position = (await dcb.GetLatestPosition(boundary)).Value;
 
 // ... fold the boundary, decide ...
@@ -120,7 +126,7 @@ conditioned appends over the same tags fail; it simply has nothing of its own to
 
 Read the position **before** the fold, and never after:
 
-```C#
+```csharp
 var position = await dcb.GetLatestPosition(boundary);
 var events = await dcb.GetEvents(boundary, model.EventTypeFilter);
 ```
@@ -177,7 +183,7 @@ IEventSourcedModel        Version, EventTypeFilter, Apply, IsEventHandled
 answer to `IAggregateId.EventPropertyFilter` — how this model's events are selected — except that
 tags select on their own, so it is the whole boundary rather than a narrowing inside a stream:
 
-```C#
+```csharp
 public class SubscriptionDecisionId(string courseId, string studentId)
     : IDcbAggregateId<SubscriptionDecision>
 {

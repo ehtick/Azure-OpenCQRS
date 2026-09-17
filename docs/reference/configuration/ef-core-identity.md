@@ -1,3 +1,10 @@
+---
+title: "+ ASP.NET Core Identity"
+parent: Configuration
+grand_parent: Reference
+nav_order: 4
+---
+
 # Entity Framework Core + ASP.NET Core Identity
 
 Memoria supports `IdentityDbContext` from ASP.NET Core Identity, letting you integrate event sourcing with user management and authentication features.
@@ -6,7 +13,7 @@ Memoria supports `IdentityDbContext` from ASP.NET Core Identity, letting you int
 
 Install the **Memoria.EventSourcing.Store.EntityFrameworkCore.Identity** package and use `IdentityDomainDbContext` in your application:
 
-```C#
+```csharp
 // Your db context that inherits from IdentityDomainDbContext
 public class ApplicationDbContext(
     DbContextOptions<DomainDbContext> options,

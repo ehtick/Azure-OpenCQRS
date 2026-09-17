@@ -1,4 +1,7 @@
 ---
+title: Multiple aggregates per stream
+parent: Guides
+nav_order: 7
 redirect_from:
   - /Event-Sourcing-Scenarios.html
   - /Event-Sourcing-Scenarios/
@@ -19,7 +22,7 @@ This guide covers two patterns:
 
 Each aggregate's `EventTypeFilter` lists the events it applies. When loading an aggregate, only matching events are replayed.
 
-```C#
+```csharp
 [AggregateType("Order")]
 public class Order : AggregateRoot
 {
@@ -41,7 +44,7 @@ Both can live on `customer:{id}` without interfering. Saving one updates the str
 
 When two aggregate instances of the same type live on the same stream and apply the same event types — for example, two different orders on the same customer stream — you need a way to tell them apart. Declare an `EventPropertyFilter` on the aggregate id. The framework only applies events whose serialized properties match every entry.
 
-```C#
+```csharp
 public class OrderAggregateId(Guid orderId) : IAggregateId<Order>
 {
     public string Id => $"order:{orderId}";
@@ -63,7 +66,7 @@ Patterns below work with either `IDomainService` or the Entity Framework Core `I
 
 ### Through `IDomainService`
 
-```C#
+```csharp
 var streamId = new CustomerStreamId(customerId);
 var orderId = new OrderAggregateId(orderGuid);
 var loyaltyId = new LoyaltyAggregateId(customerId);
@@ -82,7 +85,7 @@ var loyalty = await domainService.GetAggregate(
 
 When you also need to write entities that aren't event-sourced in the same transaction:
 
-```C#
+```csharp
 var trackAggregateResult = await dbContext.TrackAggregate(
     streamId, orderId, order, expectedEventSequence: 0);
 
@@ -100,7 +103,7 @@ await dbContext.Save();
 
 `TrackEvents` is the lower-level alternative when you want to write raw events first, then attach them to one or more aggregates:
 
-```C#
+```csharp
 var trackEvents = await dbContext.TrackEvents(streamId, events, expectedEventSequence: 0);
 var eventEntities = trackEvents.Value.EventEntities!;
 

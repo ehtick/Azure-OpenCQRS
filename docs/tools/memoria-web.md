@@ -1,3 +1,9 @@
+---
+title: Memoria Web
+parent: Tools
+nav_order: 1
+---
+
 # Memoria Web
 
 Memoria Web is a browser tool for reading a Memoria store. Point it at a database, upload a zip of

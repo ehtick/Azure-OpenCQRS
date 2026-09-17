@@ -1,4 +1,8 @@
 ---
+title: Memoria Core
+parent: Configuration
+grand_parent: Reference
+nav_order: 1
 redirect_from:
   - /Configuration.html
   - /Configuration/
@@ -8,7 +12,7 @@ redirect_from:
 
 Register Memoria in the service collection (**Memoria** package):
 
-```C#
+```csharp
 services.AddMemoria(typeof(CreateProduct), typeof(GetProduct));
 ```
 

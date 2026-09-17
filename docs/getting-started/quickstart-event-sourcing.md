@@ -1,3 +1,9 @@
+---
+title: "Quickstart: Event Sourcing"
+parent: Getting started
+nav_order: 3
+---
+
 # Quickstart: Event Sourcing
 
 A ten-minute walk-through: persist an aggregate, reconstruct it from its events, and replay history in memory. Uses Entity Framework Core's in-memory provider so no database is required.
@@ -6,7 +12,7 @@ Prerequisites: [installed](install.md) the `Memoria`, `Memoria.EventSourcing`, a
 
 ## 1. Register event sourcing
 
-```C#
+```csharp
 public class AppDbContext(
     DbContextOptions<DomainDbContext> options,
     TimeProvider timeProvider,
@@ -32,7 +38,7 @@ For other store providers and the full configuration surface, see [Configuration
 
 You need three things: an event, a stream id, an aggregate id, and an aggregate.
 
-```C#
+```csharp
 [EventType("OrderPlaced")]
 public record OrderPlaced(Guid OrderId, decimal Amount) : IEvent;
 
@@ -81,7 +87,7 @@ The `EventTypeFilter` decides which events the aggregate applies — the same st
 
 ## 3. Save an aggregate
 
-```C#
+```csharp
 var customerId = Guid.NewGuid();
 var orderId = Guid.NewGuid();
 
@@ -100,7 +106,7 @@ var saveResult = await domainService.SaveAggregate(
 
 ## 4. Load it back
 
-```C#
+```csharp
 var loaded = await domainService.GetAggregate(
     streamId,
     aggregateId,
@@ -113,7 +119,7 @@ var loaded = await domainService.GetAggregate(
 
 To inspect what the aggregate looked like at a point in time — for audit, debug, or what-if analysis — reconstruct it from events alone:
 
-```C#
+```csharp
 // Current state, rebuilt event-by-event
 var current = await domainService.GetInMemoryAggregate(streamId, aggregateId);
 

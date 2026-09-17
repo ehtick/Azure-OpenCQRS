@@ -1,3 +1,9 @@
+---
+title: Publish to Service Bus
+parent: Guides
+nav_order: 4
+---
+
 # Publish notifications and messages on command success
 
 Memoria can automatically publish in-process **notifications** and bus **messages** when a command handler succeeds. This is how you keep side effects (emails, search indexing, downstream services) decoupled from the command's primary work.
@@ -16,7 +22,7 @@ A command that opts in returns a `CommandResponse` carrying:
 
 ## Define the contracts
 
-```C#
+```csharp
 public record DoSomething(string Name) : ICommand<CommandResponse>;
 public record SomethingHappened(string Name) : INotification;
 public record SomethingToSendToServiceBus(string Name);
@@ -24,7 +30,7 @@ public record SomethingToSendToServiceBus(string Name);
 
 ## Implement the handlers
 
-```C#
+```csharp
 public class DoSomethingHandler : ICommandHandler<DoSomething, CommandResponse>
 {
     public Task<Result<CommandResponse>> Handle(
@@ -66,13 +72,13 @@ public class SomethingHappenedHandlerTwo : INotificationHandler<SomethingHappene
 
 Use `SendAndPublish` instead of `Send`:
 
-```C#
+```csharp
 var result = await dispatcher.SendAndPublish(new DoSomething("MyName"));
 ```
 
 The returned object contains the command's result plus the result of every notification and message handler:
 
-```C#
+```csharp
 {
     "CommandResult": {
         "IsSuccess": true,

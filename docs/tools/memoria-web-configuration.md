@@ -1,3 +1,9 @@
+---
+title: Configuration
+parent: Tools
+nav_order: 2
+---
+
 # Memoria Web: configuration
 
 Everything [Memoria Web](memoria-web.md) needs is configuration, and only two things are required:

@@ -1,4 +1,7 @@
 ---
+title: Entity Framework Core Extensions
+parent: Reference
+nav_order: 2
 redirect_from:
   - /Entity-Framework-Core-Extensions.html
   - /Entity-Framework-Core-Extensions/
@@ -42,7 +45,7 @@ The Entity Framework Core store provider offers a variety of built-in extension 
 Saves an aggregate to the event store with optimistic concurrency control, persisting all uncommitted domain events and updating the aggregate snapshot.
 
 **New aggregate**
-```C#
+```csharp
 var streamId = new CustomerStreamId(customerId);
 var aggregateId = new OrderAggregateId(orderId);
 var aggregate = new OrderAggregate(orderId, amount: 25.45m);
@@ -51,7 +54,7 @@ var saveAggregateResult = await dbContext.SaveAggregate(streamId, aggregateId, a
 ```
 
 **Update existing aggregate**
-```C#
+```csharp
 var streamId = new CustomerStreamId(customerId);
 var aggregateId = new OrderAggregateId(orderId);
 var latestEventSequence = await domainDbContext.GetLatestEventSequence(streamId);
@@ -71,7 +74,7 @@ var saveAggregateResult = await dbContext.SaveAggregate(streamId, aggregateId, a
 <a name="save-domain-events"></a>
 ### Save Domain Events
 Saves an array of domain events to the event store with optimistic concurrency control, bypassing aggregate persistence. This method is ideal for scenarios where events are generated outside traditional aggregate workflows.
-```C#
+```csharp
 var streamId = new CustomerStreamId(customerId);
 var latestEventSequence = await domainDbContext.GetLatestEventSequence(streamId);
 
@@ -94,7 +97,7 @@ var saveEventsResult = await dbContext.SaveEvents(streamId, events, expectedEven
 <a name="save"></a>
 ### Save
 Saves all pending changes in the domain database context to the underlying data store. This method provides a simple way to persist tracked entity changes without additional event sourcing logic, suitable for scenarios where entities have been explicitly tracked.
-```C#
+```csharp
 // ...track aggregates and domain events...
 
 var item = new ItemEntity
@@ -110,7 +113,7 @@ var saveResult = await dbContext.Save();
 <a name="update-aggregate"></a>
 ### Update Aggregate
 Updates an existing aggregate with new events from its stream, applying any events that occurred after the aggregate's last known state.
-```C#
+```csharp
 var streamId = new CustomerStreamId(customerId);
 var aggregateId = new OrderAggregateId(orderId);
 var updateAggregateResult = await dbContext.UpdateAggregate(streamId, aggregateId);
@@ -121,7 +124,7 @@ var updateAggregateResult = await dbContext.UpdateAggregate(streamId, aggregateI
 <a name="track-aggregate"></a>
 ### Track Aggregate
 Tracks an aggregate's uncommitted events and state changes in the Entity Framework change tracker without persisting to the database, preparing all necessary entities for subsequent save operations.
-```C#
+```csharp
 var streamId = new CustomerStreamId(customerId);
 var aggregateId = new OrderAggregateId(orderId);
 var latestEventSequence = await domainDbContext.GetLatestEventSequence(streamId);
@@ -145,7 +148,7 @@ var saveResult = await dbContext.Save();
 <a name="track-domain-events"></a>
 ### Track Domain Events
 Tracks an array of domain events in the Entity Framework change tracker without persisting to the database, preparing event entities for later save operations with proper sequencing and concurrency control validation.
-```C#
+```csharp
 var streamId = new CustomerStreamId(customerId);
 var latestEventSequence = await domainDbContext.GetLatestEventSequence(streamId);
 
@@ -172,7 +175,7 @@ var saveResult = await dbContext.Save();
 <a name="track-event-entities"></a>
 ### Track Event Entities
 Tracks an aggregate's state changes based on a list of event entities, applying only events that the aggregate can handle and updating its snapshot accordingly.
-```C#
+```csharp
 var streamId = new CustomerStreamId(customerId);
 var orderAggregateId = new OrderAggregateId(orderId);
 var anotherAggregateId = new AnotherAggregateId(orderId);
@@ -197,14 +200,14 @@ Retrieves an aggregate from the event store, either from its snapshot or by reco
 
 If the aggregate does not exist, but domain events that can be applied to the aggregate exist, the aggregate snapshot is stored automatically. This is useful when the domain changes, and you need a different aggregate structure. Increase the version of the aggregate type to force a snapshot creation.
 
-```C#
+```csharp
 var streamId = new CustomerStreamId(customerId);
 var aggregateId = new OrderAggregateId(orderId);
 var aggregateResult = await dbContext.GetAggregate(streamId, aggregateId);
 ```
 
 Optionally, it can be forced to apply any new domain events that occurred after the snapshot was created. This is useful when you want to ensure the aggregate is up to date with the latest events. If new events are found, the aggregate snapshot is updated automatically.
-```C#
+```csharp
 var streamId = new CustomerStreamId(customerId);
 var aggregateId = new OrderAggregateId(orderId);
 var aggregateResult = await dbContext.GetAggregate(streamId, aggregateId, ReadMode.SnapshotWithNewEvents);
@@ -213,7 +216,7 @@ var aggregateResult = await dbContext.GetAggregate(streamId, aggregateId, ReadMo
 <a name="get-in-memory-aggregate"></a>
 ### Get In-Memory Aggregate
 Reconstructs an aggregate entirely from events without using snapshots, providing a pure event-sourced view of the aggregate state.
-```C#
+```csharp
 var streamId = new CustomerStreamId(customerId);
 var aggregateId = new OrderAggregateId(orderId);
 var aggregateResult = await dbContext.GetInMemoryAggregate(streamId, aggregateId);
@@ -222,12 +225,12 @@ var aggregateResult = await dbContext.GetInMemoryAggregate(streamId, aggregateId
 <a name="get-domain-events"></a>
 ### Get Domain Events
 Retrieves all domain events from a specified stream, with optional filtering by event types.
-```C#
+```csharp
 var streamId = new CustomerStreamId(customerId);
 var eventsResult = await dbContext.GetEvents(streamId);
 ```
 Optionally, you can filter the events by specific event types.
-```C#
+```csharp
 var streamId = new CustomerStreamId(customerId);
 var eventTypes = new Type[] { typeof(OrderPlaced), typeof(OrderShipped) };
 var eventsResult = await dbContext.GetEvents(streamId, eventTypes);
@@ -236,13 +239,13 @@ var eventsResult = await dbContext.GetEvents(streamId, eventTypes);
 <a name="get-domain-events-from-sequence"></a>
 ### Get Domain Events From Sequence
 Retrieves domain events from a specified stream starting from a specific sequence number onwards, with optional filtering by event types.
-```C#
+```csharp
 var streamId = new CustomerStreamId(customerId);
 var fromSequence = 5;
 var eventsResult = await dbContext.GetEventsFromSequence(streamId, fromSequence);
 ```
 Optionally, you can filter the events by specific event types.
-```C#
+```csharp
 var streamId = new CustomerStreamId(customerId);
 var fromSequence = 5;
 var eventTypes = new Type[] { typeof(OrderPlaced), typeof(OrderShipped) };
@@ -252,13 +255,13 @@ var eventsResult = await dbContext.GetEventsFromSequence(streamId, fromSequence,
 <a name="get-domain-events-up-to-sequence"></a>
 ### Get Domain Events Up To Sequence
 Retrieves domain events from a specified stream up to and including a specific sequence number, with optional filtering by event types.
-```C#
+```csharp
 var streamId = new CustomerStreamId(customerId);
 var upToSequence = 10;
 var eventsResult = await dbContext.GetEventsUpToSequence(streamId, upToSequence);
 ```
 Optionally, you can filter the events by specific event types.
-```C#
+```csharp
 var streamId = new CustomerStreamId(customerId);
 var upToSequence = 10;
 var eventTypes = new Type[] { typeof(OrderPlaced), typeof(OrderShipped) };
@@ -268,14 +271,14 @@ var eventsResult = await dbContext.GetEventsUpToSequence(streamId, upToSequence,
 <a name="get-domain-events-between-sequences"></a>
 ### Get Domain Events Between Sequences
 Retrieves domain events from a specified stream from and to specific sequence numbers, with optional filtering by event types.
-```C#
+```csharp
 var streamId = new CustomerStreamId(customerId);
 var fromSequence = 5;
 var toSequence = 10;
 var eventsResult = await dbContext.GetEventsBetweenSequences(streamId, fromSequence, toSequence);
 ```
 Optionally, you can filter the events by specific event types.
-```C#
+```csharp
 var streamId = new CustomerStreamId(customerId);
 var fromSequence = 5;
 var toSequence = 10;
@@ -286,13 +289,13 @@ var eventsResult = await dbContext.GetEventsBetweenSequences(streamId, fromSeque
 <a name="get-domain-events-from-date"></a>
 ### Get Domain Events From Date
 Retrieves domain events from a specified stream starting from a specific date onwards, with optional filtering by event types.
-```C#
+```csharp
 var streamId = new CustomerStreamId(customerId);
 var fromDate = new DateTime(2024, 6, 15, 17, 45, 48);
 var eventsResult = await dbContext.GetEventsFromDate(streamId, fromDate);
 ```
 Optionally, you can filter the events by specific event types.
-```C#
+```csharp
 var streamId = new CustomerStreamId(customerId);
 var fromDate = new DateTime(2024, 6, 15, 17, 45, 48);
 var eventTypes = new Type[] { typeof(OrderPlaced), typeof(OrderShipped) };
@@ -302,13 +305,13 @@ var eventsResult = await dbContext.GetEventsFromDate(streamId, fromDate, eventTy
 <a name="get-domain-events-up-to-date"></a>
 ### Get Domain Events Up To Date
 Retrieves domain events from a specified stream up to and including a specific date, with optional filtering by event types.
-```C#
+```csharp
 var streamId = new CustomerStreamId(customerId);
 var upToDate = new DateTime(2024, 6, 15, 17, 45, 48);
 var eventsResult = await dbContext.GetEventsUpToDate(streamId, upToDate);
 ```
 Optionally, you can filter the events by specific event types.
-```C#
+```csharp
 var streamId = new CustomerStreamId(customerId);
 var upToDate = new DateTime(2024, 6, 15, 17, 45, 48);
 var eventTypes = new Type[] { typeof(OrderPlaced), typeof(OrderShipped) };
@@ -318,14 +321,14 @@ var eventsResult = await dbContext.GetEventsUpToDate(streamId, upToDate, eventTy
 <a name="get-domain-events-between-dates"></a>
 ### Get Domain Events Between Dates
 Retrieves domain events from a specified stream from and to specific dates, with optional filtering by event types.
-```C#
+```csharp
 var streamId = new CustomerStreamId(customerId);
 var fromDate = new DateTime(2024, 6, 15, 17, 45, 48);
 var toDate = new DateTime(2024, 6, 25, 12, 46, 22);
 var eventsResult = await dbContext.GetEventsBetweenDates(streamId, fromDate, toDate);
 ```
 Optionally, you can filter the events by specific event types.
-```C#
+```csharp
 var streamId = new CustomerStreamId(customerId);
 var fromDate = new DateTime(2024, 6, 15, 17, 45, 48);
 var toDate = new DateTime(2024, 6, 25, 12, 46, 22);
@@ -336,12 +339,12 @@ var eventsResult = await dbContext.GetEventsBetweenDates(streamId, fromDate, toD
 <a name="get-latest-event-sequence"></a>
 ### Get Latest Event Sequence
 Retrieves the latest event sequence number for a specified stream, with optional filtering by event types. This method provides the current position in an event stream, essential for optimistic concurrency control and determining where to append new events in event sourcing operations.
-```C#
+```csharp
 var streamId = new CustomerStreamId(customerId);
 var latestEventSequence = await dbContext.GetLatestEventSequence(streamId);
 ```
 Optionally, you can filter the events by specific event types.
-```C#
+```csharp
 var streamId = new CustomerStreamId(customerId);
 var eventTypes = new Type[] { typeof(OrderPlaced), typeof(OrderShipped) };
 var latestEventSequence = await dbContext.GetLatestEventSequence(streamId, eventTypes);
@@ -353,12 +356,12 @@ var latestEventSequence = await dbContext.GetLatestEventSequence(streamId, event
 <a name="get-event-entities"></a>
 ### Get Event Entities
 Retrieves all event entities from a specified stream, with optional filtering by event types.
-```C#
+```csharp
 var streamId = new CustomerStreamId(customerId);
 var eventEntitiesResult = await dbContext.GetEventEntities(streamId);
 ```
 Optionally, you can filter the events by specific event types.
-```C#
+```csharp
 var streamId = new CustomerStreamId(customerId);
 var eventTypes = new Type[] { typeof(OrderPlaced), typeof(OrderShipped) };
 var eventEntitiesResult = await dbContext.GetEventEntities(streamId, eventTypes);
@@ -367,14 +370,14 @@ var eventEntitiesResult = await dbContext.GetEventEntities(streamId, eventTypes)
 <a name="get-event-entities-between-sequences"></a>
 ### Get Event Entities Between Sequences
 Retrieves event entities from a specified stream from and to specific sequence numbers, with optional filtering by event types.
-```C#
+```csharp
 var streamId = new CustomerStreamId(customerId);
 var fromSequence = 5;
 var toSequence = 10;
 var eventsResult = await dbContext.EventEntitiesBetweenSequences(streamId, fromSequence, toSequence);
 ```
 Optionally, you can filter the events by specific event types.
-```C#
+```csharp
 var streamId = new CustomerStreamId(customerId);
 var fromSequence = 5;
 var toSequence = 10;
@@ -385,13 +388,13 @@ var eventsResult = await dbContext.EventEntitiesBetweenSequences(streamId, fromS
 <a name="get-event-entities-from-sequence"></a>
 ### Get Event Entities From Sequence
 Retrieves a list of event entities from the specified stream starting from a given sequence number, with optional filtering by event types.
-```C#
+```csharp
 var streamId = new CustomerStreamId(customerId);
 var fromSequence = 5;
 var eventEntitiesResult = await dbContext.GetEventEntitiesFromSequence(streamId, fromSequence);
 ```
 Optionally, you can filter the events by specific event types.
-```C#
+```csharp
 var streamId = new CustomerStreamId(customerId);
 var fromSequence = 5;
 var eventTypes = new Type[] { typeof(OrderPlaced), typeof(OrderShipped) };
@@ -401,13 +404,13 @@ var eventEntitiesResult = await dbContext.GetEventEntitiesFromSequence(streamId,
 <a name="get-event-entities-up-to-sequence"></a>
 ### Get Event Entities Up To Sequence
 Retrieves event entities from a specified stream up to and including a specific sequence number, with optional filtering by event types.
-```C#
+```csharp
 var streamId = new CustomerStreamId(customerId);
 var upToSequence = 10;
 var eventEntitiesResult = await dbContext.GetEventEntitiesUpToSequence(streamId, upToSequence);
 ```
 Optionally, you can filter the events by specific event types.
-```C#
+```csharp
 var streamId = new CustomerStreamId(customerId);
 var upToSequence = 10;
 var eventTypes = new Type[] { typeof(OrderPlaced), typeof(OrderShipped) };

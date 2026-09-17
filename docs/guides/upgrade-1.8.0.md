@@ -1,3 +1,9 @@
+---
+title: Upgrade to 1.8.0
+parent: Upgrading
+nav_order: 2
+---
+
 # Upgrade to 1.8.0
 
 Memoria 1.8.0 adds Dynamic Consistency Boundaries (DCB) as a second consistency model, in its own

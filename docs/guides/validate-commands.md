@@ -1,3 +1,9 @@
+---
+title: Validate commands
+parent: Guides
+nav_order: 1
+---
+
 # Validate commands
 
 Memoria can run a validator over a command before it reaches its handler. If validation fails, the handler is not called and the dispatcher returns a `Result` whose `Error.Details` lists every failure.
@@ -8,7 +14,7 @@ This guide assumes you have FluentValidation registered — see [Configuration: 
 
 Validation is opt-in. Set `validateCommand: true` on any dispatcher method:
 
-```C#
+```csharp
 var result = await dispatcher.Send(command, validateCommand: true);
 var result = await dispatcher.SendAndPublish(command, validateCommand: true);
 ```
@@ -17,7 +23,7 @@ For [command sequences](command-sequences.md), use `validateCommands: true` on `
 
 ## What a validation failure looks like
 
-```C#
+```csharp
 {
     "IsSuccess": false,
     "Value": null,
@@ -35,7 +41,7 @@ For [command sequences](command-sequences.md), use `validateCommands: true` on `
 
 Use FluentValidation as you would in any other project:
 
-```C#
+```csharp
 public class CreateProductValidator : AbstractValidator<CreateProduct>
 {
     public CreateProductValidator()

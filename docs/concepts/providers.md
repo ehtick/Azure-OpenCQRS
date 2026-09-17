@@ -1,4 +1,7 @@
-| Storage (streams) | `IDomainService`     |---
+---
+title: Providers
+parent: Concepts
+nav_order: 6
 redirect_from:
   - /Store-Providers.html
   - /Store-Providers/

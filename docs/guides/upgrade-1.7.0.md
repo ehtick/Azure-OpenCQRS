@@ -1,3 +1,9 @@
+---
+title: Upgrade to 1.7.0
+parent: Upgrading
+nav_order: 3
+---
+
 # Upgrade to 1.7.0
 
 Memoria 1.7.0 removes the link between aggregates and events — the Entity Framework Core

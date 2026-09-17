@@ -1,3 +1,10 @@
+---
+title: Entity Framework Core (DCB)
+parent: Configuration
+grand_parent: Reference
+nav_order: 6
+---
+
 # Configuration: Entity Framework Core (DCB)
 
 `Memoria.EventSourcing.Dcb.Store.EntityFrameworkCore` is the store for
@@ -6,7 +13,7 @@ of `Memoria.EventSourcing.Store.EntityFrameworkCore`: installing one pulls in no
 
 ## Registration
 
-```C#
+```csharp
 services.AddDbContext<SchoolDbContext>(options => options.UseSqlServer(connectionString));
 
 services.AddMemoriaDcb(typeof(Program));
@@ -22,7 +29,7 @@ either order.
 
 Your context derives from `DcbDbContext` and needs nothing else:
 
-```C#
+```csharp
 public class SchoolDbContext(
     DbContextOptions<DcbDbContext> options,
     TimeProvider timeProvider,
@@ -36,7 +43,7 @@ An append commits at most `DcbDbContextExtensions.DefaultMaxEventsPerAppend` (10
 no hard relational limit the way Cosmos DB caps a transactional batch; this guards an unbounded
 append. Override it per registration:
 
-```C#
+```csharp
 services.AddMemoriaDcbEntityFrameworkCore<SchoolDbContext>(maxEventsPerAppend: 200);
 ```
 

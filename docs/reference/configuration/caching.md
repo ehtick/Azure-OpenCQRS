@@ -1,3 +1,10 @@
+---
+title: Caching
+parent: Configuration
+grand_parent: Reference
+nav_order: 10
+---
+
 # Configuration: Caching
 
 To use Memoria's caching features, install and register a caching package.
@@ -6,7 +13,7 @@ To use Memoria's caching features, install and register a caching package.
 
 Install **Memoria.Caching.Memory**:
 
-```C#
+```csharp
 services.AddMemoriaMemoryCache();
 ```
 
@@ -14,7 +21,7 @@ services.AddMemoriaMemoryCache();
 
 Install **Memoria.Caching.Redis**:
 
-```C#
+```csharp
 services.AddMemoriaRedisCache(options =>
 {
     options.ConnectionString = "localhost:6379";

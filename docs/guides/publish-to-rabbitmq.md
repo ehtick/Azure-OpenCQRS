@@ -1,3 +1,9 @@
+---
+title: Publish to RabbitMQ
+parent: Guides
+nav_order: 5
+---
+
 # Publish notifications and messages to RabbitMQ
 
 The mechanism for publishing in-process notifications and bus messages is identical across messaging providers — only the registration changes. If you've read [Publish to Service Bus](publish-to-service-bus.md), the only difference is the package and the `Add…` call.

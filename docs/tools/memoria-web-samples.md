@@ -1,3 +1,9 @@
+---
+title: Try it with sample data
+parent: Tools
+nav_order: 4
+---
+
 # Try Memoria Web with sample data
 
 [Memoria Web](memoria-web.md) shows you a store through your own domain types. To try it before you

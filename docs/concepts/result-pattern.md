@@ -1,3 +1,9 @@
+---
+title: Result Pattern
+parent: Concepts
+nav_order: 7
+---
+
 # Result Pattern
 
 Every handler and every provider in Memoria returns a `Result` (or `Result<T>`) instead of throwing on failure. This makes outcomes explicit in the type system: callers must look at the result before they can use it, and the framework can compose results without unwinding the stack.
@@ -11,7 +17,7 @@ Both are discriminated unions of `Success` / `Failure`, implemented via the [One
 
 ## How handlers use it
 
-```C#
+```csharp
 public async Task<Result<Order>> Handle(GetOrder query)
 {
     var order = await _dbContext.Orders.FirstOrDefaultAsync(o => o.Id == query.Id);
@@ -30,7 +36,7 @@ The caller sees `Result<Order>`, not `Order` — they can't accidentally use a v
 
 When you call `IDomainService.SaveAggregate`, `IDomainService.GetEvents`, or any other framework operation, you get a `Result`. Check `IsSuccess`, unwrap with `.Value`, or short-circuit on failure:
 
-```C#
+```csharp
 var aggregateResult = await domainService.GetAggregate(streamId, aggregateId);
 if (!aggregateResult.IsSuccess)
 {
@@ -52,7 +58,7 @@ which provider is behind `IDomainService`. Every provider reports the same shape
 
 The constants live on `StoreFailures`, so you can branch on them without matching strings:
 
-```C#
+```csharp
 var result = await domainService.SaveAggregate(streamId, aggregateId, order, expectedEventSequence);
 
 if (!result.IsSuccess && result.Failure!.Type == StoreFailures.ConcurrencyConflictType)

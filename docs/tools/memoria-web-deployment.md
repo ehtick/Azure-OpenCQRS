@@ -1,3 +1,9 @@
+---
+title: Deployment
+parent: Tools
+nav_order: 3
+---
+
 # Memoria Web: deployment
 
 [Memoria Web](memoria-web.md) is not published to NuGet. It is an ASP.NET Core application in the

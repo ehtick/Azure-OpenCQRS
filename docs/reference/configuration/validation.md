@@ -1,3 +1,10 @@
+---
+title: Validation
+parent: Configuration
+grand_parent: Reference
+nav_order: 7
+---
+
 # Configuration: Validation
 
 To use Memoria's command validation features, install and register a validation package.
@@ -6,7 +13,7 @@ To use Memoria's command validation features, install and register a validation 
 
 Install **Memoria.Validation.FluentValidation**:
 
-```C#
+```csharp
 services.AddMemoriaFluentValidation(typeof(CreateProduct));
 ```
 

@@ -1,4 +1,7 @@
 ---
+title: Aggregates and Streams
+parent: Concepts
+nav_order: 2
 redirect_from:
   - /Domain.html
   - /Domain/
@@ -18,7 +21,7 @@ Memoria models state as a stream of immutable domain events. An **aggregate** is
 
 A Stream Id is a unique identifier that represents a specific event stream. For example, a stream could represent all events related to a specific customer or order.
 
-```C#
+```csharp
 public class CustomerStreamId(string customerId) : IStreamId
 {
     public string Id => $"customer:{customerId}";
@@ -32,7 +35,7 @@ var streamId = new CustomerStreamId(customerId);
 
 Domain events represent business decisions that have happened in the domain and are stored as part of an event stream.
 
-```C#
+```csharp
 [EventType("OrderPlaced")]
 public record OrderPlacedEvent(Guid orderId, decimal amount) : IEvent;
 ```
@@ -42,7 +45,7 @@ public record OrderPlacedEvent(Guid orderId, decimal amount) : IEvent;
 
 An Aggregate Id uniquely identifies aggregate instances within the domain and serves as the primary key for aggregate persistence and retrieval.
 
-```C#
+```csharp
 public class OrderAggregateId(string orderId) : IAggregateId<OrderAggregate>
 {
     public string Id => $"order:{orderId}";
@@ -64,7 +67,7 @@ In addition to the aggregate's `EventTypeFilter`, the aggregate id can declare a
 
 This is particularly useful when multiple aggregate instances share the same stream and the same event types, and need to be told apart by the value of one or more event properties (for example, a specific order id, a tenant id, or a region).
 
-```C#
+```csharp
 public class OrderAggregateId(Guid orderId) : IAggregateId<OrderAggregate>
 {
     public string Id => $"order:{orderId}";
@@ -85,7 +88,7 @@ Domain events in an event stream can be handled by multiple aggregates, but each
 
 Aggregates have an event type filter that specifies which types of events they can handle. When loading an aggregate from an event stream, only the events that match the aggregate's event type filter are applied to reconstruct its state. If no events are specified in the filter, the aggregate will load all events from the stream.
 
-```C#
+```csharp
 [AggregateType("Order")]
 public class Order : AggregateRoot
 {

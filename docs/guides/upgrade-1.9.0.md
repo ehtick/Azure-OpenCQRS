@@ -1,3 +1,9 @@
+---
+title: Upgrade to 1.9.0
+parent: Upgrading
+nav_order: 1
+---
+
 # Upgrade to 1.9.0
 
 Memoria 1.9.0 renames the Entity Framework Core event table from `events` to `DomainEvents`. It is a

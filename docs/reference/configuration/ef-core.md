@@ -1,4 +1,8 @@
 ---
+title: Entity Framework Core
+parent: Configuration
+grand_parent: Reference
+nav_order: 3
 redirect_from:
   - /Entity-Framework-Core.html
   - /Entity-Framework-Core/
@@ -26,7 +30,7 @@ The event sourcing functionalities can be used with the following Entity Framewo
 
 Install the **Memoria.EventSourcing.Store.EntityFrameworkCore** package, then create or update your DbContext and register the provider:
 
-```C#
+```csharp
 // Your db context that inherits from DomainDbContext
 public class ApplicationDbContext(
     DbContextOptions<DomainDbContext> options,
@@ -60,7 +64,7 @@ services.AddMemoriaEntityFrameworkCore<ApplicationDbContext>();
 
 For PostgreSQL, install the companion **Memoria.EventSourcing.Store.EntityFrameworkCore.Npgsql** package when storing the event data column as `jsonb` so that `eventPropertyFilter` queries translate correctly. The default substring filter does not match `jsonb` columns because Postgres normalizes the JSON text; this package replaces it with one that uses the `@>` JSON containment operator.
 
-```C#
+```csharp
 services.AddMemoriaEntityFrameworkCore<ApplicationDbContext>();
 services.AddMemoriaEntityFrameworkCoreNpgsql();
 ```

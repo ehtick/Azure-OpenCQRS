@@ -1,4 +1,7 @@
 ---
+title: Use PostgreSQL with jsonb
+parent: Guides
+nav_order: 10
 redirect_from:
   - /Entity-Framework-Core-Npgsql.html
   - /Entity-Framework-Core-Npgsql/
@@ -25,7 +28,7 @@ Without the Npgsql filter, `eventPropertyFilter = { "Name": "Alice" }` queries s
 
 The new filter requires the `events.Data` column to be a JSON column. Configure this in your `DbContext`'s `OnModelCreating`:
 
-```C#
+```csharp
 protected override void OnModelCreating(ModelBuilder modelBuilder)
 {
     base.OnModelCreating(modelBuilder);
@@ -40,7 +43,7 @@ protected override void OnModelCreating(ModelBuilder modelBuilder)
 
 Add a GIN index when streams grow large and property filtering becomes a hot path:
 
-```C#
+```csharp
 modelBuilder.Entity<EventEntity>()
     .HasIndex(e => e.Data)
     .HasMethod("gin");
@@ -60,7 +63,7 @@ Property names and values are JSON-encoded before being passed to Postgres, so q
 
 `IEventDataFilter` is a public abstraction in `Memoria.EventSourcing.Store.EntityFrameworkCore.Filtering`. Provide your own implementation and register it before calling `AddMemoriaEntityFrameworkCore<TDbContext>()`:
 
-```C#
+```csharp
 services.AddSingleton<IEventDataFilter, MyFilter>();
 services.AddMemoriaEntityFrameworkCore<ApplicationDbContext>();
 ```
@@ -76,7 +79,7 @@ tags select events directly, which is the job property filtering was doing.
 `jsonb` is still worth having there, for the same reason it is worth having here — your own queries
 and GIN indexes over the payload. It needs no package, only the same override in your own context:
 
-```C#
+```csharp
 public class BoxOfficeDbContext(
     DbContextOptions<DcbDbContext> options,
     TimeProvider timeProvider,

@@ -1,3 +1,9 @@
+---
+title: Use a custom command handler
+parent: Guides
+nav_order: 2
+---
+
 # Use a custom command handler
 
 By default the dispatcher resolves the registered `ICommandHandler<>` for the command type. You can bypass that and supply a delegate yourself when you need to — for example, to call a domain service directly, to compose existing handlers, or in test code.
@@ -6,7 +12,7 @@ By default the dispatcher resolves the registered `ICommandHandler<>` for the co
 
 Pass a delegate as the second argument to `Send` or `SendAndPublish`:
 
-```C#
+```csharp
 var result = await dispatcher.Send(
     command,
     () => _somethingService.DoSomethingAsync(command));

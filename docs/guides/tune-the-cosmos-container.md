@@ -1,3 +1,9 @@
+---
+title: Tune the Cosmos DB container
+parent: Guides
+nav_order: 14
+---
+
 # Tune the Cosmos DB container
 
 The Cosmos DB **default indexing policy** indexes every path of every document. For an event store
@@ -82,7 +88,7 @@ If you provision infrastructure declaratively, take the JSON straight into your 
 
 The Azure CLI cannot reach the Cosmos DB emulator, so use the API instead:
 
-```C#
+```csharp
 await cosmosSetup.ReplaceIndexingPolicy(CosmosIndexingPolicy.CreateRecommended());
 ```
 

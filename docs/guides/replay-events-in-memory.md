@@ -1,3 +1,9 @@
+---
+title: Replay events in memory
+parent: Guides
+nav_order: 9
+---
+
 # Replay events in memory
 
 Sometimes you need an aggregate's state without writing a snapshot — for audit, debug, "what did this look like on day X", or rebuilding state after a model change. `IDomainService.GetInMemoryAggregate` reconstructs the aggregate purely from its events, with no snapshot involved.
@@ -6,7 +12,7 @@ This is read-only: nothing is written to the store.
 
 ## Reconstruct the current state
 
-```C#
+```csharp
 var streamId = new CustomerStreamId(customerId);
 var aggregateId = new OrderAggregateId(orderId);
 
@@ -19,7 +25,7 @@ Every event in the stream that matches the aggregate's `EventTypeFilter` (and `E
 
 Useful for debugging — "what did this aggregate look like right before the bad event landed?":
 
-```C#
+```csharp
 var aggregate = await domainService.GetInMemoryAggregate(
     streamId, aggregateId, upToSequence: 42);
 ```
@@ -28,7 +34,7 @@ var aggregate = await domainService.GetInMemoryAggregate(
 
 Useful for audit reports and historical queries:
 
-```C#
+```csharp
 var aggregate = await domainService.GetInMemoryAggregate(
     streamId, aggregateId, upToDate: someDate);
 ```

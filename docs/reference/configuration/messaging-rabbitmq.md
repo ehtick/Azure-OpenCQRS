@@ -1,8 +1,15 @@
+---
+title: "Messaging: RabbitMQ"
+parent: Configuration
+grand_parent: Reference
+nav_order: 9
+---
+
 # Configuration: RabbitMQ
 
 To use RabbitMQ messaging, install and register the **Memoria.Messaging.RabbitMq** package:
 
-```C#
+```csharp
 services.AddMemoriaRabbitMq(options =>
 {
     options.ConnectionString = connectionString;

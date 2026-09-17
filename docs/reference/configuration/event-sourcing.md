@@ -1,8 +1,15 @@
+---
+title: Event Sourcing
+parent: Configuration
+grand_parent: Reference
+nav_order: 2
+---
+
 # Configuration: Event Sourcing
 
 To use Memoria's event sourcing features, install the **Memoria.EventSourcing** package and register it:
 
-```C#
+```csharp
 services.AddMemoriaEventSourcing();
 ```
 

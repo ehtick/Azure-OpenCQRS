@@ -1,4 +1,6 @@
 ---
+title: Release Notes
+nav_order: 9
 redirect_from:
   - /Release-Notes.html
   - /Release-Notes/

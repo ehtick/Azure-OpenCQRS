@@ -1,3 +1,9 @@
+---
+title: Projections
+parent: Concepts
+nav_order: 4
+---
+
 # Projections
 
 A **projection** is a read model: a query-optimised view of state that is built by applying domain events, then stored so it can be read back quickly. Where an [aggregate](aggregates-and-streams.md) is the *write* model — it produces new events and enforces invariants — a projection only *reads* events and never produces them.
@@ -14,7 +20,7 @@ Both aggregates and projections share the same event-application machinery throu
 
 A projection inherits from `Projection` and, like an aggregate, declares an `EventTypeFilter` and an `Apply` method. It has no `Add` method and no uncommitted events, because it never creates events.
 
-```C#
+```csharp
 [ProjectionType("OrderSummary")]
 public class OrderSummary : Projection
 {
@@ -56,7 +62,7 @@ The `[ProjectionType("Name", version)]` attribute gives the projection a stable,
 
 A Projection Id uniquely identifies a projection snapshot and serves as its persistence key. It implements `IProjectionId<TProjection>`.
 
-```C#
+```csharp
 public class OrderSummaryProjectionId(string customerId) : IProjectionId<OrderSummary>
 {
     public string Id => $"order-summary:{customerId}";
@@ -73,7 +79,7 @@ Like an aggregate id, a projection id can declare an optional `EventPropertyFilt
 
 A stream can hold events for several models, and a read model is no less likely to share a stream than a write model. The `EventTypeFilter` narrows by event type; this narrows by event content, which is what tells two projections of the same type apart when they read the same stream and the same event types.
 
-```C#
+```csharp
 public class OrderSummaryProjectionId(Guid orderId) : IProjectionId<OrderSummary>
 {
     public string Id => $"order-summary:{orderId}";
@@ -92,7 +98,7 @@ The filter is honoured everywhere the projection is folded: the initial build in
 
 You build a projection by applying the events you care about, then persist it with `SaveProjection`. Read it back later with `GetProjection`.
 
-```C#
+```csharp
 var streamId = new CustomerStreamId(customerId);
 var projectionId = new OrderSummaryProjectionId(customerId);
 
@@ -112,7 +118,7 @@ var projectionResult = await domainService.GetProjection(streamId, projectionId)
 
 For ad-hoc reads where you don't want to leave a snapshot behind, `GetInMemoryProjection` folds matching events straight into a fresh projection instance without persisting anything. Overloads let you reconstruct the full stream, up to a sequence, or up to a date — the projection equivalent of `GetInMemoryAggregate`.
 
-```C#
+```csharp
 var projectionResult = await domainService.GetInMemoryProjection(streamId, projectionId);
 ```
 

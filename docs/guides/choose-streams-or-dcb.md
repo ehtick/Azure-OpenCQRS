@@ -1,3 +1,9 @@
+---
+title: Streams or DCB?
+parent: Guides
+nav_order: 8
+---
+
 # Streams or DCB?
 
 Memoria ships two consistency models. They are independent packages, they share no tables, and an
@@ -55,7 +61,7 @@ tag and query it directly:
 
 Both live on the identifier, so the two models line up almost exactly:
 
-```C#
+```csharp
 // Streams: the stream is passed in, and the id narrows to this aggregate's events inside it
 public class OrderId(Guid id) : IAggregateId<Order>
 {
@@ -177,7 +183,7 @@ consequence.
 Nothing stops you. Register each, and give each its own `DbContext` or apply both sets of entity
 configurations to one:
 
-```C#
+```csharp
 services.AddMemoriaEventSourcing(typeof(Program));
 services.AddMemoriaEntityFrameworkCore<MyStoreDbContext>();
 

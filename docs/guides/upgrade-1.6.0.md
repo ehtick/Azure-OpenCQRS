@@ -1,3 +1,9 @@
+---
+title: Upgrade to 1.6.0
+parent: Upgrading
+nav_order: 4
+---
+
 # Upgrade to 1.6.0
 
 Two changes need attention. Both affect only the Cosmos DB store.
@@ -22,7 +28,7 @@ the emulator that is about 2.4% off writes and 3–6% off reads.
 upgrading changes nothing about a database you already have. To bring an existing container across,
 ask for it explicitly:
 
-```C#
+```csharp
 await cosmosSetup.ReplaceIndexingPolicy(CosmosIndexingPolicy.CreateRecommended());
 ```
 
@@ -34,7 +40,7 @@ holds data. The equivalent scripts under `scripts/install` do the same thing thr
 the policy excludes still returns correct results, but scans the partition instead of using an
 index. Either add the path, or keep the previous behaviour by passing a policy of your own:
 
-```C#
+```csharp
 await cosmosSetup.CreateDatabaseAndContainerIfNotExist(new IndexingPolicy());
 ```
 
@@ -66,7 +72,7 @@ Nothing to do. The wiring changed underneath you.
 Both constructors now take a `CosmosClientProvider` in place of `IOptions<CosmosOptions>`, and so
 does `CosmosSetup`:
 
-```C#
+```csharp
 // Before
 var dataStore = new CosmosDataStore(options, timeProvider, httpContextAccessor);
 var domainService = new CosmosDomainService(options, timeProvider, httpContextAccessor, dataStore);

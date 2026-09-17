@@ -1,3 +1,9 @@
+---
+title: Cache query results
+parent: Guides
+nav_order: 6
+---
+
 # Cache query results
 
 Memoria can cache query results automatically. Inherit from `CacheableQuery<TKey>`, supply a cache key and TTL on the query instance, and the dispatcher returns the cached value when one exists.
@@ -6,7 +12,7 @@ This guide assumes a caching provider is registered — see [Configuration: Cach
 
 ## Make the query cacheable
 
-```C#
+```csharp
 public class GetSomething : CacheableQuery<string>;
 ```
 
@@ -17,7 +23,7 @@ public class GetSomething : CacheableQuery<string>;
 
 ## Set the key and TTL at dispatch
 
-```C#
+```csharp
 var result = await dispatcher.Get(new GetSomething
 {
     CacheKey = "product:123",

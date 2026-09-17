@@ -1,3 +1,9 @@
+---
+title: Test without external dependencies
+parent: Guides
+nav_order: 12
+---
+
 # Test without external dependencies
 
 For tests and local development, Memoria ships in-process variants of the providers that normally require a real backing service. Your application code is unchanged — only the registration differs.
@@ -14,7 +20,7 @@ The same `IDomainService` / `IMessagingProvider` / `ICachingProvider` contract i
 
 ## Event sourcing with EF Core's in-memory provider
 
-```C#
+```csharp
 services
     .AddScoped(sp => new DbContextOptionsBuilder<DomainDbContext>()
         .UseInMemoryDatabase("test-db")
@@ -30,7 +36,7 @@ services.AddMemoriaEntityFrameworkCore<AppDbContext>();
 
 ## Event sourcing with Cosmos InMemory
 
-```C#
+```csharp
 services.AddMemoriaCosmosInMemory();
 ```
 
@@ -38,7 +44,7 @@ No Cosmos endpoint or key required. Data lives in-process for the lifetime of th
 
 ## Messaging InMemory variants
 
-```C#
+```csharp
 services.AddMemoriaServiceBusInMemory();
 // or
 services.AddMemoriaRabbitMqInMemory();

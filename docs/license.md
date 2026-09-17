@@ -1,4 +1,6 @@
 ---
+title: Licence
+nav_order: 10
 redirect_from:
   - /licence.html
   - /licensing.html

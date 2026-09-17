@@ -1,4 +1,8 @@
 ---
+title: Cosmos DB
+parent: Configuration
+grand_parent: Reference
+nav_order: 5
 redirect_from:
   - /Cosmos.html
   - /Cosmos/
@@ -14,7 +18,7 @@ You can use the `IDomainService` interface to access the event-sourcing function
 
 Install the **Memoria.EventSourcing.Store.Cosmos** package, then register the provider:
 
-```C#
+```csharp
 services.AddMemoriaCosmos(options =>
 {
     // Required
@@ -49,7 +53,7 @@ Resolve `CosmosClientProvider` if you need the shared `CosmosClient` or `Contain
 
 You can use the `CosmosSetup` helper to create the database and the container if they do not exist:
 
-```C#
+```csharp
 cosmosSetup.CreateDatabaseAndContainerIfNotExist(throughput: 400);
 ```
 
@@ -57,7 +61,7 @@ The container is created with the [indexing policy the store is built
 for](../../guides/tune-the-cosmos-container.md) — only the paths it filters or sorts on. To keep the
 Cosmos DB default of indexing every path instead, pass one explicitly:
 
-```C#
+```csharp
 await cosmosSetup.CreateDatabaseAndContainerIfNotExist(new IndexingPolicy());
 ```
 
@@ -65,7 +69,7 @@ The policy applies only to a container this call creates. A container that alrea
 policy it has, because changing it starts a background reindex during which queries can return
 incomplete results. When you want that, ask for it:
 
-```C#
+```csharp
 await cosmosSetup.ReplaceIndexingPolicy(CosmosIndexingPolicy.CreateRecommended());
 ```
 
@@ -87,7 +91,7 @@ document ids are built from different things:
 So an aggregate whose id renders the same string as its stream id puts its version 1 snapshot on the
 id of the event at sequence 1:
 
-```C#
+```csharp
 // Collides. The snapshot's document id is "order-42:1", and so is the first event's.
 public class OrderStreamId(string orderId) : IStreamId
 {
@@ -103,7 +107,7 @@ public class OrderAggregateId(string orderId) : IAggregateId<Order>
 Give the aggregate or the projection an identifier that differs from the stream's — a prefix is
 enough, and it is what the framework's own examples do:
 
-```C#
+```csharp
 public string Id => $"order:{orderId}";        // stream
 public string Id => $"order-aggregate:{orderId}";  // aggregate
 ```

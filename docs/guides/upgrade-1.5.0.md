@@ -1,3 +1,9 @@
+---
+title: Upgrade to 1.5.0
+parent: Upgrading
+nav_order: 5
+---
+
 # Upgrade to 1.5.0
 
 Four changes need attention when upgrading. The first three affect code, the fourth affects your
@@ -23,7 +29,7 @@ accumulates saved rows.
 
 Previously every failure path in every store provider returned the same value:
 
-```C#
+```csharp
 new Failure(ErrorCode.Error, "Error", "There was an error when processing the request")
 ```
 
@@ -55,7 +61,7 @@ from the database being unreachable. Failures now carry a stable `Type` and an a
 
 A conflict is retryable, and the failure now carries what a retry needs:
 
-```C#
+```csharp
 var result = await domainService.SaveAggregate(streamId, aggregateId, order, expectedEventSequence);
 
 if (!result.IsSuccess && result.Failure!.Type == StoreFailures.ConcurrencyConflictType)
@@ -84,7 +90,7 @@ Framework Core `SaveAggregate` path was the only one that disagreed, including w
 aggregate method, say — that check has to move into your own code, because the store no longer
 reports it. Check `UncommittedEvents` before saving if you want to treat it as an error:
 
-```C#
+```csharp
 if (!order.UncommittedEvents.Any())
 {
     // Your call: log it, or treat it as a bug in the command handler.
@@ -98,7 +104,7 @@ Unrelated to the changes above, and only affects you if you called it directly. 
 extension it read as though something were being added to the exception, when what it does is record
 the exception against the current `Activity`:
 
-```C#
+```csharp
 // Before
 ex.AddException(streamId, "Save Aggregate");
 

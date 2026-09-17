@@ -1,4 +1,7 @@
 ---
+title: Domain Service
+parent: Reference
+nav_order: 1
 redirect_from:
   - /Domain-Service.html
   - /Domain-Service/
@@ -34,7 +37,7 @@ Every store provider has its own implementation of the `IDomainService` interfac
 Saves an aggregate to the event store with optimistic concurrency control, persisting all uncommitted domain events and updating the aggregate snapshot.
 
 **New aggregate**
-```C#
+```csharp
 var streamId = new CustomerStreamId(customerId);
 var aggregateId = new OrderAggregateId(orderId);
 var aggregate = new OrderAggregate(orderId, amount: 25.45m);
@@ -43,7 +46,7 @@ var saveAggregateResult = await domainService.SaveAggregate(streamId, aggregateI
 ```
 
 **Update existing aggregate**
-```C#
+```csharp
 var streamId = new CustomerStreamId(customerId);
 var aggregateId = new OrderAggregateId(orderId);
 var latestEventSequence = await domainService.GetLatestEventSequence(streamId);
@@ -63,7 +66,7 @@ var saveAggregateResult = await domainService.SaveAggregate(streamId, aggregateI
 <a name="save-domain-events"></a>
 ### Save Domain Events
 Saves an array of domain events to the event store with optimistic concurrency control, bypassing aggregate persistence. This method is ideal for scenarios where events are generated outside traditional aggregate workflows.
-```C#
+```csharp
 var streamId = new CustomerStreamId(customerId);
 var latestEventSequence = await domainService.GetLatestEventSequence(streamId);
 
@@ -87,7 +90,7 @@ var saveEventsResult = await domainService.SaveEvents(streamId, events, expected
 ### Update Aggregate
 Updates an aggregate with new events from its stream, applying any events that occurred after the aggregate's last known state.
 If the aggregate does not exist, a new one is stored.
-```C#
+```csharp
 var streamId = new CustomerStreamId(customerId);
 var aggregateId = new OrderAggregateId(orderId);
 var updateAggregateResult = await domainService.UpdateAggregate(streamId, aggregateId);
@@ -105,13 +108,13 @@ The `ReadMode` parameter controls reconstruction — see [Read Modes](../concept
 - **SnapshotWithNewEventsOrCreate**: Retrieves the aggregate from its snapshot if it exists, applies any new events that have occurred since the snapshot, or reconstructs it from events if no snapshot exists. If no events exist, returns null.
 
 If the aggregate does not exist, but domain events that can be applied to the aggregate exist, the aggregate snapshot is stored automatically if read mode is SnapshotOrCreate or SnapshotWithNewEventOrCreate. This is useful when the domain changes, and you need a different aggregate structure. Increase the version of the aggregate type to force a snapshot creation.
-```C#
+```csharp
 var streamId = new CustomerStreamId(customerId);
 var aggregateId = new OrderAggregateId(orderId);
 var aggregateResult = await domainService.GetAggregate(streamId, aggregateId, ReadMode.SnapshotOrCreate);
 ```
 If the aggregate does not exist and read mode is SnapshotOnly (default), the method returns null even if events that can be applied to the aggregate exist.
-```C#
+```csharp
 var streamId = new CustomerStreamId(customerId);
 var aggregateId = new OrderAggregateId(orderId);
 var aggregateResult = await domainService.GetAggregate(streamId, aggregateId);
@@ -120,17 +123,17 @@ var aggregateResult = await domainService.GetAggregate(streamId, aggregateId);
 <a name="get-in-memory-aggregate"></a>
 ### Get In-Memory Aggregate
 Reconstructs an aggregate entirely from events without using snapshots, providing a pure event-sourced view of the aggregate state.
-```C#
+```csharp
 var streamId = new CustomerStreamId(customerId);
 var aggregateId = new OrderAggregateId(orderId);
 var aggregateResult = await domainService.GetInMemoryAggregate(streamId, aggregateId);
 ```
 Optionally, you can specify a sequence number or a date to reconstruct the aggregate up to a specific point in time.
-```C#
+```csharp
 var aggregateResult = await domainService.GetInMemoryAggregate(streamId, aggregateId, upToSequence);
 ```
 or
-```C#
+```csharp
 var aggregateResult = await domainService.GetInMemoryAggregate(streamId, aggregateId, upToDate);
 ```
 
@@ -139,7 +142,7 @@ var aggregateResult = await domainService.GetInMemoryAggregate(streamId, aggrega
 Saves a [projection](../concepts/projections.md) (read model) as a snapshot. Unlike an aggregate, a projection produces no events, so saving it upserts only the snapshot — no event stream is written. Each store uses a dedicated projection type: EF Core persists a `ProjectionEntity` in its own `DomainProjections` table, while Cosmos persists a `ProjectionDocument` in the same container as aggregates (discriminated by `documentType`).
 
 Build the projection by applying the events you care about, then save it.
-```C#
+```csharp
 var streamId = new CustomerStreamId(customerId);
 var projectionId = new OrderSummaryProjectionId(customerId);
 
@@ -154,7 +157,7 @@ var saveProjectionResult = await domainService.SaveProjection(streamId, projecti
 <a name="get-projection"></a>
 ### Get Projection
 Retrieves a previously saved projection snapshot. Returns `null` when no snapshot has been saved for the projection id.
-```C#
+```csharp
 var streamId = new CustomerStreamId(customerId);
 var projectionId = new OrderSummaryProjectionId(customerId);
 var projectionResult = await domainService.GetProjection(streamId, projectionId);
@@ -163,35 +166,35 @@ var projectionResult = await domainService.GetProjection(streamId, projectionId)
 <a name="get-in-memory-projection"></a>
 ### Get In-Memory Projection
 Reconstructs a projection entirely from events without persisting a snapshot. The projection equivalent of [Get In-Memory Aggregate](#get-in-memory-aggregate) — useful for one-off reads, backfilling a report, or building an ad-hoc view where you don't want to leave a snapshot behind. When no matching events are stored, a projection with `Version = 0` is returned.
-```C#
+```csharp
 var streamId = new CustomerStreamId(customerId);
 var projectionId = new OrderSummaryProjectionId(customerId);
 var projectionResult = await domainService.GetInMemoryProjection(streamId, projectionId);
 ```
 Optionally, you can specify a sequence number or a date to reconstruct the projection up to a specific point in time.
-```C#
+```csharp
 var projectionResult = await domainService.GetInMemoryProjection(streamId, projectionId, upToSequence);
 ```
 or
-```C#
+```csharp
 var projectionResult = await domainService.GetInMemoryProjection(streamId, projectionId, upToDate);
 ```
 
 <a name="get-domain-events"></a>
 ### Get Events
 Retrieves all domain events from a specified stream, with optional filtering by event types and/or event properties.
-```C#
+```csharp
 var streamId = new CustomerStreamId(customerId);
 var eventsResult = await domainService.GetEvents(streamId);
 ```
 Optionally, you can filter the events by specific event types.
-```C#
+```csharp
 var streamId = new CustomerStreamId(customerId);
 var eventTypes = new Type[] { typeof(OrderPlaced), typeof(OrderShipped) };
 var eventsResult = await domainService.GetEvents(streamId, eventTypes);
 ```
 Optionally, you can also filter the events by specific event properties (key/value pairs). All entries in the dictionary must match for an event to be included. Property and type filters can be combined.
-```C#
+```csharp
 var streamId = new CustomerStreamId(customerId);
 var eventTypes = new Type[] { typeof(OrderPlaced), typeof(OrderShipped) };
 var eventProperties = new Dictionary<string, string> { ["OrderId"] = orderId.ToString() };
@@ -201,20 +204,20 @@ var eventsResult = await domainService.GetEvents(streamId, eventTypes, eventProp
 <a name="get-domain-events-from-sequence"></a>
 ### Get Events From Sequence
 Retrieves domain events from a specified stream starting from a specific sequence number onwards, with optional filtering by event types and/or event properties.
-```C#
+```csharp
 var streamId = new CustomerStreamId(customerId);
 var fromSequence = 5;
 var eventsResult = await domainService.GetEventsFromSequence(streamId, fromSequence);
 ```
 Optionally, you can filter the events by specific event types.
-```C#
+```csharp
 var streamId = new CustomerStreamId(customerId);
 var fromSequence = 5;
 var eventTypes = new Type[] { typeof(OrderPlaced), typeof(OrderShipped) };
 var eventsResult = await domainService.GetEventsFromSequence(streamId, fromSequence, eventTypes);
 ```
 Optionally, you can also filter the events by specific event properties.
-```C#
+```csharp
 var streamId = new CustomerStreamId(customerId);
 var fromSequence = 5;
 var eventTypes = new Type[] { typeof(OrderPlaced), typeof(OrderShipped) };
@@ -225,20 +228,20 @@ var eventsResult = await domainService.GetEventsFromSequence(streamId, fromSeque
 <a name="get-domain-events-up-to-sequence"></a>
 ### Get Events Up To Sequence
 Retrieves domain events from a specified stream up to and including a specific sequence number, with optional filtering by event types and/or event properties.
-```C#
+```csharp
 var streamId = new CustomerStreamId(customerId);
 var upToSequence = 10;
 var eventsResult = await domainService.GetEventsUpToSequence(streamId, upToSequence);
 ```
 Optionally, you can filter the events by specific event types.
-```C#
+```csharp
 var streamId = new CustomerStreamId(customerId);
 var upToSequence = 10;
 var eventTypes = new Type[] { typeof(OrderPlaced), typeof(OrderShipped) };
 var eventsResult = await domainService.GetEventsUpToSequence(streamId, upToSequence, eventTypes);
 ```
 Optionally, you can also filter the events by specific event properties.
-```C#
+```csharp
 var streamId = new CustomerStreamId(customerId);
 var upToSequence = 10;
 var eventTypes = new Type[] { typeof(OrderPlaced), typeof(OrderShipped) };
@@ -249,14 +252,14 @@ var eventsResult = await domainService.GetEventsUpToSequence(streamId, upToSeque
 <a name="get-domain-events-between-sequences"></a>
 ### Get Events Between Sequences
 Retrieves domain events from a specified stream from and to specific sequence numbers, with optional filtering by event types and/or event properties.
-```C#
+```csharp
 var streamId = new CustomerStreamId(customerId);
 var fromSequence = 5;
 var toSequence = 10;
 var eventsResult = await domainService.GetEventsBetweenSequences(streamId, fromSequence, toSequence);
 ```
 Optionally, you can filter the events by specific event types.
-```C#
+```csharp
 var streamId = new CustomerStreamId(customerId);
 var fromSequence = 5;
 var toSequence = 10;
@@ -264,7 +267,7 @@ var eventTypes = new Type[] { typeof(OrderPlaced), typeof(OrderShipped) };
 var eventsResult = await domainService.GetEventsBetweenSequences(streamId, fromSequence, toSequence, eventTypes);
 ```
 Optionally, you can also filter the events by specific event properties.
-```C#
+```csharp
 var streamId = new CustomerStreamId(customerId);
 var fromSequence = 5;
 var toSequence = 10;
@@ -276,20 +279,20 @@ var eventsResult = await domainService.GetEventsBetweenSequences(streamId, fromS
 <a name="get-domain-events-from-date"></a>
 ### Get Events From Date
 Retrieves domain events from a specified stream starting from a specific date onwards, with optional filtering by event types and/or event properties.
-```C#
+```csharp
 var streamId = new CustomerStreamId(customerId);
 var fromDate = new DateTime(2024, 6, 15, 17, 45, 48);
 var eventsResult = await domainService.GetEventsFromDate(streamId, fromDate);
 ```
 Optionally, you can filter the events by specific event types.
-```C#
+```csharp
 var streamId = new CustomerStreamId(customerId);
 var fromDate = new DateTime(2024, 6, 15, 17, 45, 48);
 var eventTypes = new Type[] { typeof(OrderPlaced), typeof(OrderShipped) };
 var eventsResult = await domainService.GetEventsFromDate(streamId, fromDate, eventTypes);
 ```
 Optionally, you can also filter the events by specific event properties.
-```C#
+```csharp
 var streamId = new CustomerStreamId(customerId);
 var fromDate = new DateTime(2024, 6, 15, 17, 45, 48);
 var eventTypes = new Type[] { typeof(OrderPlaced), typeof(OrderShipped) };
@@ -300,20 +303,20 @@ var eventsResult = await domainService.GetEventsFromDate(streamId, fromDate, eve
 <a name="get-domain-events-up-to-date"></a>
 ### Get Events Up To Date
 Retrieves domain events from a specified stream up to and including a specific date, with optional filtering by event types and/or event properties.
-```C#
+```csharp
 var streamId = new CustomerStreamId(customerId);
 var upToDate = new DateTime(2024, 6, 15, 17, 45, 48);
 var eventsResult = await domainService.GetEventsUpToDate(streamId, upToDate);
 ```
 Optionally, you can filter the events by specific event types.
-```C#
+```csharp
 var streamId = new CustomerStreamId(customerId);
 var upToDate = new DateTime(2024, 6, 15, 17, 45, 48);
 var eventTypes = new Type[] { typeof(OrderPlaced), typeof(OrderShipped) };
 var eventsResult = await domainService.GetEventsUpToDate(streamId, upToDate, eventTypes);
 ```
 Optionally, you can also filter the events by specific event properties.
-```C#
+```csharp
 var streamId = new CustomerStreamId(customerId);
 var upToDate = new DateTime(2024, 6, 15, 17, 45, 48);
 var eventTypes = new Type[] { typeof(OrderPlaced), typeof(OrderShipped) };
@@ -324,14 +327,14 @@ var eventsResult = await domainService.GetEventsUpToDate(streamId, upToDate, eve
 <a name="get-domain-events-between-dates"></a>
 ### Get Events Between Dates
 Retrieves domain events from a specified stream from and to specific dates, with optional filtering by event types and/or event properties.
-```C#
+```csharp
 var streamId = new CustomerStreamId(customerId);
 var fromDate = new DateTime(2024, 6, 15, 17, 45, 48);
 var toDate = new DateTime(2024, 6, 25, 12, 46, 22);
 var eventsResult = await domainService.GetEventsBetweenDates(streamId, fromDate, toDate);
 ```
 Optionally, you can filter the events by specific event types.
-```C#
+```csharp
 var streamId = new CustomerStreamId(customerId);
 var fromDate = new DateTime(2024, 6, 15, 17, 45, 48);
 var toDate = new DateTime(2024, 6, 25, 12, 46, 22);
@@ -339,7 +342,7 @@ var eventTypes = new Type[] { typeof(OrderPlaced), typeof(OrderShipped) };
 var eventsResult = await domainService.GetEventsBetweenDates(streamId, fromDate, toDate, eventTypes);
 ```
 Optionally, you can also filter the events by specific event properties.
-```C#
+```csharp
 var streamId = new CustomerStreamId(customerId);
 var fromDate = new DateTime(2024, 6, 15, 17, 45, 48);
 var toDate = new DateTime(2024, 6, 25, 12, 46, 22);
@@ -351,18 +354,18 @@ var eventsResult = await domainService.GetEventsBetweenDates(streamId, fromDate,
 <a name="get-latest-event-sequence"></a>
 ### Get Latest Event Sequence
 Retrieves the latest event sequence number for a specified stream, with optional filtering by event types and/or event properties. This method provides the current position in an event stream, essential for optimistic concurrency control and determining where to append new events in event sourcing operations.
-```C#
+```csharp
 var streamId = new CustomerStreamId(customerId);
 var latestEventSequence = await domainService.GetLatestEventSequence(streamId);
 ```
 Optionally, you can filter the events by specific event types.
-```C#
+```csharp
 var streamId = new CustomerStreamId(customerId);
 var eventTypes = new Type[] { typeof(OrderPlaced), typeof(OrderShipped) };
 var latestEventSequence = await domainService.GetLatestEventSequence(streamId, eventTypes);
 ```
 Optionally, you can also filter the events by specific event properties.
-```C#
+```csharp
 var streamId = new CustomerStreamId(customerId);
 var eventTypes = new Type[] { typeof(OrderPlaced), typeof(OrderShipped) };
 var eventProperties = new Dictionary<string, string> { ["OrderId"] = orderId.ToString() };

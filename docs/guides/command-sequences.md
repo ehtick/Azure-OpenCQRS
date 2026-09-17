@@ -1,3 +1,9 @@
+---
+title: Run a sequence of commands
+parent: Guides
+nav_order: 3
+---
+
 # Run a sequence of commands
 
 A `CommandSequence<TResponse>` runs several commands in order through the dispatcher, threading the previous results into each handler. Use it when steps belong together logically and each step can react to what came before.
@@ -6,7 +12,7 @@ All commands in the sequence must share the same response type.
 
 ## Define the sequence
 
-```C#
+```csharp
 public class FirstCommand : ICommand<string> { }
 public class SecondCommand : ICommand<string> { }
 public class ThirdCommand : ICommand<string> { }
@@ -26,7 +32,7 @@ public class MyCommandSequence : CommandSequence<string>
 
 Each handler implements `ISequenceCommandHandlerAsync<TCommand, TResponse>` and receives the results of every prior step:
 
-```C#
+```csharp
 public class FirstCommandHandler : ISequenceCommandHandlerAsync<FirstCommand, string>
 {
     public Task<Result<string>> HandleAsync(
@@ -60,7 +66,7 @@ public class ThirdCommandHandler : ISequenceCommandHandlerAsync<ThirdCommand, st
 
 ## Dispatch
 
-```C#
+```csharp
 var sequenceResult = await dispatcher.SendSequence(new MyCommandSequence());
 ```
 
@@ -69,7 +75,7 @@ The result holds every step's `Result<string>` in order. Two optional flags shap
 - **`stopOnFirstFailure: true`** — abort the sequence on the first failure instead of running every step.
 - **`validateCommands: true`** — run [command validation](validate-commands.md) on every step.
 
-```C#
+```csharp
 var sequenceResult = await dispatcher.SendSequence(
     new MyCommandSequence(),
     stopOnFirstFailure: true,

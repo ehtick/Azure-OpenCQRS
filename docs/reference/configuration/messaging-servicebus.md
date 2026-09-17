@@ -1,8 +1,15 @@
+---
+title: "Messaging: Service Bus"
+parent: Configuration
+grand_parent: Reference
+nav_order: 8
+---
+
 # Configuration: Azure Service Bus
 
 To use Service Bus messaging, install and register the **Memoria.Messaging.ServiceBus** package:
 
-```C#
+```csharp
 services.AddMemoriaServiceBus(new ServiceBusOptions
 {
     ConnectionString = connectionString

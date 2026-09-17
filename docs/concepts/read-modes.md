@@ -1,3 +1,9 @@
+---
+title: Read Modes
+parent: Concepts
+nav_order: 5
+---
+
 # Read Modes
 
 When you load an aggregate with `IDomainService.GetAggregate`, you choose how it should be reconstructed. Memoria offers four read modes that trade off freshness against I/O and reconstruction cost.

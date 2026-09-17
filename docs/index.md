@@ -1,71 +1,56 @@
-# Memoria
-
-Memoria is a .NET framework that can be used as a simple mediator or as an Event Sourcing solution.
-
-**Repository**: [https://github.com/lucabriguglia/Memoria](https://github.com/lucabriguglia/Memoria)
-
-## Documentation
-
-### Getting started
-
-- [Install](getting-started/install.md)
-- [Quickstart: Mediator](getting-started/quickstart-mediator.md)
-- [Quickstart: Event Sourcing](getting-started/quickstart-event-sourcing.md)
-
-### Concepts
-
-- [Overview](concepts/overview.md) — mediator vs. event sourcing
-- [Aggregates and Streams](concepts/aggregates-and-streams.md)
-- [Dynamic Consistency Boundaries](concepts/dynamic-consistency-boundaries.md)
-- [Projections](concepts/projections.md)
-- [Read Modes](concepts/read-modes.md)
-- [Providers](concepts/providers.md)
-- [Result Pattern](concepts/result-pattern.md)
-- [Glossary](concepts/glossary.md)
-
-### Guides
-
-- [Validate commands](guides/validate-commands.md)
-- [Use a custom command handler](guides/custom-command-handlers.md)
-- [Run a sequence of commands](guides/command-sequences.md)
-- [Publish to Service Bus](guides/publish-to-service-bus.md) · [Publish to RabbitMQ](guides/publish-to-rabbitmq.md)
-- [Cache query results](guides/cache-queries.md)
-- [Multiple aggregates per stream](guides/multiple-aggregates-per-stream.md)
-- [Streams or DCB?](guides/choose-streams-or-dcb.md)
-- [Replay events in memory](guides/replay-events-in-memory.md)
-- [Use PostgreSQL with jsonb](guides/use-postgres-jsonb.md)
-- [Integrate with ASP.NET Core Identity](guides/integrate-aspnet-identity.md)
-- [Test without external dependencies](guides/test-without-external-deps.md)
-- [Install the store schema](guides/install-the-store-schema.md)
-- [Tune the Cosmos DB container](guides/tune-the-cosmos-container.md)
-- [Upgrade to 1.9.0](guides/upgrade-1.9.0.md) · [Upgrade to 1.8.0](guides/upgrade-1.8.0.md) · [Upgrade to 1.7.0](guides/upgrade-1.7.0.md) · [Upgrade to 1.6.0](guides/upgrade-1.6.0.md) · [Upgrade to 1.5.0](guides/upgrade-1.5.0.md)
-
-### Tools
-
-- [Memoria Web](tools/memoria-web.md) — a browser tool for reading a Memoria store through your own domain types
-  - [Configuration](tools/memoria-web-configuration.md)
-  - [Deployment](tools/memoria-web-deployment.md)
-  - [Try it with sample data](tools/memoria-web-samples.md)
-
-### Reference
-
-- [Domain Service](reference/domain-service.md)
-- [Entity Framework Core Extensions](reference/ef-core-extensions.md)
-- [Observability](reference/observability.md)
-- Configuration
-  - [Memoria Core](reference/configuration/memoria.md)
-  - [Event Sourcing](reference/configuration/event-sourcing.md)
-    - [Entity Framework Core](reference/configuration/ef-core.md)
-    - [+ ASP.NET Core Identity](reference/configuration/ef-core-identity.md)
-    - [Cosmos DB](reference/configuration/cosmos.md)
-    - [Entity Framework Core (DCB)](reference/configuration/dcb-ef-core.md)
-  - [Validation](reference/configuration/validation.md)
-  - [Messaging: Service Bus](reference/configuration/messaging-servicebus.md)
-  - [Messaging: RabbitMQ](reference/configuration/messaging-rabbitmq.md)
-  - [Caching](reference/configuration/caching.md)
-
+---
+title: Home
+nav_order: 1
 ---
 
-- [Examples](examples.md)
-- [Release Notes](release-notes.md)
-- [Licence](license.md)
+# Memoria
+
+Memoria is a .NET framework for DDD, CQRS and Event Sourcing. Use it as a plain mediator — commands,
+queries and notifications behind one dispatcher — or as an event store, with classic event streams or
+with dynamic consistency boundaries where the boundary is a tag query chosen per decision.
+
+```bash
+dotnet add package Memoria
+```
+
+## Where to start
+
+| You want to… | Start at |
+|--------------|----------|
+| Dispatch commands and queries, nothing more | [Quickstart: Mediator](getting-started/quickstart-mediator.md) |
+| Save and rebuild aggregates from events | [Quickstart: Event Sourcing](getting-started/quickstart-event-sourcing.md) |
+| Understand what the pieces are before writing any | [Concepts: Overview](concepts/overview.md) |
+| Decide how to model consistency | [Streams or DCB?](guides/choose-streams-or-dcb.md) |
+| Look up an API or a settings key | [Reference](reference/) |
+| Read a store you already have | [Memoria Web](tools/memoria-web.md) |
+| Move from an earlier version | [Upgrading](upgrading.md) |
+
+Everything is in the sidebar too: [Guides](guides/) for a task you already know you want to do,
+[Concepts](concepts/) for why things are shaped the way they are, and [Reference](reference/) for
+looking something up.
+
+## What it does
+
+- **Mediator** — commands, queries and notifications, each with a handler, each returning a
+  [`Result`](concepts/result-pattern.md) rather than throwing. Command sequences, custom handlers and
+  automatic notification publication come with it.
+- **Two consistency models** — [event streams](concepts/aggregates-and-streams.md) with optimistic
+  concurrency, or [dynamic consistency boundaries](concepts/dynamic-consistency-boundaries.md).
+  Multiple aggregates can share one stream.
+- **Snapshots that stay consistent** — an aggregate's snapshot is stored alongside its events, so a
+  read is fast without being stale. [Projections](concepts/projections.md) are persisted the same way.
+- **[Four read modes](concepts/read-modes.md)** — snapshot only, snapshot with new events, and the
+  create-if-missing variants of both.
+- **Providers for everything external** — Entity Framework Core and Cosmos DB for storage, Azure
+  Service Bus and RabbitMQ for messaging, in-process and Redis for caching, FluentValidation for
+  validation. Each has an [in-memory variant](guides/test-without-external-deps.md) so tests need
+  nothing running.
+
+## Elsewhere
+
+- [Repository](https://github.com/lucabriguglia/Memoria) ·
+  [Examples](examples.md) ·
+  [Release notes](release-notes.md)
+- [Licence](license.md) — Memoria 2.x is dual-licensed: the RPL 1.5, or a commercial licence whose
+  Community edition is free
+- [Contributing](https://github.com/lucabriguglia/Memoria/blob/main/CONTRIBUTING.md)

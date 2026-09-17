@@ -1,4 +1,7 @@
 ---
+title: "Quickstart: Mediator"
+parent: Getting started
+nav_order: 2
 redirect_from:
   - /Commands.html
   - /Commands/
@@ -18,7 +21,7 @@ If you haven't already: [install](install.md) the `Memoria` package.
 
 In `Program.cs` (or wherever you build your `IServiceCollection`):
 
-```C#
+```csharp
 services.AddMemoria(typeof(Program));
 ```
 
@@ -30,7 +33,7 @@ For the full configuration surface, see [Configuration: Memoria Core](../referen
 
 A command is a write operation handled by exactly one handler.
 
-```C#
+```csharp
 public class CreateProduct : ICommand
 {
     public string Name { get; init; } = string.Empty;
@@ -59,7 +62,7 @@ Commands can return a value by implementing `ICommand<TResponse>` and `ICommandH
 
 A query is a read operation handled by exactly one handler.
 
-```C#
+```csharp
 public class GetProduct : IQuery<Product>
 {
     public int Id { get; init; }
@@ -89,7 +92,7 @@ Need automatic caching? See [Cache queries](../guides/cache-queries.md).
 
 A notification is a fan-out message. Any number of handlers can subscribe to the same notification type.
 
-```C#
+```csharp
 public class ProductCreated : INotification
 {
     public int Id { get; init; }
