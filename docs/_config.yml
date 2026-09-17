@@ -11,8 +11,6 @@ plugins:
   - jekyll-seo-tag
   - jekyll-include-cache
 
-logo: /images/logo.png
-
 # Every page uses the theme's default layout, so no page has to declare one.
 defaults:
   - scope:
