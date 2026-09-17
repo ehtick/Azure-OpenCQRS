@@ -18,10 +18,6 @@ Runnable sample projects live under [`examples/`](https://github.com/lucabrigugl
 | [Memoria.Examples.Caching.Memory](https://github.com/lucabriguglia/Memoria/tree/main/examples/Memoria.Examples.Caching.Memory)                                     | `CacheableQuery` with the in-process provider                              | [Cache queries](guides/cache-queries.md)                           |
 | [Memoria.Examples.Caching.Redis](https://github.com/lucabriguglia/Memoria/tree/main/examples/Memoria.Examples.Caching.Redis)                                       | `CacheableQuery` with Redis                                                | [Cache queries](guides/cache-queries.md)                           |
 
-## Also worth a look
-
-[EventShop](https://github.com/lucabriguglia/EventShop) — a full ecommerce demo built on Memoria, larger than anything in this repo's `examples/`.
-
 ## Related
 
 - [Quickstart: Mediator](getting-started/quickstart-mediator.md)
