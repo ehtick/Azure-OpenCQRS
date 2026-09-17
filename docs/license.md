@@ -196,3 +196,8 @@ TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE LICENSOR SHALL NOT BE LIABLE FOR ANY
 ---
 
 Copyright © Luca Cammarata Briguglia. All rights reserved.
+
+## Related
+
+- [Upgrade to 2.0.0](guides/upgrade-2.0.0.md) — choosing a licence when you move to 2.x
+- [Release notes](release-notes.md)

@@ -87,3 +87,10 @@ A unique identifier for an event stream. Implements `IStreamId`. A stream typica
 ## Updater
 
 *Memoria Web.* The role that may also press **Update** on a model's detail page, which writes a refreshed snapshot. Includes [Reader](#reader); included in [Administrator](#administrator). Granted by mapping a claim value under `Authorization:Roles:Updater` — see [Roles](../tools/memoria-web-configuration.md#roles).
+
+## Related
+
+- [Overview](overview.md) — mediator vs. event sourcing
+- [Aggregates and Streams](aggregates-and-streams.md)
+- [Dynamic Consistency Boundaries](dynamic-consistency-boundaries.md)
+- [Domain Service](../reference/domain-service.md) — where most of these terms appear as API

@@ -5,6 +5,13 @@ nav_order: 3
 ---
 
 # Memoria Web: deployment
+{: .no_toc }
+
+## On this page
+{: .no_toc .text-delta }
+
+1. TOC
+{:toc}
 
 [Memoria Web](memoria-web.md) is not published to NuGet. It is an ASP.NET Core application in the
 repository, and you build it, publish it, and host it yourself.
@@ -533,3 +540,8 @@ as one of their own, on every request as well as on every write — so the quest
 the portal rather than from the host's console — see
 [Application Insights](memoria-web-configuration.md#application-insights) for the setting and a
 query, and [What each write logs](memoria-web-configuration.md#what-each-write-logs) for the events.
+
+## Related
+
+- [Memoria Web](memoria-web.md) — what each page shows
+- [Memoria Web: configuration](memoria-web-configuration.md) — the settings a deployment needs

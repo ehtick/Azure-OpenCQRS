@@ -140,3 +140,11 @@ one aggregate — and no stream contains exactly those facts and nothing else. M
 consistency model draws the boundary per decision instead:
 [Dynamic consistency boundaries](dynamic-consistency-boundaries.md), and
 [Streams or DCB?](../guides/choose-streams-or-dcb.md) for choosing between them.
+
+## Related
+
+- [Read Modes](read-modes.md) — how an aggregate is reconstructed from a stream
+- [Dynamic Consistency Boundaries](dynamic-consistency-boundaries.md) — the other consistency model
+- [Multiple aggregates per stream](../guides/multiple-aggregates-per-stream.md)
+- [Domain Service](../reference/domain-service.md) — the API that saves and loads them
+- [Glossary](glossary.md)

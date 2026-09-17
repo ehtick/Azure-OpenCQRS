@@ -28,3 +28,10 @@ The core mediator works on its own. Plug in any of the following when you need t
 - **Validation** — [validation.md](validation.md)
 - **Messaging** — [Service Bus](messaging-servicebus.md), [RabbitMQ](messaging-rabbitmq.md)
 - **Caching** — [caching.md](caching.md)
+
+## Related
+
+- [Quickstart: Mediator](../../getting-started/quickstart-mediator.md) — what this registration gets you
+- [Event Sourcing](event-sourcing.md) — the next package up
+- [Validation](validation.md)
+- [Caching](caching.md)

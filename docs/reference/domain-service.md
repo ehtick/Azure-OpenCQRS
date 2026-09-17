@@ -8,6 +8,13 @@ redirect_from:
 ---
 
 # Domain Service
+{: .no_toc }
+
+## On this page
+{: .no_toc .text-delta }
+
+1. TOC
+{:toc}
 
 The `IDomainService` interface provides a high-level API for managing aggregates and domain events in an event-sourced system. It abstracts the complexities of event storage, retrieval, and aggregate reconstruction, allowing developers to focus on business logic.
 
@@ -371,3 +378,11 @@ var eventTypes = new Type[] { typeof(OrderPlaced), typeof(OrderShipped) };
 var eventProperties = new Dictionary<string, string> { ["OrderId"] = orderId.ToString() };
 var latestEventSequence = await domainService.GetLatestEventSequence(streamId, eventTypes, eventProperties);
 ```
+
+## Related
+
+- [Read Modes](../concepts/read-modes.md) — what each of the four modes reconstructs
+- [Aggregates and Streams](../concepts/aggregates-and-streams.md) — what an aggregate, a stream and their identifiers are
+- [Projections](../concepts/projections.md) — the read-model side of `SaveProjection` and `GetProjection`
+- [Replay events in memory](../guides/replay-events-in-memory.md) — reconstructing without persisting a snapshot
+- [Entity Framework Core Extensions](ef-core-extensions.md) — the same operations as `DbContext` methods

@@ -5,6 +5,13 @@ nav_order: 4
 ---
 
 # Try Memoria Web with sample data
+{: .no_toc }
+
+## On this page
+{: .no_toc .text-delta }
+
+1. TOC
+{:toc}
 
 [Memoria Web](memoria-web.md) shows you a store through your own domain types. To try it before you
 have either — or to see what a store with something interesting in it looks like — the repository
@@ -243,3 +250,8 @@ One built against an older version still loads, and then contributes no types at
 | `src/Memoria.Web.Samples.Dcb/`           | The dynamic consistency boundary model: aggregates, projections, events |
 | `src/Memoria.Web.Samples/Seeding/`       | The run itself — the menu, the store it writes to, and the data         |
 | `src/Memoria.Web.Samples/Data/`          | The two contexts a relational store is written through                  |
+
+## Related
+
+- [Memoria Web](memoria-web.md) — what each page shows
+- [Memoria Web: configuration](memoria-web-configuration.md)

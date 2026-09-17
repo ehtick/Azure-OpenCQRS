@@ -5,6 +5,13 @@ nav_order: 2
 ---
 
 # Memoria Web: configuration
+{: .no_toc }
+
+## On this page
+{: .no_toc .text-delta }
+
+1. TOC
+{:toc}
 
 Everything [Memoria Web](memoria-web.md) needs is configuration, and only two things are required:
 a connection string for each store the installed services read, and how operators sign in. The
@@ -493,3 +500,9 @@ what is exported as much as to the console, so a logger quieted there is quiet i
 
 Addresses come from `ASPNETCORE_URLS`, or from the launch profile in development — see
 [Deployment](memoria-web-deployment.md).
+
+## Related
+
+- [Memoria Web](memoria-web.md) — what each page shows
+- [Memoria Web: deployment](memoria-web-deployment.md)
+- [Try it with sample data](memoria-web-samples.md)

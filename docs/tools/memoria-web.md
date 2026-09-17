@@ -5,6 +5,13 @@ nav_order: 1
 ---
 
 # Memoria Web
+{: .no_toc }
+
+## On this page
+{: .no_toc .text-delta }
+
+1. TOC
+{:toc}
 
 Memoria Web is a browser tool for reading a Memoria store. Point it at a database, upload a zip of
 your own domain assemblies — with a `memoria.json` at its root naming the services in it — and it
@@ -255,3 +262,10 @@ Two more things worth knowing before pointing it at anything that matters:
 - Assemblies compiled against the same Memoria version the tool was built from. One built against an
   earlier version still loads, then contributes no types at all, and the Settings page reports the
   load error
+
+## Related
+
+- [Memoria Web: configuration](memoria-web-configuration.md) — settings, manifests and roles
+- [Memoria Web: deployment](memoria-web-deployment.md) — running it somewhere other than localhost
+- [Try it with sample data](memoria-web-samples.md)
+- [Upgrade to 2.0.0](../guides/upgrade-2.0.0.md) — what changed for uploaded zips and page addresses

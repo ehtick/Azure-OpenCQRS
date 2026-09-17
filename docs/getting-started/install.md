@@ -49,3 +49,10 @@ Only `Memoria` is required. Add the others when you need them.
 | Memoria.Caching.Memory                                     | Cache query results in-process.                                                                  |
 | Memoria.Caching.Redis                                      | Cache query results in Redis.                                                                    |
 | Memoria.Validation.FluentValidation                        | Auto-validate commands with FluentValidation before they hit the handler.                        |
+
+## Related
+
+- [Quickstart: Mediator](quickstart-mediator.md) — dispatch a command, run a query, publish a notification
+- [Quickstart: Event Sourcing](quickstart-event-sourcing.md) — save an aggregate and rebuild it
+- [Overview](../concepts/overview.md) — when the mediator is enough, and when it is not
+- [Install the store schema](../guides/install-the-store-schema.md) — the tables an event store needs

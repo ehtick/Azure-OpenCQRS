@@ -8,6 +8,13 @@ redirect_from:
 ---
 
 # Entity Framework Core Extensions
+{: .no_toc }
+
+## On this page
+{: .no_toc .text-delta }
+
+1. TOC
+{:toc}
 
 The Entity Framework Core store provider offers a variety of built-in extension methods of the DbContext to facilitate interaction with aggregates and events. Since the store provider is based purely on the DbContext, it's extremily easy to create your own extensions to create any kind of reporting. Below is a categorized list of the built-in methods:
 
@@ -416,3 +423,10 @@ var upToSequence = 10;
 var eventTypes = new Type[] { typeof(OrderPlaced), typeof(OrderShipped) };
 var eventEntitiesResult = await dbContext.GetEventEntitiesUpToSequence(streamId, upToSequence, eventTypes);
 ```
+
+## Related
+
+- [Domain Service](domain-service.md) — the same operations behind one interface
+- [Configuration: Entity Framework Core](configuration/ef-core.md)
+- [Install the store schema](../guides/install-the-store-schema.md)
+- [Use PostgreSQL with jsonb](../guides/use-postgres-jsonb.md) — event-property filtering on Npgsql

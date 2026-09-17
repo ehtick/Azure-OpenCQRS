@@ -5,6 +5,13 @@ nav_order: 3
 ---
 
 # Observability
+{: .no_toc }
+
+## On this page
+{: .no_toc .text-delta }
+
+1. TOC
+{:toc}
 
 Memoria's event stores write to the current `System.Diagnostics.Activity` as they work. Nothing is
 configured, and nothing is emitted unless something is listening — if `Activity.Current` is `null`,
@@ -211,3 +218,9 @@ Both stores record store exceptions on the current activity with
 - **Nothing is emitted without an ambient activity.** If `Activity.Current` is `null` — no
   instrumentation, or work on a thread the activity did not flow to — the store records nothing and
   reports nothing about that.
+
+## Related
+
+- [Domain Service](domain-service.md) — the operations that write these activities
+- [Memoria Web](../tools/memoria-web.md) — reading a store when the telemetry is not enough
+- [Memoria Web: deployment](../tools/memoria-web-deployment.md)

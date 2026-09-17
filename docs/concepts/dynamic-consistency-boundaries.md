@@ -5,6 +5,13 @@ nav_order: 3
 ---
 
 # Dynamic consistency boundaries
+{: .no_toc }
+
+## On this page
+{: .no_toc .text-delta }
+
+1. TOC
+{:toc}
 
 A consistency boundary is the set of events a decision must be consistent with. In the streamed
 model that set is a **stream**, chosen when you design the aggregate. Under **dynamic consistency
