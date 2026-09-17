@@ -144,6 +144,10 @@ It ships in the repository rather than on NuGet, so you build and run it yoursel
 nothing and deletes nothing: the only write it offers is refreshing a snapshot that has fallen
 behind its stream or its boundary.
 
+There is also a hosted instance, published and running, if you would rather try it than build it.
+It is behind its sign-in, so access is by invitation: message me on
+[LinkedIn](https://www.linkedin.com/in/lucabriguglia) and I will send you one.
+
 Operators sign in through an OpenID Connect provider, and every page and update is behind one of
 three roles — Reader, Updater, Administrator — granted for every service by configuration or for a
 single service by its manifest. Setting `Authentication:Disabled` runs the tool open instead, with
