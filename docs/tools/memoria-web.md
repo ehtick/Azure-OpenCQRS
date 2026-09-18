@@ -23,8 +23,8 @@ It is not a sample application and not a package. It lives in the repository at
 [`src/Memoria.Web`](https://github.com/lucabriguglia/Memoria/tree/main/src/Memoria.Web), and you
 build and run it yourself — see [Deployment](memoria-web-deployment.md).
 
-There is also a hosted instance, published and running, if you would rather try it than build it.
-It is behind its sign-in, so access is by invitation: message me on
+There is also a hosted instance at [demo.getmemoria.io](https://demo.getmemoria.io), if you would
+rather try it than build it. It is behind its sign-in, so access is by invitation: message me on
 [LinkedIn](https://www.linkedin.com/in/lucabriguglia) and I will send you one.
 
 ![The home page: the streamed model and the DCB model side by side](../images/memoria-web/home.png)

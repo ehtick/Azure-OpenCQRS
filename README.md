@@ -145,8 +145,8 @@ It ships in the repository rather than on NuGet, so you build and run it yoursel
 nothing and deletes nothing: the only write it offers is refreshing a snapshot that has fallen
 behind its stream or its boundary.
 
-There is also a hosted instance, published and running, if you would rather try it than build it.
-It is behind its sign-in, so access is by invitation: message me on
+There is also a hosted instance at [demo.getmemoria.io](https://demo.getmemoria.io), if you would
+rather try it than build it. It is behind its sign-in, so access is by invitation: message me on
 [LinkedIn](https://www.linkedin.com/in/lucabriguglia) and I will send you one.
 
 Operators sign in through an OpenID Connect provider, and every page and update is behind one of
@@ -194,12 +194,13 @@ Badges show the latest stable release. 2.0.0-beta is published as a pre-release 
 Shipped work is in the [release notes](https://lucabriguglia.github.io/Memoria/release-notes.html).
 Next up, in no fixed order:
 
+- Pipelines
+- Various improvements to Memoria Web
 - Option to automatically validate commands
 - Event Grid messaging provider
 - Kafka messaging provider
 - Amazon SQS messaging provider
 - File store provider for event sourcing
-- In-memory reconstruction up to a given aggregate version
 
 ## 🤝 Contributing
 
