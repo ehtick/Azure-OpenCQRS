@@ -32,11 +32,12 @@ Memoria 2.x is dual-licensed. You choose which licence you use it under.
 |----------------|---------|------|
 | You release the source of what you build under the same licence | [Reciprocal Public License 1.5](https://opensource.org/license/rpl-1-5) (OSI-approved) | Free |
 | Closed source, under $5,000,000 USD annual revenue, or a non-profit under $5,000,000 USD annual budget | [Memoria Commercial Licence](https://lucabriguglia.github.io/Memoria/license.html) — **Community** edition | Free, and always will be |
-| Closed source, above that threshold | Memoria Commercial Licence — Standard, Professional or Enterprise | From $299 USD/year |
+| Closed source, above that threshold | Memoria Commercial Licence — Standard, Professional or Enterprise | [From $299 USD/year](https://lucabriguglia.github.io/Memoria/pricing.html) |
 
 Versions 1.x remain under the [Apache License 2.0](https://github.com/lucabriguglia/Memoria/blob/1.9.1/LICENSE).
 Exclusions and full terms are in [the licence section below](#-licence) and on the
-[licence page](https://lucabriguglia.github.io/Memoria/license.html).
+[licence page](https://lucabriguglia.github.io/Memoria/license.html); the editions, what each covers
+and how to buy one are on the [pricing page](https://lucabriguglia.github.io/Memoria/pricing.html).
 
 **Already on 1.x?**
 [Upgrade to 2.0.0](https://lucabriguglia.github.io/Memoria/guides/upgrade-2.0.0.html) walks through
