@@ -1,7 +1,7 @@
 ---
 title: Licence
 description: "Memoria 2.x is dual-licensed: the Reciprocal Public License 1.5, or a commercial licence whose Community edition is free. Which one you need, and the full terms of both."
-nav_order: 10
+nav_order: 11
 redirect_from:
   - /licence.html
   - /licensing.html
@@ -41,7 +41,7 @@ A paid edition is a subscription, paid yearly or monthly. Paid yearly, it runs f
 
 **Launch offer.** While 2.0.0 is in beta, any paid edition bought before the stable 2.0.0 release is half price for its first term, yearly or monthly, and renews at that same half price for as long as the subscription is kept unbroken. Early adopters take a beta on; the offer is what that is worth.
 
-To license a paid edition, or to ask about any of this, reach out via [LinkedIn](https://www.linkedin.com/in/lucabriguglia).
+To license a paid edition, buy it on the [Pricing](pricing.html) page. To ask about any of this, or to arrange an Enterprise licence, a purchase order or a bank transfer, reach out via [LinkedIn](https://www.linkedin.com/in/lucabriguglia).
 
 ### Community edition eligibility
 

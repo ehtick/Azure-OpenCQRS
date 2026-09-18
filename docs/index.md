@@ -54,4 +54,5 @@ looking something up.
   [Release notes](release-notes.md)
 - [Licence](license.md) — Memoria 2.x is dual-licensed: the RPL 1.5, or a commercial licence whose
   Community edition is free
+- [Pricing](pricing.md) — what the paid editions cost, and who pays nothing
 - [Contributing](https://github.com/lucabriguglia/Memoria/blob/main/CONTRIBUTING.md)
