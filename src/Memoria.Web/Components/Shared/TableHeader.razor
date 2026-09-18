@@ -1,0 +1,78 @@
+@inject NavigationManager Navigation
+
+@* The line above the card on every page that lists what a store holds — not the table's own head
+   row, which the table writes itself. What the page found at one end, and the ways of asking the
+   store for it again at the other, in the same shape as the pager and the rows-per-page picker at
+   the two ends of the line below the card.
+
+   Outside the card rather than in it, because both halves are the page speaking about the table
+   rather than part of it: the count says what was found, and the refresh asks for the whole thing
+   again. Inside, they would also have prised the filter row off the table it narrows, and those
+   two have to sit against each other to read as one object.
+
+   One component for the whole line rather than a wrapper repeated on all six pages, so the count
+   and the controls cannot drift apart on one of them. *@
+<div class="table-header">
+    @* Drawn only when there is something to count. The pages hand in nothing rather than a sentence
+       when there are no rows — a count of none is what the empty table below already says, at more
+       length and in the right place. The line stays either way, because a table with nothing in it
+       is exactly the one worth asking about again. *@
+    @if (Summary is not null)
+    {
+        <p class="lede">@Summary</p>
+    }
+
+    @* Nothing without scripting, so it is not there without it: a timer is the one control on these
+       pages that cannot fall back to a link. Rendered hidden and shown by the script that drives it,
+       the way the copy button on a payload is. *@
+    <div class="auto-refresh" data-preference-row="auto-refresh" hidden>
+        <label for="auto-refresh">Auto refresh</label>
+        @* No name, so it is never submitted by anything it might one day sit inside: the choice is
+           this browser's and the server has never heard of it, like the theme. Off is what is
+           rendered every time for the same reason, and the script puts back what was picked.
+
+           The same list the preferences page offers, from <see cref="RefreshInterval"/>: one
+           preference under two labels, the way the rows-per-page picker is. *@
+        <select id="auto-refresh" data-preference="auto-refresh">
+            <option value="" selected>Off</option>
+            @foreach (var interval in RefreshInterval.Offered)
+            {
+                <option value="@interval.Seconds">@interval.Label</option>
+            }
+        </select>
+    </div>
+
+    @* A link back to the address the page is already at, like the order, the page and the fold: the
+       whole of what is being looked at is in the address, so asking for that address again is asking
+       for exactly this table again, narrowing, order, page and all.
+
+       A link rather than a button with script behind it buys three things at once — it works with
+       scripting off, it can be opened in a new tab, and under enhanced navigation Blazor swaps the
+       table in place without reloading the document or losing the scroll.
+
+       The mark alone, with no word beside it, the way the Json links in the table below are drawn:
+       this is the one drawing a reader arrives already knowing. Named for a screen reader and titled
+       for a pointer, because a mark on its own says nothing to either. *@
+    <a class="refresh-now" href="@Here" data-refresh title="Refresh" aria-label="Refresh">
+        <RefreshMark/>
+    </a>
+</div>
+
+@code {
+
+    /// <summary>
+    /// What the page found, in its own words — the whole count rather than this page's worth, since
+    /// the pager beneath already says which page. Null where there is nothing to say, which leaves
+    /// the line holding the controls alone rather than taking it away.
+    /// </summary>
+    [Parameter]
+    public string? Summary { get; set; }
+
+    /// <summary>
+    /// The address this page is being read at, relative to the base so it is written the way every
+    /// other link here is. The query string comes with it, which is the whole point: it carries the
+    /// narrowing, the order, the page and the fold.
+    /// </summary>
+    private string Here => Navigation.ToBaseRelativePath(Navigation.Uri);
+
+}

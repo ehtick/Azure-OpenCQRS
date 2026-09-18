@@ -19,6 +19,12 @@ const key = "memoria.rows-per-page";
 // a field beside the size, so one preference cannot be lost by writing the other.
 const orderingKey = "memoria.hide-ordering-notice";
 
+// How often a table asks its store again, in seconds. Its own key, like the two above: one
+// preference lost or written should not take another with it. Absent, or zero, means it does not —
+// which is the state the server renders every time, because this is the browser's own choice and
+// nothing is ever sent about it.
+const refreshKey = "memoria.auto-refresh";
+
 // Which theme was chosen, if one was. Absent means nothing was chosen and the operating system is
 // answering, which is a third state rather than a synonym for light — so it is stored as absent
 // rather than written down as a guess. The value is read a second time by the small script in the
@@ -219,6 +225,173 @@ document.addEventListener("change", event => {
     stampTheme();
 });
 
+// A table is read while its store is still being written to, so every page that lists what one
+// holds offers two ways of asking it again: a link that asks now, and a picker that keeps asking.
+//
+// The link needs nothing from here — it points at the address the page is already at, and the whole
+// of what is shown is in that address, so following it draws this same table from the store again.
+// What is here is the timer, which is nothing without scripting, and the one thing the link cannot
+// say for itself: that a refresh is not a place to go back to.
+
+function storedRefresh() {
+    try {
+        return window.localStorage.getItem(refreshKey);
+    } catch {
+        return null;
+    }
+}
+
+// Off is the absence of an interval rather than one of them, so choosing it takes the value away
+// instead of writing a zero down — the same shape as following the operating system for the theme.
+function rememberRefresh(seconds) {
+    try {
+        if (seconds) {
+            window.localStorage.setItem(refreshKey, seconds);
+        } else {
+            window.localStorage.removeItem(refreshKey);
+        }
+    } catch {
+    }
+}
+
+// Through Blazor where it is running, which swaps the table in without reloading the document or
+// losing the place on the page, and replaces this page in the history rather than pushing another:
+// Back means the page before this table, never this table a minute ago. A plain reload is the
+// answer where Blazor is not running or will not say.
+function refreshNow(address) {
+    try {
+        if (window.Blazor && typeof Blazor.navigateTo === "function") {
+            Blazor.navigateTo(address ?? location.href, { replaceHistoryEntry: true });
+            return;
+        }
+    } catch {
+    }
+
+    location.reload();
+}
+
+let refreshTimer = null;
+
+// A tick that fell while the tab was out of sight, so the table can be caught up the moment it is
+// looked at again rather than at the end of another whole interval — which at an hour would be no
+// better than not refreshing at all.
+let missedRefresh = false;
+
+// One timer at a time, set again on every page. It is cleared first because this runs on every
+// arrival, including the arrival this timer itself asked for: the interval is the gap between one
+// table landing and the next being asked for, rather than a drumbeat a slow store falls behind.
+//
+// Only where there is a table to ask about again, which the refresh link is the mark of — not the
+// picker, which the preferences page carries too, and which would have that page reloading itself
+// every five seconds while a reader was trying to change a setting on it. Every page arrives
+// through here, so a page with no refresh on it — the home page, a type listing, the settings —
+// must not inherit the timer from the table the reader came from either.
+function scheduleRefresh() {
+    if (refreshTimer !== null) {
+        window.clearInterval(refreshTimer);
+        refreshTimer = null;
+    }
+
+    if (!document.querySelector("[data-refresh]")) {
+        return;
+    }
+
+    const seconds = Number(storedRefresh());
+
+    if (!Number.isFinite(seconds) || seconds <= 0) {
+        return;
+    }
+
+    refreshTimer = window.setInterval(() => {
+        // Nothing is asked of the store while nobody is looking at the answer: a tab left open on a
+        // table all afternoon would otherwise query it all afternoon.
+        if (document.visibilityState === "hidden") {
+            missedRefresh = true;
+            return;
+        }
+
+        refreshNow();
+    }, seconds * 1000);
+}
+
+// The catch-up, on the way back to a tab that was left. Only while a timer is still running: the
+// reader may have turned the refresh off, or walked to a page with no table, while they were away.
+document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState !== "visible") {
+        return;
+    }
+
+    const missed = missedRefresh;
+    missedRefresh = false;
+
+    if (missed && refreshTimer !== null) {
+        refreshNow();
+    }
+});
+
+// The pick, which is this browser's and is never sent anywhere. Written down and acted on in the
+// same breath, so the table starts refreshing at the interval just chosen rather than at whatever
+// the reader does next.
+document.addEventListener("change", event => {
+    const select = event.target;
+
+    if (select instanceof HTMLSelectElement && select.dataset.preference === "auto-refresh") {
+        rememberRefresh(select.value);
+        scheduleRefresh();
+    }
+});
+
+// Taken in the capture phase rather than the bubble one, because Blazor listens for clicks on the
+// document too and whichever of the two was added first would otherwise win. Capture runs before
+// either, and preventing the default is what tells Blazor's own handler to leave this one alone.
+// The modified clicks are left to the browser: a refresh opened in a new tab is a new tab on this
+// table, which is a reasonable thing to have asked for.
+document.addEventListener("click", event => {
+    const control = event.target;
+
+    if (!(control instanceof HTMLElement)) {
+        return;
+    }
+
+    const link = control.closest("[data-refresh]");
+
+    if (!link || event.defaultPrevented || event.button !== 0) {
+        return;
+    }
+
+    if (event.ctrlKey || event.shiftKey || event.altKey || event.metaKey) {
+        return;
+    }
+
+    if (!window.Blazor || typeof Blazor.navigateTo !== "function") {
+        return;
+    }
+
+    event.preventDefault();
+    refreshNow(link.href);
+}, true);
+
+// The picker is rendered hidden and shown here, so a timer is never offered where nothing can run
+// one — the same bargain the copy button on a payload makes. What was picked is put back from
+// storage, because the server renders Off every time: it has never heard of this preference.
+function applyRefresh() {
+    const chosen = storedRefresh() ?? "";
+
+    for (const select of document.querySelectorAll('select[data-preference="auto-refresh"]')) {
+        // Left showing Off when what was stored is not on offer, so the picker says what is
+        // actually going to happen rather than an interval nothing will use.
+        if ([...select.options].some(option => option.value === chosen)) {
+            select.value = chosen;
+        }
+    }
+
+    for (const row of document.querySelectorAll('[data-preference-row="auto-refresh"]')) {
+        row.hidden = false;
+    }
+
+    scheduleRefresh();
+}
+
 // The copy button on the Json tab. Rendered hidden — it is the one control on these pages that does
 // nothing without script — and shown here only where the clipboard can be written to, which the
 // browser allows in a secure context alone: localhost or https. Shown as a strip rather than one
@@ -276,6 +449,11 @@ function apply() {
     // Before the early return below, for the same reason: a reader who never picked a size can
     // still be looking at a payload.
     showCopyButtons();
+
+    // Before it too, and for the third time for the same reason: the timer is this browser's, a
+    // table swapped in has none running until this sets one, and a reader who never picked a size
+    // may well have picked an interval.
+    applyRefresh();
 
     // Both settings are put back on every page, and this one first: the note is rendered for
     // everyone, so a reader who hid it should not watch it go. Before the early return below,

@@ -19,8 +19,8 @@
 
 @* The settings in the card the data pages read their rows in: a preference is a name with a value
    at the end of it, which is the shape of a row of stored data, and drawing it a second way would
-   make one page out of two. Divs rather than a table because there is nothing to head — two rows
-   of two, and the line under each is a sentence rather than a third column. *@
+   make one page out of two. Divs rather than a table because there is nothing to head — a name and
+   its control to a row, and the line under each is a sentence rather than a third column. *@
 <div class="preferences">
     @* First, because it is the one preference that changes every page rather than the tables on
        some of them.
@@ -70,6 +70,37 @@
         <p class="hint">
             How much of a table one page holds, wherever a table is read. The picker under a table
             sets the same thing and opens at whatever stands here.
+        </p>
+    </div>
+
+    @* The same picker as the one on the line above a table, carrying the same list and writing the
+       same key, because it is the same choice — what is picked here is what that picker opens at.
+       Under the rows-per-page setting because the two are about the same thing: how the tables are
+       read rather than how the application looks.
+
+       Here as well as there because a reader who wants every table to refresh should not have to
+       find a table to say so, and because a standing preference is easier to remember having set
+       once it is listed beside the others. Off as rendered and corrected to what was stored once
+       the page is running, like the two above; hidden until then, because a timer is nothing
+       without the script that runs it.
+
+       No timer starts here. The script sets one only where there is a table to ask about again,
+       which it knows by the refresh beside that picker — this page has none, and a preferences
+       page that reloaded itself every five seconds would be a poor place to change a setting. *@
+    <div class="preference" data-preference-row="auto-refresh" hidden>
+        <div class="control">
+            <label for="auto-refresh">Auto refresh</label>
+            <select id="auto-refresh" data-preference="auto-refresh">
+                <option value="" selected>Off</option>
+                @foreach (var interval in RefreshInterval.Offered)
+                {
+                    <option value="@interval.Seconds">@interval.Label</option>
+                }
+            </select>
+        </div>
+        <p class="hint">
+            How often a table asks its store for its rows again, wherever a table is read. The
+            picker above a table sets the same thing and opens at whatever stands here.
         </p>
     </div>
 

@@ -28,6 +28,7 @@ public class PreferencesTests
         (await response.Content.ReadAsStringAsync()).Should()
             .Contain("data-preference=\"theme\"").And
             .Contain("data-preference=\"rows-per-page\"").And
+            .Contain("data-preference=\"auto-refresh\"").And
             .Contain("data-preference=\"hide-ordering-notice\"");
     }
 

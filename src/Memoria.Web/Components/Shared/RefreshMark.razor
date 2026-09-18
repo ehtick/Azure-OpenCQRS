@@ -1,0 +1,18 @@
+@* The mark on the control that asks a store for its rows again: two arrows chasing each other
+   round a circle, which is the drawing every dashboard uses for this and the one a reader arrives
+   already knowing.
+
+   Built to the same box, stroke and linecap as <see cref="SectionMark"/> and <see cref="JsonMark"/>,
+   so a control carrying this and a row carrying one of those are drawn at one weight. Hidden from
+   screen readers: the link around it is named, and read out this would be the same thing twice. *@
+<svg class="glyph" viewBox="0 0 20 20" aria-hidden="true" focusable="false"
+     fill="none" stroke="currentColor" stroke-width="1.6"
+     stroke-linecap="round" stroke-linejoin="round">
+    @* Two thirds of a circle each, with a gap where the arrowhead sits, so the two read as one
+       loop turning rather than as a ring with ticks on it. *@
+    <path d="M16.4 8.6A6.8 6.8 0 0 0 4.9 5.6L3.1 7.3"/>
+    <path d="M3.6 11.4a6.8 6.8 0 0 0 11.5 3l1.8-1.7"/>
+    @* The heads, each at the end its own arc runs out at. *@
+    <path d="M3.1 3.9v3.4h3.4"/>
+    <path d="M16.9 16.1v-3.4h-3.4"/>
+</svg>

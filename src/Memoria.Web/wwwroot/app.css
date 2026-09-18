@@ -1694,7 +1694,7 @@ h2:focus {
 
    No member of this run may need a :has() to identify it, either — a :has() inside a :has() is
    invalid and fails by silently matching nothing. */
-:is(.search, .table-header, .grid, .instances, .table-footer) {
+:is(.search, .grid, .instances, .table-footer) {
     background: var(--surface);
     border: 1px solid var(--rule);
     border-radius: 8px;
@@ -1704,23 +1704,23 @@ h2:focus {
 
     /* Not the first of the run, so the corners go. The top border goes with them for every piece
        except the pager, which keeps it as the line under the data. */
-    :is(.search, .table-header, .grid, .instances, .table-footer) + :is(.search, .table-header, .grid, .instances, .table-footer) {
+    :is(.search, .grid, .instances, .table-footer) + :is(.search, .grid, .instances, .table-footer) {
         border-top-left-radius: 0;
         border-top-right-radius: 0;
     }
 
-    :is(.search, .table-header, .grid, .instances, .table-footer) + :is(.search, .table-header, .grid, .instances) {
+    :is(.search, .grid, .instances, .table-footer) + :is(.search, .grid, .instances) {
         border-top: 0;
     }
 
     /* Not the last of the run, so those corners go. The bottom border goes with them for every
        piece except the filter row, which keeps it as the line above the data. */
-    :is(.search, .table-header, .grid, .instances, .table-footer):has(+ :is(.search, .table-header, .grid, .instances, .table-footer)) {
+    :is(.search, .grid, .instances, .table-footer):has(+ :is(.search, .grid, .instances, .table-footer)) {
         border-bottom-left-radius: 0;
         border-bottom-right-radius: 0;
     }
 
-    :is(.table-header, .grid, .instances, .table-footer):has(+ :is(.search, .table-header, .grid, .instances, .table-footer)) {
+    :is(.grid, .instances, .table-footer):has(+ :is(.search, .grid, .instances, .table-footer)) {
         border-bottom: 0;
     }
 
@@ -1739,13 +1739,13 @@ h2:focus {
 
     /* Not the first of the run, so the table's own top corners are already square and the cells
        follow them back. */
-    :is(.search, .table-header, .grid, .instances, .table-footer) + :is(.grid, .instances) thead tr:first-child > * {
+    :is(.search, .grid, .instances, .table-footer) + :is(.grid, .instances) thead tr:first-child > * {
         border-top-left-radius: 0;
         border-top-right-radius: 0;
     }
 
 /* The pieces that are not tables carry their own padding; a table's belongs to its cells, below. */
-:is(.search, .table-header, .table-footer) {
+:is(.search, .table-footer) {
     padding: 0.75rem 1rem;
 }
 
@@ -1762,7 +1762,7 @@ h2:focus {
 }
 
 /* Space under the card, since the pieces themselves no longer carry margins. */
-:is(.search, .table-header, .grid, .instances, .table-footer):not(:has(+ :is(.search, .table-header, .grid, .instances, .table-footer))) {
+:is(.search, .grid, .instances, .table-footer):not(:has(+ :is(.search, .grid, .instances, .table-footer))) {
     margin-bottom: 1.5rem;
 }
 
@@ -2439,28 +2439,95 @@ h2:focus {
     gap: 1rem;
 }
 
-/* What is above a table, in the same shape as what is below it: something said about the whole
-   table at one end, and a control over it at the other. Aligned on the first line rather than the
-   middle, because the count beside it is a sentence and may wrap to two. */
-/* The strip above the table holding whatever acts on the whole of it — today just the fold
-   control. It was two things at opposite ends, the count on the left and the fold on the right,
-   and space-between put them there. The count has gone up under the page title, so the one thing
-   left is held to the end it was already at rather than sliding across to fill the gap. */
+/* The line above the card: what the page found at one end, and the ways of asking the store for it
+   again at the other — the same shape as the pager and the rows-per-page picker at the two ends of
+   the line below the card. Outside the run that draws the card, because both halves are the page
+   speaking about the table rather than part of it.
+
+   Held apart by an auto margin on the count rather than by space-between, because the count is not
+   always there: a table with nothing in it says so in the table, and space-between would slide the
+   controls across to the left-hand end on exactly those pages.
+
+   Aligned on the first line rather than the middle, because the count is a sentence and may wrap to
+   two. It carries the margin the count used to carry on its own, so the card sits where it always
+   did whether or not there is a count on the line. */
 .table-header {
     align-items: baseline;
     display: flex;
     flex-wrap: wrap;
     gap: 1rem;
     justify-content: flex-end;
+    margin: 1.5rem 0;
 }
 
-    /* Whatever this line follows — a row of tabs, a filter form — has already set how far below it
-       the table's opening line sits, so the line adds nothing of its own on top. It is a flex row,
-       so the margin the lede carries everywhere else cannot collapse into that spacing and stacked
-       on it instead. Only the top goes: the space under still holds the line off the table. */
     .table-header .lede {
-        margin-top: 0;
+        margin: 0 auto 0 0;
     }
+
+    /* A label and a select, drawn like the rows-per-page picker under the table: the same kind of
+       choice about how the table is read, so the same object. */
+    .auto-refresh {
+        align-items: center;
+        color: var(--ink-soft);
+        display: flex;
+        font-size: var(--text-md);
+        gap: 0.5rem;
+    }
+
+        .auto-refresh select {
+            background: var(--surface);
+            border: 1px solid var(--field-rule);
+            border-radius: 4px;
+            color: var(--ink);
+            font: inherit;
+            padding: 0.3rem 0.4rem;
+        }
+
+        .auto-refresh select:focus-visible {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgb(var(--accent-rgb) / 0.18);
+            outline: none;
+        }
+
+    /* The mark alone, drawn like the fold control inside the card and like the Json links in the
+       table: all three are quiet links that act on how the table is read rather than on what is in
+       it, so none of them is dressed as a button. Padded so the tap target is bigger than the mark,
+       and pulled back out of the line by the same amount so it does not set the line taller than
+       the picker beside it. */
+    .refresh-now {
+        align-items: center;
+        /* Centred against the line rather than sat on its baseline like the words beside it. It
+           holds a mark and no text, so its baseline is its own bottom edge — on the baseline it
+           rode three pixels high of everything else. */
+        align-self: center;
+        border-radius: 3px;
+        color: var(--ink-soft);
+        display: inline-flex;
+        flex: none;
+        font-size: var(--text-md);
+        justify-content: center;
+        margin: -0.25rem 0;
+        padding: 0.25rem;
+        text-decoration: none;
+    }
+
+    .refresh-now:hover {
+        color: var(--accent);
+    }
+
+    .refresh-now:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 1px;
+    }
+
+        /* Sized in ems so the mark follows the line it is on, and to the same 1.2em the marks
+           standing alone as a table row's whole link are drawn at — they are the same thing about
+           the same table. */
+        .refresh-now .glyph {
+            flex: none;
+            height: 1.2em;
+            width: 1.2em;
+        }
 
 /* Opens or closes every folded cell in the table at once. Quiet, because it acts on how the table
    is looked at rather than on what is in it, and the rows are still folded one at a time. */
