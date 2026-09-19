@@ -69,9 +69,9 @@ builder.Services.AddSingleton(new BrandingStore(
     builder.Configuration["Branding:Directory"]
     ?? Path.Combine(builder.Environment.ContentRootPath, "App_Data", "branding")));
 
-// The tool's own settings, kept beside the branding for the same reason: how long Home keeps what
-// it counts. Read once, here, and held from then on.
-builder.Services.AddSingleton(new HomeSettingsStore(
+// The tool's own settings, kept beside the branding for the same reason: how long Home and the
+// overview pages keep what they count. Read once, here, and held from then on.
+builder.Services.AddSingleton(new CountsSettingsStore(
     builder.Configuration["Settings:Directory"]
     ?? Path.Combine(builder.Environment.ContentRootPath, "App_Data", "settings")));
 

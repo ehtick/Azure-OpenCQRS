@@ -73,6 +73,43 @@ public interface IStreamedReads
         StreamedSnapshotFilter filter, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Counts every snapshot of one kind the store holds.
+    /// </summary>
+    /// <param name="kind">Aggregates or projections.</param>
+    /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
+    /// <remarks>
+    /// What the overview pages say beside a section, asked on its own rather than as a page of
+    /// one: a page would read a row nobody wanted and count through the list totals, and these
+    /// figures are kept by the overview for a while of their own. Throws when the store cannot be
+    /// read, since the overview says so in its own words.
+    /// </remarks>
+    Task<int> CountSnapshots(StreamedModelKind kind, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// When the newest snapshot of one kind was last written, or null when none is stored.
+    /// </summary>
+    /// <param name="kind">Aggregates or projections.</param>
+    /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
+    /// <remarks>
+    /// Last written rather than first: a snapshot refreshed is a write, and the figure says whether
+    /// snapshots are still being written. Nothing indexes that date, so this reads every snapshot
+    /// of the kind, and the overview keeps it for a short while. Throws when the store cannot be
+    /// read.
+    /// </remarks>
+    Task<DateTimeOffset?> LastWritten(StreamedModelKind kind, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Counts the streams the store's events are held in.
+    /// </summary>
+    /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
+    /// <remarks>
+    /// A stream is stored as nothing but the events in it, so this counts the distinct stream ids
+    /// across the log: a scan, which the overview keeps as it keeps its other counts. Throws when
+    /// the store cannot be read.
+    /// </remarks>
+    Task<int> CountStreams(CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Reads the one model stored under an exact address, payload and all.
     /// </summary>
     /// <param name="address">Which kind, in which stream, under which key.</param>

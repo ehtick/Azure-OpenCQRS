@@ -1,0 +1,59 @@
+@using System.Globalization
+@using Memoria.Web.Data
+@inject TimeProvider Clock
+
+@* What the store holds of one section, under the tile that leads to it: when the newest was
+   written, and how many are stored with when they were counted — the line Home draws under a
+   service, one level down. The tiles are sent before the store is asked and the line follows its
+   answer, so until then it says the store is being read. *@
+<span class="activity stacked">
+    @if (Model is null)
+    {
+        <span class="reading">Reading the store…</span>
+    }
+    else if (Model.Problem is { } problem)
+    {
+        <span class="problem">Could not read the store: @problem</span>
+    }
+    else if (Section(Model) is { } section)
+    {
+        @if (section.Stored.Value == 0 && section.Latest is null)
+        {
+            <span>@Empty</span>
+        }
+        else
+        {
+            @if (Latest is not null && section.Latest is { } latest)
+            {
+                <span>@Latest <time datetime="@latest.UtcDateTime.ToString("O", CultureInfo.InvariantCulture)" title="@latest.ToUniversalTime().ToString("u", CultureInfo.InvariantCulture)">@Ago.Since(latest, Now)</time></span>
+            }
+            <span title="Counted at @section.Stored.At.ToUniversalTime().ToString("u", CultureInfo.InvariantCulture)">@section.Stored.Value.ToString("N0", CultureInfo.CurrentCulture) @Noun, counted @Ago.Since(section.Stored.At, Now)</span>
+        }
+    }
+</span>
+
+@code {
+
+    /// <summary>What the store holds of the model, or null while it is still being read.</summary>
+    [Parameter]
+    public ModelActivity? Model { get; set; }
+
+    /// <summary>Which of the model's sections this tile leads to.</summary>
+    [Parameter, EditorRequired]
+    public Func<ModelActivity, SectionActivity?> Section { get; set; } = null!;
+
+    /// <summary>What the newest date is called — <c>Last event</c>, <c>Last written</c> — or null for a section with none.</summary>
+    [Parameter]
+    public string? Latest { get; set; }
+
+    /// <summary>What follows the count: <c>stored</c>, or <c>with events</c> for streams.</summary>
+    [Parameter]
+    public string Noun { get; set; } = "stored";
+
+    /// <summary>What is said when nothing is stored.</summary>
+    [Parameter]
+    public string Empty { get; set; } = "None stored yet";
+
+    private DateTimeOffset Now => Clock.GetUtcNow();
+
+}

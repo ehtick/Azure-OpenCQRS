@@ -311,7 +311,7 @@
    small capitals a table's header row is set in. The button sits the Types pair's gap below it, and
    the whole is held to a measure so a name field does not run the width of a wide screen. */
 .branding,
-.home-settings {
+.counts-settings {
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
@@ -359,7 +359,7 @@
 }
 
 .branding input[type="text"],
-.home-settings input[type="number"] {
+.counts-settings input[type="number"] {
     background: var(--surface);
     border: 1px solid var(--field-rule);
     border-radius: 4px;
@@ -370,7 +370,7 @@
 }
 
     .branding input[type="text"]:focus-visible,
-    .home-settings input[type="number"]:focus-visible {
+    .counts-settings input[type="number"]:focus-visible {
         border-color: var(--accent);
         box-shadow: 0 0 0 3px rgb(var(--accent-rgb) / 0.18);
         outline: none;
@@ -411,7 +411,7 @@
 /* Under the card rather than in it, and with no space of its own above: the column's gap already
    sets it apart. */
 .branding .actions-row,
-.home-settings .actions-row {
+.counts-settings .actions-row {
     margin: 0;
 }
 
@@ -421,8 +421,8 @@
    width, since the card's outer edge is what it lines up with. */
 .branding-panel ::deep .notice,
 .branding-panel ::deep .alert,
-.home-panel ::deep .notice,
-.home-panel ::deep .alert {
+.counts-panel ::deep .notice,
+.counts-panel ::deep .alert {
     box-sizing: border-box;
     margin-top: 1.5rem;
     max-width: 40rem;
@@ -430,12 +430,12 @@
 
 /* How long Home keeps a count: a number a few digits wide with its unit after it on the same line,
    the way it is said aloud. */
-.home-settings .minutes {
+.counts-settings .minutes {
     align-items: center;
     display: flex;
     gap: 0.6rem;
 }
 
-    .home-settings .minutes input[type="number"] {
+    .counts-settings .minutes input[type="number"] {
         width: 6rem;
     }

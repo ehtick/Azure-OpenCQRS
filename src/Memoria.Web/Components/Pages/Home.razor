@@ -121,9 +121,9 @@ else
                                     {
                                         <span>No events yet</span>
                                     }
-                                    @if (activity.Events is { } events && (events.Total > 0 || activity.LastEvent is not null))
+                                    @if (activity.Events is { } events && (events.Value > 0 || activity.LastEvent is not null))
                                     {
-                                        <span title="Counted at @events.CountedAt.ToUniversalTime().ToString("u", CultureInfo.InvariantCulture)">@EventCount(events.Total), counted @Ago.Since(events.CountedAt, Now)</span>
+                                        <span title="Counted at @events.At.ToUniversalTime().ToString("u", CultureInfo.InvariantCulture)">@EventCount(events.Value), counted @Ago.Since(events.At, Now)</span>
                                     }
                                 }
                             </span>

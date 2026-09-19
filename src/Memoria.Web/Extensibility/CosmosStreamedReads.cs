@@ -302,6 +302,48 @@ public sealed class CosmosStreamedReads(
     }
 
     /// <inheritdoc />
+    public async Task<int> CountSnapshots(StreamedModelKind kind, CancellationToken cancellationToken = default) =>
+        await Count(client.GetContainer(databaseName, containerName), OfDocumentType(SnapshotKind.Of(kind).DocumentType),
+            cancellationToken);
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// A maximum rather than an order: the store's own indexing policy leaves the date a document
+    /// was last written out of the index, so a container set up by it refuses to sort on it, but an
+    /// aggregate over the documents the narrowing reaches is worked out from the documents
+    /// themselves. The dates are written in one form and one offset, so the greatest is the latest.
+    /// </remarks>
+    public async Task<DateTimeOffset?> LastWritten(StreamedModelKind kind, CancellationToken cancellationToken = default)
+    {
+        var narrowing = OfDocumentType(SnapshotKind.Of(kind).DocumentType);
+        var latest = await Read<DateTimeOffset?>(client.GetContainer(databaseName, containerName),
+            narrowing.Apply(new QueryDefinition($"SELECT VALUE MAX(c.updatedDate) FROM c WHERE {narrowing.Where}")),
+            cancellationToken);
+
+        return latest.FirstOrDefault();
+    }
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// The distinct stream ids of the event documents, counted: a stream is nothing but the events
+    /// held in it, so no document of its own says it is there.
+    /// </remarks>
+    public async Task<int> CountStreams(CancellationToken cancellationToken = default)
+    {
+        var narrowing = OfDocumentType(DocumentType.Event);
+        var counted = await Read<int>(client.GetContainer(databaseName, containerName),
+            narrowing.Apply(new QueryDefinition(
+                $"SELECT VALUE COUNT(1) FROM (SELECT DISTINCT VALUE c.streamId FROM c WHERE {narrowing.Where})")),
+            cancellationToken);
+
+        return counted.FirstOrDefault();
+    }
+
+    /// <summary>Every document of one type, and nothing narrower.</summary>
+    private static Narrowing OfDocumentType(string documentType) =>
+        new("c.documentType = @documentType", [("@documentType", documentType)]);
+
+    /// <inheritdoc />
     /// <remarks>
     /// One query and one partition, unlike everything else here: an address names the stream, which
     /// is what the container is partitioned by, so this is the one read that knows where to look.

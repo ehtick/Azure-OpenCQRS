@@ -125,7 +125,7 @@ public class HomeActivityTests
         using var web = MemoriaWeb.Open().WithSampleTypes().WithClock(clock);
         await CreateTheStore(web);
         await AppendStreamed(web, "sample:1", 0);
-        web.Services.GetRequiredService<HomeSettingsStore>().Save(countsKeptForMinutes: 1);
+        web.Services.GetRequiredService<CountsSettingsStore>().Save(countsKeptForMinutes: 1);
 
         await web.Client.GetStringAsync("/");
         clock.Now = Start + TimeSpan.FromMinutes(1);

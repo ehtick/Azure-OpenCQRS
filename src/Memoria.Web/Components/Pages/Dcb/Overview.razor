@@ -1,6 +1,9 @@
 @page "/{service}/dcb"
+@attribute [StreamRendering]
+@using Memoria.Web.Data
 @using Memoria.Web.Extensibility
 @inject CurrentService Current
+@inject ServiceActivity Activity
 
 <PageTitle>DCB @Heading</PageTitle>
 
@@ -28,6 +31,7 @@
             <span class="body">
                 <span class="name">Events</span>
                 <span class="detail">@Count(Catalogue.DcbEvents.Count, "event") the model can apply.</span>
+                <SectionLine Model="@DcbActivity" Section="@(model => model.Events)" Latest="Last event" Empty="No events yet"/>
             </span>
         </a>
     </li>
@@ -40,6 +44,7 @@
                     @Count(Catalogue.DcbAggregates.Count, "aggregate"), addressed by
                     @Count(Catalogue.DcbAggregateIds.Count, "identifier").
                 </span>
+                <SectionLine Model="@DcbActivity" Section="@(model => model.Aggregates)" Latest="Last written"/>
             </span>
         </a>
     </li>
@@ -52,6 +57,7 @@
                     @Count(Catalogue.DcbProjections.Count, "projection"), addressed by
                     @Count(Catalogue.DcbProjectionIds.Count, "identifier").
                 </span>
+                <SectionLine Model="@DcbActivity" Section="@(model => model.Projections)" Latest="Last written"/>
             </span>
         </a>
     </li>
@@ -70,6 +76,18 @@
     /// <summary>The service this page sits under: the first segment of its address.</summary>
     [Parameter]
     public string Service { get; set; } = string.Empty;
+
+    /// <summary>What the store holds of each section, or null while it is being read.</summary>
+    private ModelActivity? DcbActivity { get; set; }
+
+    /// <summary>Asks the store what it holds of each section; the tiles have been sent by the time this waits.</summary>
+    protected override async Task OnInitializedAsync()
+    {
+        if (Current.Service is { } service)
+        {
+            DcbActivity = await Activity.Dcb(service);
+        }
+    }
 
     /// <summary>
     /// What the page is, for the heading and the title. One value for both, so they cannot drift

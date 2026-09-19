@@ -1,4 +1,5 @@
 using Memoria.Web.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace Memoria.Web.Extensibility;
 
@@ -89,6 +90,32 @@ public sealed class EfStreamedReads(StreamedStoreDbContext context, TotalsCache?
             filter.Size,
             totals,
             cancellationToken);
+
+    /// <inheritdoc />
+    public Task<int> CountSnapshots(StreamedModelKind kind, CancellationToken cancellationToken = default) =>
+        kind is StreamedModelKind.Projection
+            ? context.Projections.CountAsync(cancellationToken)
+            : context.Aggregates.CountAsync(cancellationToken);
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// Newest first and the first taken, rather than a maximum, because that is the form every
+    /// provider orders a date by — SQLite included, which holds these dates as text.
+    /// </remarks>
+    public Task<DateTimeOffset?> LastWritten(StreamedModelKind kind, CancellationToken cancellationToken = default) =>
+        kind is StreamedModelKind.Projection
+            ? context.Projections.AsNoTracking()
+                .OrderByDescending(projection => projection.UpdatedDate)
+                .Select(projection => (DateTimeOffset?)projection.UpdatedDate)
+                .FirstOrDefaultAsync(cancellationToken)
+            : context.Aggregates.AsNoTracking()
+                .OrderByDescending(aggregate => aggregate.UpdatedDate)
+                .Select(aggregate => (DateTimeOffset?)aggregate.UpdatedDate)
+                .FirstOrDefaultAsync(cancellationToken);
+
+    /// <inheritdoc />
+    public Task<int> CountStreams(CancellationToken cancellationToken = default) =>
+        context.Events.Select(appended => appended.StreamId).Distinct().CountAsync(cancellationToken);
 
     /// <inheritdoc />
     public Task<ReadStreamModel> Model(

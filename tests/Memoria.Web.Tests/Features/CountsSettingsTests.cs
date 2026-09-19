@@ -14,11 +14,11 @@ using Xunit;
 namespace Memoria.Web.Tests.Features;
 
 /// <summary>
-/// How long Home keeps what it counts is an Administrator's to say, on a Home tab of the settings
-/// page: in whole minutes, five until they say otherwise, none meaning every visit counts again.
-/// It is kept in a file beside the branding's, and felt on the next visit to Home.
+/// How long Home and the overview pages keep what they count is an Administrator's to say, on a
+/// Counts tab of the settings page: in whole minutes, five until they say otherwise, none meaning
+/// every visit counts again. It is kept in a file beside the branding's, and felt on the next visit.
 /// </summary>
-public class HomeSettingsTests
+public class CountsSettingsTests
 {
     private const string Admins = "memoria-admins";
 
@@ -27,16 +27,16 @@ public class HomeSettingsTests
             .With("Authorization:Roles:Administrator", Admins);
 
     [Fact]
-    public async Task Offers_a_home_tab_with_how_long_counts_are_kept_filled_in()
+    public async Task Offers_a_counts_tab_with_how_long_counts_are_kept_filled_in()
     {
         using var web = Administrator();
 
-        var page = Markup.Plain(await web.Client.GetStringAsync("/settings?tab=home"));
+        var page = Markup.Plain(await web.Client.GetStringAsync("/settings?tab=counts"));
 
         using (new AssertionScope())
         {
-            page.Should().MatchRegex("aria-current=\"page\"[^>]*>Home<");
-            page.Should().Contain("action=\"settings/home\"");
+            page.Should().MatchRegex("aria-current=\"page\"[^>]*>Counts<");
+            page.Should().Contain("action=\"settings/counts\"");
             page.Should().MatchRegex("<input[^>]*name=\"countsKeptForMinutes\"[^>]*value=\"5\"");
         }
     }
@@ -47,15 +47,15 @@ public class HomeSettingsTests
         using var web = Administrator();
         var client = web.Client;
 
-        var response = await client.PostAsync("/settings/home", await Home(client, "12"));
-        var page = Markup.Plain(await client.GetStringAsync("/settings?tab=home"));
+        var response = await client.PostAsync("/settings/counts", await Counts(client, "12"));
+        var page = Markup.Plain(await client.GetStringAsync("/settings?tab=counts"));
 
         using (new AssertionScope())
         {
             response.StatusCode.Should().Be(HttpStatusCode.Found);
-            Query(response, "tab").Should().Be("home");
+            Query(response, "tab").Should().Be("counts");
             Query(response, "message").Should().NotBeEmpty();
-            web.Services.GetRequiredService<HomeSettingsStore>().CountsKeptFor.Should().Be(TimeSpan.FromMinutes(12));
+            web.Services.GetRequiredService<CountsSettingsStore>().CountsKeptFor.Should().Be(TimeSpan.FromMinutes(12));
             page.Should().MatchRegex("<input[^>]*name=\"countsKeptForMinutes\"[^>]*value=\"12\"");
         }
     }
@@ -70,13 +70,13 @@ public class HomeSettingsTests
         using var web = Administrator();
         var client = web.Client;
 
-        var response = await client.PostAsync("/settings/home", await Home(client, minutes));
+        var response = await client.PostAsync("/settings/counts", await Counts(client, minutes));
 
         using (new AssertionScope())
         {
-            Query(response, "tab").Should().Be("home");
+            Query(response, "tab").Should().Be("counts");
             Query(response, "error").Should().Contain("0").And.Contain("1440");
-            web.Services.GetRequiredService<HomeSettingsStore>().CountsKeptFor.Should().Be(TimeSpan.FromMinutes(5));
+            web.Services.GetRequiredService<CountsSettingsStore>().CountsKeptFor.Should().Be(TimeSpan.FromMinutes(5));
         }
     }
 
@@ -87,12 +87,12 @@ public class HomeSettingsTests
             .With("Authorization:Roles:Administrator", Admins);
         var client = web.Client;
 
-        var response = await client.PostAsync("/settings/home", await Home(client, "12", tokenPage: "/"));
+        var response = await client.PostAsync("/settings/counts", await Counts(client, "12", tokenPage: "/"));
 
         using (new AssertionScope())
         {
             response.Headers.Location?.OriginalString.Should().StartWith("/forbidden");
-            web.Services.GetRequiredService<HomeSettingsStore>().CountsKeptFor.Should().Be(TimeSpan.FromMinutes(5));
+            web.Services.GetRequiredService<CountsSettingsStore>().CountsKeptFor.Should().Be(TimeSpan.FromMinutes(5));
         }
     }
 
@@ -102,13 +102,13 @@ public class HomeSettingsTests
         using var web = Administrator();
         var client = web.Client;
 
-        await client.PostAsync("/settings/home", await Home(client, "12"));
-        await client.PostAsync("/settings/home", await Home(client, "soon"));
+        await client.PostAsync("/settings/counts", await Counts(client, "12"));
+        await client.PostAsync("/settings/counts", await Counts(client, "soon"));
 
         using (new AssertionScope())
         {
-            web.Logged.Select(entry => entry.Event).Should().ContainInOrder("HomeSettingsSaved", "HomeSettingsNotSaved");
-            web.Logged.Where(entry => entry.Event?.StartsWith("HomeSettings") == true)
+            web.Logged.Select(entry => entry.Event).Should().ContainInOrder("CountsSettingsSaved", "CountsSettingsNotSaved");
+            web.Logged.Where(entry => entry.Event?.StartsWith("CountsSettings") == true)
                 .Should().AllSatisfy(entry => entry.Columns.Should().Contain("OperatorName", "Ada Lovelace"));
         }
     }
@@ -119,13 +119,13 @@ public class HomeSettingsTests
         using var web = Administrator();
         var client = web.Client;
 
-        await client.PostAsync("/settings/home", await Home(client, "12"));
+        await client.PostAsync("/settings/counts", await Counts(client, "12"));
 
         System.IO.Directory.GetFiles(web.SettingsDirectory).Select(System.IO.Path.GetFileName)
-            .Should().BeEquivalentTo("home.json");
+            .Should().BeEquivalentTo("counts.json");
     }
 
-    private static async Task<FormUrlEncodedContent> Home(HttpClient client, string minutes, string tokenPage = "/settings?tab=home")
+    private static async Task<FormUrlEncodedContent> Counts(HttpClient client, string minutes, string tokenPage = "/settings?tab=counts")
     {
         var page = await client.GetStringAsync(tokenPage);
 

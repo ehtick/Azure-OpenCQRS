@@ -688,10 +688,10 @@ h2:focus {
         margin-top: 0.15rem;
     }
 
-    /* What the store is doing, under what the service is: the last event and the count, a dot
-       between them, in the faint ink and the small size, so it reads as a status line under the
+    /* What the store is doing, under a tile's sentence — a service's on Home, a section's on the
+       overview pages: the newest date and the count, a dot between them, in the faint ink and the small size, so it reads as a status line under the
        sentence rather than a second sentence. Wraps whole parts rather than breaking one. */
-    .tiles.services .activity {
+    .tiles .activity {
         color: var(--ink-soft);
         display: flex;
         flex-wrap: wrap;
@@ -700,26 +700,38 @@ h2:focus {
         margin-top: 0.35rem;
     }
 
-        .tiles.services .activity > span {
+        .tiles .activity > span {
             white-space: nowrap;
         }
 
-        .tiles.services .activity > span + span::before {
+        .tiles .activity > span + span::before {
             color: var(--ink-faint);
             content: "·";
             padding: 0 0.5rem;
         }
 
-        .tiles.services .activity .reading {
+        .tiles .activity .reading {
             color: var(--ink-faint);
         }
 
         /* Said in the danger ink, since it is the one thing on the tile someone has to act on;
            allowed to wrap, since the driver's words can run long. */
-        .tiles.services .activity .problem {
+        .tiles .activity .problem {
             color: var(--danger);
             white-space: normal;
         }
+
+        /* A section's tile shares the row with others, so its line is too narrow for the newest
+           date and the count side by side: one wrapped under the other left the dot at the start
+           of a line. Each on a row of its own instead, with no dot to part them. */
+        .tiles .activity.stacked {
+            flex-direction: column;
+            gap: 0.1rem;
+        }
+
+            .tiles .activity.stacked > span + span::before {
+                content: none;
+            }
 
 /* The two models set beside each other, so what belongs to one is read against the other rather
    than as one long list. Shared by any page that has something to say about both.

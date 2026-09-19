@@ -3,16 +3,17 @@ using System.Text.Json;
 namespace Memoria.Web.Data;
 
 /// <summary>
-/// How long Home keeps what it counts of each service's store, as an Administrator last said: a
-/// JSON file, read once and held in memory from then on.
+/// How long Home and the overview pages keep what they count of each service's store, as an
+/// Administrator last said: a JSON file, read once and held in memory from then on.
 /// </summary>
 /// <param name="root">The directory holding the file, created on the first save.</param>
 /// <remarks>
 /// A file rather than a table for the reason the branding is one: the tool reads over the stores it
-/// is pointed at and owns none of them. Held in memory because Home asks on every visit. The copy
-/// is this process's — a second instance over the same directory sees a save when it next starts.
+/// is pointed at and owns none of them. Held in memory because every overview asks on every visit.
+/// The copy is this process's — a second instance over the same directory sees a save when it next
+/// starts.
 /// </remarks>
-public sealed class HomeSettingsStore
+public sealed class CountsSettingsStore
 {
     /// <summary>How long counts are kept until an Administrator says otherwise.</summary>
     public const int DefaultCountsKeptForMinutes = 5;
@@ -20,7 +21,7 @@ public sealed class HomeSettingsStore
     /// <summary>The longest counts are kept: a day, past which a count is history rather than a figure.</summary>
     public const int MaxCountsKeptForMinutes = 24 * 60;
 
-    private const string SettingsFileName = "home.json";
+    private const string SettingsFileName = "counts.json";
 
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web) { WriteIndented = true };
 
@@ -28,16 +29,16 @@ public sealed class HomeSettingsStore
     private readonly Lock _writing = new();
     private volatile Settings _current;
 
-    public HomeSettingsStore(string root)
+    public CountsSettingsStore(string root)
     {
         _root = root;
         _current = Read();
     }
 
-    /// <summary>How long Home keeps a count before it counts again; no time at all keeps nothing.</summary>
+    /// <summary>How long a count is kept before it is counted again; no time at all keeps nothing.</summary>
     public TimeSpan CountsKeptFor => TimeSpan.FromMinutes(_current.CountsKeptForMinutes);
 
-    /// <summary>Saves how long Home keeps a count, in whole minutes.</summary>
+    /// <summary>Saves how long a count is kept, in whole minutes.</summary>
     /// <param name="countsKeptForMinutes">From none, which counts on every visit, to <see cref="MaxCountsKeptForMinutes"/>.</param>
     /// <exception cref="InvalidDataException">The minutes are outside what is kept; nothing is saved.</exception>
     public void Save(int countsKeptForMinutes)

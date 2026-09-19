@@ -6,7 +6,7 @@
 @inject ExtensionStore Store
 @inject DomainTypeRegistry Types
 @inject BrandingStore Branding
-@inject HomeSettingsStore Home
+@inject CountsSettingsStore Counts
 
 <PageTitle>Settings</PageTitle>
 
@@ -18,7 +18,7 @@
 
 <h1>Settings</h1>
 @* Two views of one setting — the archives that were uploaded and the types they turned out to hold —
-   a third for the header's name and logo, and a fourth for how Home reads the stores, which are
+   a third for the header's name and logo, and a fourth for how long the counts the overview pages show are kept, which are
    the tool's too and an Administrator's to change. Switched by the address rather than by script, the same way the aggregate pages switch theirs,
    so a view can be linked to and the back button steps between them. Marked with aria-current
    because these are places to go, not scripted tabs. The browser's own settings used to be a
@@ -31,8 +31,8 @@
        aria-current="@(Tab == TypesTab ? "page" : null)">Types</a>
     <a id="tab-@BrandingTab" href="settings?tab=@BrandingTab"
        aria-current="@(Tab == BrandingTab ? "page" : null)">Branding</a>
-    <a id="tab-@HomeTab" href="settings?tab=@HomeTab"
-       aria-current="@(Tab == HomeTab ? "page" : null)">Home</a>
+    <a id="tab-@CountsTab" href="settings?tab=@CountsTab"
+       aria-current="@(Tab == CountsTab ? "page" : null)">Counts</a>
 </nav>
 
 @* Each panel is named by the tab that reaches it, so the label is written once. *@
@@ -408,19 +408,20 @@ else if (Tab == BrandingTab)
         </p>
     </section>
 }
-else if (Tab == HomeTab)
+else if (Tab == CountsTab)
 {
-    <section class="tab-panel home-panel" aria-labelledby="tab-@HomeTab">
+    <section class="tab-panel counts-panel" aria-labelledby="tab-@CountsTab">
         <p class="lede">
-            How Home reads each service's store. When the last event was written is asked on every
-            visit; how many events a store holds is a scan of its whole log, so it is counted and
-            then kept for as long as you say here.
+            How Home and the overview pages read each service's store. How many events, snapshots
+            and streams a store holds is a scan of a whole table, so each is counted and then kept
+            for as long as you say here. When the newest was written is not: it is asked on every
+            visit, or kept for half a minute where the store has to search for it.
         </p>
 
         @* One card with one field, drawn the way the Branding tab draws its two, so the tabs read
            as one page. Whole minutes, because a count kept for seconds is hardly kept and one
            kept for hours is said in minutes all the same. *@
-        <form method="post" action="settings/home" class="home-settings">
+        <form method="post" action="settings/counts" class="counts-settings">
             <AntiforgeryToken/>
 
             <div class="field-card">
@@ -428,13 +429,13 @@ else if (Tab == HomeTab)
                 <div class="field-card-body">
                     <span class="minutes">
                         <input id="counts-kept-for" name="countsKeptForMinutes" type="number" required
-                               min="0" max="@HomeSettingsStore.MaxCountsKeptForMinutes" step="1"
-                               value="@((int)Home.CountsKeptFor.TotalMinutes)"/>
+                               min="0" max="@CountsSettingsStore.MaxCountsKeptForMinutes" step="1"
+                               value="@((int)Counts.CountsKeptFor.TotalMinutes)"/>
                         <span>minutes</span>
                     </span>
                     <p class="hint">
-                        0 counts on every visit. Up to @HomeSettingsStore.MaxCountsKeptForMinutes,
-                        a day; @HomeSettingsStore.DefaultCountsKeptForMinutes until it is changed.
+                        0 counts on every visit. Up to @CountsSettingsStore.MaxCountsKeptForMinutes,
+                        a day; @CountsSettingsStore.DefaultCountsKeptForMinutes until it is changed.
                     </p>
                 </div>
             </div>
@@ -447,7 +448,7 @@ else if (Tab == HomeTab)
         @Notice
 
         <p class="shared">
-            Everyone using this server sees the same Home, so a change here changes what they see
+            Everyone using this server sees the same counts, so a change here changes what they see
             too, from their next visit.
         </p>
     </section>
@@ -472,7 +473,7 @@ else if (Tab == HomeTab)
 
     private const string BrandingTab = "branding";
 
-    private const string HomeTab = "home";
+    private const string CountsTab = "counts";
 
     /// <summary>
     /// Which view the address asks for. Taken as text and matched against the two the page has, so
@@ -486,7 +487,7 @@ else if (Tab == HomeTab)
     {
         TypesTab => TypesTab,
         BrandingTab => BrandingTab,
-        HomeTab => HomeTab,
+        CountsTab => CountsTab,
         _ => InstalledTab,
     };
 

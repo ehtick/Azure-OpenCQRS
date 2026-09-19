@@ -96,9 +96,11 @@ the manifest in the zip that brought it — and each is browsed under its own na
 manifest declares is not found, and so is an address under no service at all. Inside a service the
 bar carries Home, the service's name, and the menus over its models; outside one, Home and Settings.
 
-Under each service, Home says what its store is doing: when the last event was written, asked on
-every visit, and how many events the store holds, counted and then kept for five minutes unless an
-Administrator [says otherwise](memoria-web-configuration.md#home).
+Under each service, Home says what its store is doing: when the last event was written, and how
+many events the store holds, counted and then kept for five minutes unless an Administrator
+[says otherwise](memoria-web-configuration.md#counts). A service's own page and each model's overview
+say the same under every section: how many events, aggregates, projections and streams are stored,
+and when the newest was written.
 
 A service's own page sets the two consistency models side by side when it registered types under
 both, and lays the one model out directly when it registered types under one alone. Each model is

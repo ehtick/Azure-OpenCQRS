@@ -112,7 +112,7 @@ Without a volume, every deployment starts with nothing installed and everyone ha
 
 The header's [branding](memoria-web-configuration.md#branding) is kept the same way, in its own
 directory; mount `Branding__Directory` too, or it goes back to Memoria's own name and mark on every
-deployment. So are the tool's own [settings](memoria-web-configuration.md#home), under
+deployment. So are the tool's own [settings](memoria-web-configuration.md#counts), under
 `Settings__Directory`; without a volume, how long Home keeps a count goes back to 5 minutes.
 
 ### Run one instance

@@ -34,7 +34,7 @@ public class OverviewCountsTests
             page.Should().Contain("0 events the model can apply.");
             page.Should().Contain("2 aggregates the events are held in.");
             page.Should().Contain("0 projections built from those events.");
-            page.Should().Contain("0 streams the events are held in.");
+            page.Should().Contain("0 stream types the events are held in.");
         }
     }
 
@@ -60,7 +60,7 @@ public class OverviewCountsTests
                 Number(streamed, "events the model can apply\\.")
                 + Number(streamed, "aggregates? the events are held in\\.")
                 + Number(streamed, "projections? built from those events\\.")
-                + Number(streamed, "streams the events are held in\\."));
+                + Number(streamed, "stream types? the events are held in\\."));
             Number(dcb, "types registered under the DCB model\\.").Should().Be(
                 Number(dcb, "events the model can apply\\.")
                 + Number(dcb, "aggregates? the events are addressed by\\.")
