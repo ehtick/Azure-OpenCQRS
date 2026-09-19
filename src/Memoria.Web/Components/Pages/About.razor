@@ -8,7 +8,11 @@
     <span aria-current="page">About</span>
 </nav>
 
-<h1>About</h1>
+@* Headed with the tool's own mark and name rather than the word About, which the breadcrumb and
+   the tab already say. Memoria's own whatever the header shows: an Administrator's branding
+   names this deployment, and this page is about what it runs. alt="" because the name follows,
+   and a screen reader naming the mark as well would say Memoria twice. *@
+<h1 class="product"><img class="product-mark" src="@Assets["logo.png"]" alt=""/>Memoria</h1>
 <p class="lede">
     Memoria Web is the browser tool of the Memoria framework: it reads a store, and shows the events
     appended to it and the models built from them. This page is what the tool itself is — the

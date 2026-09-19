@@ -14,3 +14,17 @@ h2 {
 .tab-panel .facts {
     max-width: 40rem;
 }
+
+/* The page's title: Memoria's mark beside its name, drawn the way the header draws the pair, at
+   the size of the title. */
+.product {
+    align-items: center;
+    display: flex;
+    gap: 0.6rem;
+}
+
+.product-mark {
+    flex: none;
+    height: 1.4em;
+    width: 1.4em;
+}

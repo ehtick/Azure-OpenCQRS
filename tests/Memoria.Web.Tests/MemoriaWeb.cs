@@ -265,6 +265,9 @@ internal sealed class MemoriaWeb : WebApplicationFactory<Program>
     /// <summary>Where this instance keeps what is uploaded to it.</summary>
     public string ExtensionsDirectory => Path.Combine(_scratch, "extensions");
 
+    /// <summary>Where this instance keeps the header's name and logo.</summary>
+    public string BrandingDirectory => Path.Combine(_scratch, "branding");
+
     /// <summary>Every file an upload has left under the extensions directory, archives and assemblies alike.</summary>
     public string[] Installed =>
         Directory.Exists(ExtensionsDirectory)
@@ -409,6 +412,7 @@ internal sealed class MemoriaWeb : WebApplicationFactory<Program>
         {
             ["ConnectionStrings:Memoria"] = $"Data Source={Path.Combine(_scratch, "store.db")}",
             ["Extensions:Directory"] = ExtensionsDirectory,
+            ["Branding:Directory"] = BrandingDirectory,
             ["Authentication:Disabled"] = null,
             ["Authentication:Oidc:Authority"] = null,
             ["Authentication:Oidc:ClientId"] = null,

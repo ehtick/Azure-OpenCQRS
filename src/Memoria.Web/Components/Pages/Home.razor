@@ -4,10 +4,14 @@
 @inject DomainTypeRegistry Types
 @inject ServiceStores Stores
 @inject ServiceAccess Access
+@inject Memoria.Web.Branding.BrandingStore Branding
 
-<PageTitle>Memoria</PageTitle>
+@* Titled with the name the header shows, so a branded deployment's tab says what it is. *@
+<PageTitle>@Branding.Current.Name</PageTitle>
 
-<h1>Memoria</h1>
+@* The header names the deployment already, so the page does not say it again over the list.
+   The heading stays for a screen reader, which moves by headings: it names what the page lists. *@
+<h1 class="visually-hidden">Services</h1>
 
 @* The services installed that this operator may read, each the way into its own page. A service
    is a named set of domain assemblies read over one store, declared by the manifest in the zip

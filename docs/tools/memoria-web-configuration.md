@@ -34,6 +34,7 @@ can be overridden without editing a file.
 | `Database:Cosmos:DatabaseName`   | No                              | `Memoria`                             | Likewise                                         |
 | `Database:Cosmos:ContainerName`  | No                              | `Domain`                              | Likewise                                         |
 | `Extensions:Directory`           | No                              | `<content root>/App_Data/extensions`  | Where uploaded archives and assemblies are kept  |
+| `Branding:Directory`             | No                              | `<content root>/App_Data/branding`    | Where the header's name and logo are kept — see [Branding](#branding) |
 | `Authentication:Oidc:Authority`  | Unless running open             | —                                     | The OpenID Connect provider operators sign in through |
 | `Authentication:Oidc:ClientId`   | Unless running open             | —                                     | What the tool is registered as at that provider  |
 | `Authentication:Oidc:ClientSecret` | Unless running open           | —                                     | What the tool proves that registration with      |
@@ -241,7 +242,7 @@ Signed in, an operator may hold one of three roles for a service, each including
 | --------------- | -------------------------------------------------------------------------- |
 | Reader          | Read the service's pages                                                   |
 | Updater         | Also press **Update** on one of its models' detail pages, which writes a snapshot |
-| Administrator   | Also install, remove and reread uploaded assemblies on the Settings page — running code on the host |
+| Administrator   | Also install, remove and reread uploaded assemblies on the Settings page — running code on the host, and change the header's [branding](#branding) |
 
 A role is granted in two places. A service's [manifest](#what-to-put-in-a-zip) names, under
 `roles.read` and `roles.update`, the claim values that may read and update that service alone.
@@ -415,6 +416,39 @@ a different Memoria version loads and then fails to yield types at all; the Sett
 
 Rebuild against the version the tool was built from and upload again.
 
+## Branding
+
+An Administrator can put their own name and logo in the header in place of Memoria's, on the
+**Branding** tab of the Settings page. Both are kept in files, not in any store — the tool reads
+over the stores it is pointed at and owns none of them:
+
+```
+<Branding:Directory>/
+  branding.json   the name, which logo is drawn, and a version each save moves on
+  logo.png        or logo.jpg, or logo.webp — only while an uploaded logo is drawn
+```
+
+The default is `App_Data/branding` under the content root. They are read once at start-up and held
+in memory, so drawing the header never reaches the disk; a save replaces what is held at once.
+
+- **The logo is a PNG, JPEG or WebP of 512 KB or less**, told apart by its first bytes rather than
+  its name. SVG is refused: one can carry script, and the logo is served from the tool's own origin.
+- **The name is at most 60 characters.** Left blank, the header says Memoria.
+- **Beside the name goes Memoria's mark, your own logo, or nothing.** Choosing none leaves the name
+  alone in the header. Choosing the mark or none deletes an uploaded logo; a file chosen is taken as
+  your own logo whichever option is ticked.
+- **The logo is served at `/branding/logo` to anyone**, signed in or not, because the signed-out page
+  draws the header too — beside the name, which it shows already. The header asks for it by the
+  version, so a browser caches it for good and still fetches a new one after the next save.
+- **A file that cannot be read is drawn as Memoria.** A `branding.json` broken by hand does not stop
+  the tool starting; the next save writes over it.
+- **Restore Memoria's own** on the tab puts the default name and mark back.
+- **The About page is always headed Memoria**, with Memoria's mark: it describes the tool, whatever
+  this deployment is called.
+
+Like uploads, the copy held in memory is the process's own: a second instance over the same
+directory sees a save when it is next restarted.
+
 ## Logging and hosting
 
 Standard ASP.NET Core settings apply. The defaults in `appsettings.json` are:
@@ -432,7 +466,7 @@ Standard ASP.NET Core settings apply. The defaults in `appsettings.json` are:
 ```
 
 Two loggers of the tool's own are worth raising or quieting by name:
-`Memoria.Web.Settings` (uploads, removals and refreshes) and `Memoria.Web.Streamed` /
+`Memoria.Web.Settings` (uploads, removals, refreshes and branding) and `Memoria.Web.Streamed` /
 `Memoria.Web.Dcb` (snapshot refreshes).
 
 ### What each write logs
@@ -447,6 +481,9 @@ so it can be found by the name rather than by its wording:
 | `ExtensionRemoved`     | 1003 | Information | A zip and its assemblies were deleted                       |
 | `ExtensionNotRemoved`  | 1004 | Error       | A removal failed; carries the exception                     |
 | `ExtensionsReread`     | 1005 | Information | **Refresh** was pressed on the Types tab                    |
+| `BrandingSaved`        | 1006 | Information | The header's name, and logo if one was sent, were saved      |
+| `BrandingNotSaved`     | 1007 | Warning     | A branding save was refused; carries why                     |
+| `BrandingReset`        | 1008 | Information | **Restore Memoria's own** was pressed on the Branding tab    |
 | `SnapshotRefreshed`    | 1011 | Information | **Update** wrote a snapshot                                  |
 | `SnapshotUpToDate`     | 1012 | Information | **Update** found no snapshot and no events to fold           |
 | `SnapshotNotRefreshed` | 1013 | Warning     | The store refused the update; carries its reason            |

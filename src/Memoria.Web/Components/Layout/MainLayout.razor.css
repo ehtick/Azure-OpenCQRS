@@ -31,11 +31,15 @@ header {
         /* Sized in ems so the mark follows the wordmark beside it rather than a fixed pixel, and
            kept from shrinking if the bar is ever squeezed. Larger than the square tile it replaced:
            this mark is eight cubes with gaps between them rather than a filled shape, so at the
-           same box it reads noticeably smaller than the word it sits against. */
+           same box it reads noticeably smaller than the word it sits against. The width follows the
+           height, so a logo an Administrator uploads keeps its own proportions; capped, so a wide
+           one cannot push the menus off the bar. */
         header .brand .mark {
             flex: none;
             height: 1.6em;
-            width: 1.6em;
+            max-width: 6em;
+            object-fit: contain;
+            width: auto;
         }
 
     /* At the size the pages under it are read at, not the browser's prose default. The bar names

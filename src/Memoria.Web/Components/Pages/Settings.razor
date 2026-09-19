@@ -1,8 +1,10 @@
 @page "/settings"
 @attribute [Authorize(Policy = Roles.Administrator)]
+@using Memoria.Web.Branding
 @using Memoria.Web.Extensibility
 @inject ExtensionStore Store
 @inject DomainTypeRegistry Types
+@inject BrandingStore Branding
 
 <PageTitle>Settings</PageTitle>
 
@@ -13,10 +15,11 @@
 </nav>
 
 <h1>Settings</h1>
-@* Two views of one setting — the archives that were uploaded and the types they turned out to hold.
-   Switched by the address rather than by script, the same way the aggregate pages switch theirs,
+@* Two views of one setting — the archives that were uploaded and the types they turned out to hold —
+   and a third for the header's name and logo, which are the tool's too and an Administrator's to
+   change. Switched by the address rather than by script, the same way the aggregate pages switch theirs,
    so a view can be linked to and the back button steps between them. Marked with aria-current
-   because these are places to go, not scripted tabs. The browser's own settings used to be a third
+   because these are places to go, not scripted tabs. The browser's own settings used to be a
    tab here and are a page of their own now, under the operator's name: this page is an
    Administrator's, and a preference is everybody's. *@
 <nav class="tabs" aria-label="Settings views">
@@ -24,6 +27,8 @@
        aria-current="@(Tab == InstalledTab ? "page" : null)">Installed</a>
     <a id="tab-@TypesTab" href="settings?tab=@TypesTab"
        aria-current="@(Tab == TypesTab ? "page" : null)">Types</a>
+    <a id="tab-@BrandingTab" href="settings?tab=@BrandingTab"
+       aria-current="@(Tab == BrandingTab ? "page" : null)">Branding</a>
 </nav>
 
 @* Each panel is named by the tab that reaches it, so the label is written once. *@
@@ -283,6 +288,98 @@ else if (Tab == TypesTab)
         @Shared
     </section>
 }
+else if (Tab == BrandingTab)
+{
+    <section class="tab-panel branding-panel" aria-labelledby="tab-@BrandingTab">
+        <p class="lede">
+            The name and logo the header shows in place of Memoria's own. They are kept in files
+            beside the uploaded zips rather than in any store, and every page draws them at once.
+        </p>
+
+        @* Filled with the name being drawn, so saving without touching it changes nothing. The
+           file input is left empty to keep the logo: only a file chosen replaces it. The accept
+           list is the three kinds the store takes — an SVG is refused, since one can carry
+           script and the logo is served from this application's own origin. *@
+        @* One card holding both fields, each under a band drawn the way the Types tab heads its two
+           tables, so the three tabs read as one page. The button sits under the card rather than
+           in it, because it saves the pair. *@
+        <form method="post" enctype="multipart/form-data" action="settings/branding" class="branding">
+            <AntiforgeryToken/>
+
+            <div class="field-card">
+                <h2 class="field-card-head"><label for="brand-name">Name</label></h2>
+                <div class="field-card-body">
+                    <input id="brand-name" name="name" type="text" value="@Branding.Current.Name"
+                           maxlength="@BrandingStore.MaxNameLength"/>
+                    <p class="hint">Left blank, the header says Memoria.</p>
+                </div>
+
+                <h2 class="field-card-head" id="brand-logo-head">Logo</h2>
+                @* Three choices rather than a file and a remove button: Memoria's mark, their
+                   own, or nothing beside the name. Each drawn as it would be in the header, so the
+                   choice is made by looking. Picking a file ticks their own, since a file chosen
+                   is a logo meant, and the server takes it that way even without script. *@
+                <div class="field-card-body logo-choices" role="radiogroup" aria-labelledby="brand-logo-head">
+                    <label class="logo-option">
+                        <input type="radio" name="logoChoice" value="memoria"
+                               checked="@(Branding.Current.Choice == LogoChoice.Memoria)"/>
+                        <img class="brand-preview" src="@Assets["logo.png"]" alt=""/>
+                        <span>Memoria's mark</span>
+                    </label>
+
+                    <div class="logo-option">
+                        <label class="logo-option">
+                            <input id="logo-own" type="radio" name="logoChoice" value="own"
+                                   checked="@(Branding.Current.Choice == LogoChoice.Own)"/>
+                            @if (Branding.Current.HasLogo)
+                            {
+                                <img class="brand-preview" src="branding/logo?v=@Branding.Current.Version" alt=""/>
+                            }
+                            <span>Your own</span>
+                        </label>
+                        <input id="brand-logo" name="logo" type="file" accept="image/png,image/jpeg,image/webp"
+                               aria-label="Your own logo"
+                               onchange="document.getElementById('logo-own').checked = true"/>
+                    </div>
+
+                    <label class="logo-option">
+                        <input type="radio" name="logoChoice" value="none"
+                               checked="@(Branding.Current.Choice == LogoChoice.None)"/>
+                        <span>None — the name alone</span>
+                    </label>
+
+                    <p class="hint">
+                        Your own is a PNG, JPEG or WebP image of 512 KB or less, drawn at the height of
+                        the header. Leave the file empty to keep the one uploaded.
+                    </p>
+                </div>
+            </div>
+
+            <p class="actions-row">
+                <button type="submit" class="button">Save</button>
+            </p>
+        </form>
+
+        @* Its own form: going back to Memoria's own is not a change to the fields above, and
+           it should not be pressed on the way to saving them. Offered only while there is
+           something to go back from. *@
+        @if (!Branding.Current.IsDefault)
+        {
+            <form method="post" action="settings/branding/reset" class="refresh">
+                <AntiforgeryToken/>
+                <button type="submit" class="quiet">Restore Memoria's own</button>
+                <span class="hint">Removes the logo and puts Memoria's name and mark back in the header.</span>
+            </form>
+        }
+
+        @Notice
+
+        <p class="shared">
+            Everyone using this server sees the same header, so a change here changes what they see
+            too.
+        </p>
+    </section>
+}
 
 @code {
 
@@ -301,6 +398,8 @@ else if (Tab == TypesTab)
 
     private const string TypesTab = "types";
 
+    private const string BrandingTab = "branding";
+
     /// <summary>
     /// Which view the address asks for. Taken as text and matched against the two the page has, so
     /// anything else in the query string — including the preferences tab this page used to have,
@@ -312,6 +411,7 @@ else if (Tab == TypesTab)
     private string Tab => (TabAsked ?? string.Empty).ToLowerInvariant() switch
     {
         TypesTab => TypesTab,
+        BrandingTab => BrandingTab,
         _ => InstalledTab,
     };
 

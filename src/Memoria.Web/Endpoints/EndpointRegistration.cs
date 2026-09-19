@@ -1,11 +1,13 @@
 using System.Security.Claims;
 using Memoria.EventSourcing;
 using Memoria.EventSourcing.Dcb;
+using Memoria.Web.Branding;
 using Memoria.Web.Components;
 using Memoria.Web.Data;
 using Memoria.Web.Extensibility;
 using Memoria.Web.Security;
 using Microsoft.AspNetCore.Antiforgery;
+using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Memoria.Web.Endpoints;
@@ -47,8 +49,9 @@ public static class EndpointRegistration
     }
 
     /// <summary>
-    /// The three writes the settings page offers: installing uploads, removing one, and rereading
-    /// what is installed.
+    /// The writes the settings page offers: installing uploads, removing one, and rereading what is
+    /// installed; saving the header's branding and restoring Memoria's own. And the logo that
+    /// branding draws, which is not a write but is the settings' alone to answer.
     /// </summary>
     private static void MapSettings(this WebApplication app)
     {
@@ -146,7 +149,100 @@ public static class EndpointRegistration
 
             return Back(message: $"{types.Current.Count} type(s) registered.", tab: "types");
         }).DisableAntiforgery().RequireAuthorization(Roles.Administrator);
+
+        app.MapPost("/settings/branding", (
+            BrandingStore branding,
+            ILoggerFactory loggerFactory,
+            ClaimsPrincipal user,
+            [FromForm] string? name,
+            [FromForm] string? logoChoice,
+            IFormFile? logo) =>
+        {
+            var logger = loggerFactory.CreateLogger("Memoria.Web.Settings");
+            var asked = Operator.Of(user);
+
+            // A file input left empty still sends a part, named nothing and holding nothing: that
+            // is keeping the logo, not replacing it with an empty one.
+            var replaced = logo is { Length: > 0 };
+
+            try
+            {
+                using var content = replaced ? logo!.OpenReadStream() : null;
+                // Sent by the Branding tab's three choices; anything else, or nothing, keeps what is
+                // drawn now.
+                if (Enum.TryParse<LogoChoice>(logoChoice, ignoreCase: true, out var choice) &&
+                    Enum.IsDefined(choice))
+                {
+                    branding.Save(name, choice, content);
+                }
+                else
+                {
+                    branding.Save(name, content);
+                }
+            }
+            catch (InvalidDataException refused)
+            {
+                logger.BrandingNotSaved(refused.Message, asked);
+                return Back(error: refused.Message, tab: BrandingTab);
+            }
+
+            logger.BrandingSaved(branding.Current.Name, replaced, asked);
+
+            return Back(message: "Branding saved.", tab: BrandingTab);
+        }).RequireAuthorization(Roles.Administrator);
+
+        app.MapPost("/settings/branding/reset", async (
+            HttpContext context,
+            IAntiforgery antiforgery,
+            BrandingStore branding,
+            ILoggerFactory loggerFactory,
+            ClaimsPrincipal user) =>
+        {
+            // Binds no form field, so checked here for the reason the refresh above is.
+            try
+            {
+                await antiforgery.ValidateRequestAsync(context);
+            }
+            catch (AntiforgeryValidationException)
+            {
+                return Back(error: "That request could not be verified. Reload the page and try again.",
+                    tab: BrandingTab);
+            }
+
+            branding.Reset();
+            loggerFactory.CreateLogger("Memoria.Web.Settings").BrandingReset(Operator.Of(user));
+
+            return Back(message: "Memoria's own name and mark restored.", tab: BrandingTab);
+        }).DisableAntiforgery().RequireAuthorization(Roles.Administrator);
+
+        // Anyone, as the stylesheet: the signed-out page draws the header, and whoever reads it has no
+        // session. It shows the name beside the logo already, so the image gives away nothing more.
+        // Cached for as long as a browser likes, because the header asks for it by a version the
+        // next save moves on. Told not to be sniffed, so it is only ever read as the image the
+        // store checked it was.
+        app.MapGet("/branding/logo", (BrandingStore branding, HttpContext context) =>
+        {
+            if (branding.LogoPath is not { } path || branding.Current.LogoContentType is not { } contentType)
+            {
+                // A bare 404: the not-found page it would otherwise be re-executed into is signed
+                // into, and an image nobody saved is not a reason to send anyone to sign in.
+                if (context.Features.Get<IStatusCodePagesFeature>() is { } statusPages)
+                {
+                    statusPages.Enabled = false;
+                }
+
+                return Results.NotFound();
+            }
+
+            context.Response.Headers.CacheControl = "public, max-age=31536000, immutable";
+            context.Response.Headers.XContentTypeOptions = "nosniff";
+
+            return Results.File(path, contentType);
+        }).AllowAnonymous();
     }
+
+    /// <summary>The settings tab the branding is kept on, which its writes come back to.</summary>
+    private const string BrandingTab = "branding";
 
     /// <summary>
     /// The one write the DCB pages offer, and the same one for each of the two models.

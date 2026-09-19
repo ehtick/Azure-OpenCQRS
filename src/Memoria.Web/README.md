@@ -50,6 +50,7 @@ for what to register at the provider.
 | `Databases:{name}:Cosmos:DatabaseName` | No                          | `Memoria`                            |
 | `Databases:{name}:Cosmos:ContainerName` | No                         | `Domain`                             |
 | `Extensions:Directory`             | No                              | `<content root>/App_Data/extensions` |
+| `Branding:Directory`               | No                              | `<content root>/App_Data/branding`   |
 | `Authentication:Oidc:Authority`    | Unless running open             | —                                    |
 | `Authentication:Oidc:ClientId`     | Unless running open             | —                                    |
 | `Authentication:Oidc:ClientSecret` | Unless running open             | —                                    |
@@ -80,7 +81,8 @@ has to exist already.
 | `Extensibility/` | Uploads, assembly loading, type scanning, and the queries the pages ask   |
 | `Endpoints/`     | The handful of form posts the statically rendered pages send              |
 | `Security/`      | Reading how operators sign in, and wiring the provider, the policy and sign-out |
-| `App_Data/`      | Uploaded archives and the assemblies taken out of them (local state)      |
+| `Branding/`      | The header's name and logo, kept in files and held in memory            |
+| `App_Data/`      | Uploaded archives, the assemblies taken out of them, and the branding (local state) |
 
 ## Documentation
 

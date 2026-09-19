@@ -44,6 +44,15 @@ public static partial class WriteLog
     public static void ExtensionsReread(this ILogger logger, Operator asked) =>
         logger.ExtensionsReread(asked.ToString(), asked.Name, asked.Subject);
 
+    public static void BrandingSaved(this ILogger logger, string name, bool logoReplaced, Operator asked) =>
+        logger.BrandingSaved(name, logoReplaced, asked.ToString(), asked.Name, asked.Subject);
+
+    public static void BrandingNotSaved(this ILogger logger, string error, Operator asked) =>
+        logger.BrandingNotSaved(asked.ToString(), asked.Name, asked.Subject, error);
+
+    public static void BrandingReset(this ILogger logger, Operator asked) =>
+        logger.BrandingReset(asked.ToString(), asked.Name, asked.Subject);
+
     public static void SnapshotRefreshed(this ILogger logger, string model, string instance, Operator asked) =>
         logger.SnapshotRefreshed(model, instance, asked.ToString(), asked.Name, asked.Subject);
 
@@ -86,6 +95,26 @@ public static partial class WriteLog
     [LoggerMessage(EventId = 1005, EventName = "ExtensionsReread", Level = LogLevel.Information,
         Message = "Reread the extensions, asked by {Operator}.")]
     private static partial void ExtensionsReread(
+        this ILogger logger, string Operator, string? OperatorName, string? OperatorSubject);
+
+    [LoggerMessage(EventId = 1006, EventName = "BrandingSaved", Level = LogLevel.Information,
+        Message = "Saved the branding as {Name}, asked by {Operator}.")]
+    private static partial void BrandingSaved(
+        this ILogger logger, string Name, bool LogoReplaced, string Operator,
+        string? OperatorName, string? OperatorSubject);
+
+    /// <summary>
+    /// A warning rather than an error: what was refused was the upload, and the branding is as
+    /// it was.
+    /// </summary>
+    [LoggerMessage(EventId = 1007, EventName = "BrandingNotSaved", Level = LogLevel.Warning,
+        Message = "Could not save the branding, asked by {Operator}: {Error}")]
+    private static partial void BrandingNotSaved(
+        this ILogger logger, string Operator, string? OperatorName, string? OperatorSubject, string Error);
+
+    [LoggerMessage(EventId = 1008, EventName = "BrandingReset", Level = LogLevel.Information,
+        Message = "Restored Memoria's own branding, asked by {Operator}.")]
+    private static partial void BrandingReset(
         this ILogger logger, string Operator, string? OperatorName, string? OperatorSubject);
 
     [LoggerMessage(EventId = 1011, EventName = "SnapshotRefreshed", Level = LogLevel.Information,

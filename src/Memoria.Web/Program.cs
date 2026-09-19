@@ -2,6 +2,7 @@ using Memoria.EventSourcing.Dcb.Extensions;
 using Memoria.EventSourcing.Extensions;
 using Memoria.Extensions;
 using Memoria.Web;
+using Memoria.Web.Branding;
 using Memoria.Web.Data;
 using Memoria.Web.Endpoints;
 using Memoria.Web.Extensibility;
@@ -60,6 +61,13 @@ builder.Services.AddDomainExtensions(
         builder.Configuration["Extensions:Directory"]
         ?? Path.Combine(builder.Environment.ContentRootPath, "App_Data", "extensions")),
     typeof(Program).Assembly);
+
+// The name and logo the header is drawn with, kept beside the extensions rather than in any store:
+// the tool reads over the stores it is pointed at and owns none of them. Read once, here, and held
+// from then on.
+builder.Services.AddSingleton(new BrandingStore(
+    builder.Configuration["Branding:Directory"]
+    ?? Path.Combine(builder.Environment.ContentRootPath, "App_Data", "branding")));
 
 // One store per service, over the connection string its manifest names: the readers, contexts and
 // domain services a request under a service resolves are built from the service the request is

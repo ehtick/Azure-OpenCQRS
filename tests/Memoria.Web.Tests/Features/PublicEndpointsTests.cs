@@ -18,9 +18,11 @@ public class PublicEndpointsTests
 {
     /// <summary>
     /// Every route an anonymous caller may reach, other than the static assets: the page that says
-    /// they have signed out, which they can only be reading without a session.
+    /// they have signed out, which they can only be reading without a session; and the logo an
+    /// Administrator put in the header, which that page draws — it already shows the name beside
+    /// it, so the image gives away nothing the page does not.
     /// </summary>
-    private static readonly string[] Public = ["/signed-out"];
+    private static readonly string[] Public = ["/signed-out", "/branding/logo"];
 
     [Fact]
     public void Opens_nothing_but_the_static_assets_and_the_routes_pinned_here()

@@ -6,6 +6,7 @@
 @inject ServiceAccess Access
 @inject CurrentService Current
 @inject AuthenticationSettings SignIn
+@inject Memoria.Web.Branding.BrandingStore Branding
 
 <header>
     @* The project's own mark, the same artwork the tab icon is cut from. An <img> rather than the
@@ -15,10 +16,22 @@
        ground and the dark one alike, which is why no second file is shipped for dark.
 
        alt="" because the link says Memoria beside it, and a screen reader naming the mark as well
-       would say it twice. *@
+       would say it twice.
+
+       Both are an Administrator's to replace, on the Branding tab of Settings: their own name, and
+       their own logo drawn from the address that serves it, by a version each save moves on so a
+       browser that cached the last one asks again — or no mark at all, and the name alone. *@
     <a class="brand" href="">
-        <img class="mark" src="@Assets["logo.png"]" alt=""/>
-        Memoria
+        @switch (Brand.Choice)
+        {
+            case Memoria.Web.Branding.LogoChoice.Own:
+                <img class="mark" src="branding/logo?v=@Brand.Version" alt=""/>
+                break;
+            case Memoria.Web.Branding.LogoChoice.Memoria:
+                <img class="mark" src="@Assets["logo.png"]" alt=""/>
+                break;
+        }
+        @Brand.Name
     </a>
     <nav>
         @* Every item on the bar and under its headings is fronted by the mark its tile wears on
@@ -202,7 +215,10 @@
 
 <footer>
     <div class="footer-left">
-        <span class="copyright">&copy; @DateTime.UtcNow.Year Luca Briguglia</span>
+        @* Whose Memoria is, said the way a copyright line is: the work, the mark, the year, the
+           holder. Memoria's whatever the header is branded with, since the branding names the
+           deployment and this names the software it runs. *@
+        <span class="copyright">Memoria &copy; @DateTime.UtcNow.Year Luca Briguglia</span>
         @* Down here rather than in the bar: the bar is for the store and its far end for the operator,
            and this is the page about the tool — the version, the licence, the documentation —
            which is what a footer is read for. It sits beside the copyright because that is the
@@ -244,6 +260,9 @@
     /// layout being told.
     /// </summary>
     private IReadOnlyList<Service> Readable { get; set; } = [];
+
+    /// <summary>What the header is drawn with, held in memory by the store, so reading it costs nothing.</summary>
+    private Memoria.Web.Branding.Brand Brand => Branding.Current;
 
     protected override async Task OnInitializedAsync()
     {

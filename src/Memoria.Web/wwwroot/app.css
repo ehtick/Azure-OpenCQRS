@@ -371,6 +371,13 @@ h1 {
     max-width: 34rem;
 }
 
+    /* A lede under a heading only a screen reader sees is the first thing on the page, and the
+       column's own padding is already the space above it: its top margin on top of that left a
+       gap under the bar twice the one every other page starts with. */
+    h1.visually-hidden + .lede {
+        margin-top: 0;
+    }
+
 .breadcrumb {
     color: var(--ink-soft);
     display: flex;

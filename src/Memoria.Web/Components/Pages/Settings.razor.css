@@ -305,3 +305,109 @@
     white-space: normal;
     width: calc(100vw - 2rem);
 }
+
+/* The branding fields, in one card drawn the way the Types tab draws its two tables: the surface,
+   the rule and the shadow of the stored-data card, and each field under a band in the tint and the
+   small capitals a table's header row is set in. The button sits the Types pair's gap below it, and
+   the whole is held to a measure so a name field does not run the width of a wide screen. */
+.branding {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    max-width: 40rem;
+}
+
+.field-card {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    box-shadow: var(--shadow-card);
+}
+
+/* The heading band. Its own top corners follow the card's, one border in, for the reason the
+   table heading's do: a tint is a rectangle and would sit square over the rounded edge. */
+.field-card-head {
+    background: var(--sunk);
+    border-bottom: 1px solid var(--rule);
+    border-radius: 7px 7px 0 0;
+    color: var(--ink-soft);
+    font-size: var(--text-2xs);
+    font-weight: 600;
+    letter-spacing: 0.09em;
+    margin: 0;
+    padding: 0.5rem 1rem;
+    text-transform: uppercase;
+}
+
+    .field-card-head label {
+        cursor: inherit;
+    }
+
+    /* The second band starts a new section inside the same card: a rule above it rather than a
+       gap, and square corners, since only the card's top is rounded. */
+    .field-card-body + .field-card-head {
+        border-radius: 0;
+        border-top: 1px solid var(--rule);
+    }
+
+.field-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    padding: 1rem;
+}
+
+.branding input[type="text"] {
+    background: var(--surface);
+    border: 1px solid var(--field-rule);
+    border-radius: 4px;
+    color: var(--ink);
+    font: inherit;
+    font-size: var(--text-md);
+    padding: 0.5rem 0.625rem;
+}
+
+    .branding input[type="text"]:focus-visible {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px rgb(var(--accent-rgb) / 0.18);
+        outline: none;
+    }
+
+/* The three logo choices, one to a line, each drawn as the header would draw it so the choice is
+   made by looking. Their own keeps its file input on the same line, wrapping under on a narrow
+   screen. */
+.logo-option {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    min-height: 2rem;
+}
+
+    label.logo-option {
+        cursor: pointer;
+    }
+
+    .logo-option input[type="radio"] {
+        accent-color: var(--accent);
+        margin: 0;
+    }
+
+.brand-preview {
+    height: 2rem;
+    max-width: 8rem;
+    object-fit: contain;
+}
+
+/* Under the card rather than in it, and with no space of its own above: the column's gap already
+   sets it apart. */
+.branding .actions-row {
+    margin: 0;
+}
+
+/* What the last save did, as far below the button or the restore row above it as the button is
+   below the card, so the tab keeps one rhythm down its length. */
+.branding-panel .notice,
+.branding-panel .alert {
+    margin-top: 1.5rem;
+}

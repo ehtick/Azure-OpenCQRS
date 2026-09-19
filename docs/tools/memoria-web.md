@@ -80,6 +80,10 @@ registered from each; a file that registered nothing says so on a line of its ow
 case worth noticing: an assembly that did not load, or one built against another Memoria. A zip
 already there without a manifest is listed, marked **No manifest**, and its row says why.
 
+The **Branding** tab puts your own name in the header in place of Memoria's, beside Memoria's mark,
+your own logo, or no logo at all. They are kept in files beside the uploads rather than in any
+store — see [Branding](memoria-web-configuration.md#branding).
+
 A type carrying `[Obsolete]` is marked as such wherever it is named, and says the attribute's own
 message wherever it is opened. Retired is not the same as old: a type with a later version beside it
 is old and the version says so; a retired type is one nothing should write through any more, and the
