@@ -73,7 +73,7 @@
                — every stream has a first event. A DCB event is written into one log, so it has one
                number and no id beside it, and that number is its position. *@
             <dt>@(Streamed ? "Sequence" : "Position")</dt>
-            <dd>@Event.Position</dd>
+            <dd>@Event.Position@PositionNote</dd>
 
             <dt>Appended</dt>
             <dd>@Event.Written.ToLocalTime().ToString("g")</dd>
@@ -208,6 +208,13 @@ else
     /// </summary>
     [Parameter]
     public string Prefix { get; set; } = "tab";
+
+    /// <summary>
+    /// A note set beside the sequence or position, for a page that has something to say of where
+    /// the row stands now — the event's own page does; a row opened in a model's history does not.
+    /// </summary>
+    [Parameter]
+    public RenderFragment? PositionNote { get; set; }
 
     private string TabId(string tab) => $"{Prefix}-{tab}";
 

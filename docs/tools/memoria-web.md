@@ -105,7 +105,8 @@ say the same under every section: how many events, aggregates, projections and s
 and when the newest was written. Each section's own page says it once more, under its **Data** tile,
 and its **Types** page says it for the type being read, over its tabs: how many of it are stored
 and when the newest was written. The **Streams** page says, for the stream type being read, when a stream
-of it was last written to and how many of its streams hold events.
+of it was last written to and how many of its streams hold events. A streamed event's own page says,
+beside its sequence, whether it is the latest in its stream or how many events were appended after it.
 
 A service's own page sets the two consistency models side by side when it registered types under
 both, and lays the one model out directly when it registered types under one alone. Each model is

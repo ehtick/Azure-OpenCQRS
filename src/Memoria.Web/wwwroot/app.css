@@ -1597,6 +1597,17 @@ h2:focus {
                 margin-left: 0.75rem;
             }
 
+            /* Where an event stands in its stream, beside its sequence: a sentence about the
+               number rather than another number, so in the page's face and the softer ink, and
+               set as far from it as the warning above is from a version — close enough to read as
+               about it, far enough that two numbers do not run together. */
+            .tab-panel .facts dd .place {
+                color: var(--ink-soft);
+                font-family: var(--font);
+                font-size: inherit;
+                margin-left: 0.75rem;
+            }
+
         /* The last row's rule and the card's bottom edge are the same line drawn twice. */
         .tab-panel .facts dt:last-of-type,
         .tab-panel .facts dd:last-of-type {

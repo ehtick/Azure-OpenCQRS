@@ -75,7 +75,11 @@ else
                    StreamId="@Stored.StreamId"
                    Id="@Stored.Id"
                    Tab="@Tab"
-                   TabLink="TabLink"/>
+                   TabLink="TabLink">
+            <PositionNote>
+                <StreamPlace StreamId="@Stored.StreamId" Sequence="@Stored.Event.Position"/>
+            </PositionNote>
+        </EventView>
     }
 
     @* What the row was written as, opened over whichever tab was being read. Last in the markup

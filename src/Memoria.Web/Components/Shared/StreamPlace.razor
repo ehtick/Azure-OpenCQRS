@@ -1,0 +1,57 @@
+@attribute [StreamRendering]
+@using Memoria.Web.Extensibility
+@inject IStreamedReads Store
+
+@* Where a streamed event stands in its stream now, beside its sequence: the latest, or how many
+   events were appended to the stream after it: the stream's count less the count of its events up
+   to this one. Two counts rather than a sum from the sequence, because where a store starts
+   numbering a stream is its own business; both are found through the index the store keeps on a
+   stream and its sequence, and asked on every visit, since they are cheap and a stream's end is
+   what moves.
+   Streamed on its own, so the page is never held for it; nothing is said when the count fails. *@
+@if (After is { } after)
+{
+    <span class="place">@(after switch
+    {
+        <= 0 => "Latest in its stream",
+        1 => "1 event after it in its stream",
+        _ => $"{after:N0} events after it in its stream"
+    })</span>
+}
+
+@code {
+
+    /// <summary>The stream the event was appended to.</summary>
+    [Parameter, EditorRequired]
+    public string StreamId { get; set; } = string.Empty;
+
+    /// <summary>The event's sequence in it, from zero.</summary>
+    [Parameter, EditorRequired]
+    public long Sequence { get; set; }
+
+    private long? After { get; set; }
+
+    /// <remarks>
+    /// Nothing is said when the count cannot be had, whatever the reason: this is a note beside a
+    /// fact, and a page that failed for want of it would be worse than a page without it.
+    /// </remarks>
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var stream = new StreamedEventFilter(
+                StreamPattern: StreamId, EventType: null, Text: null, Descending: false, Page: 1, Size: 1);
+
+            // Asked in turn rather than together: both go through the one context the page has.
+            var all = await Store.Count(stream);
+            var upToThis = await Store.Count(stream with { BeforeSequence = Sequence + 1 });
+
+            After = all?.Total is { } total && upToThis?.Total is { } before ? total - before : null;
+        }
+        catch (Exception)
+        {
+            After = null;
+        }
+    }
+
+}
