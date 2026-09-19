@@ -210,7 +210,9 @@ else
            The id is the two of them joined, which is what makes a row unique and what the store
            wrote it under. It says nothing the stream and the sequence beside it do not, and it is
            here because it is the key: this is a page about what the store holds. *@
-        <table class="grid events streamed">
+        @* The place the pager under it lands, focusable so that landing there moves the focus as
+           well as the view — never tabbed to. See Pager.Anchor. *@
+        <table class="grid events streamed" id="@Pager.Anchor" tabindex="-1">
             <thead>
             <tr>
                 <th scope="col" class="col-stream">Stream</th>
@@ -328,13 +330,13 @@ else
                is already read through — so the two narrowings, the order and the fold travel with
                it without a form having to carry a copy of each. *@
             <Pager Page="Events.Page" TotalPages="Events.TotalPages"
-                   Href="@(page => Link(Descending, page))"/>
+                   Href="@(page => Link(Descending, page) + Pager.Landing)"/>
 
             @* Its own GET form, so the choice lands in the address bar like the order and the type.
                Submitting on change saves a click; the button is the fallback when scripting is off.
                No page travels with it: a page number from a narrower page size would land somewhere
                a reader did not ask for, and the first page is what they can see they are getting. *@
-            <form class="page-size" method="get" action="@Service/streamed/events/data">
+            <form class="page-size" method="get" action="@Service/streamed/events/data#@Pager.Anchor">
                 <label for="size">Rows per page</label>
                 <select id="size" name="size" onchange="this.form.submit()">
                     @foreach (var option in InstanceQuery.PageSizes)

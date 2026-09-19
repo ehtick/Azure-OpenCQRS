@@ -127,7 +127,9 @@ else
     {
         @* Everything here is read off the snapshot row. The aggregate itself is not folded to draw a
            row — that is what the details page is for, one at a time. *@
-        <table class="instances">
+        @* The place the pager under it lands, focusable so that landing there moves the focus as
+           well as the view — never tabbed to. See Pager.Anchor. *@
+        <table class="instances" id="@Pager.Anchor" tabindex="-1">
             <thead>
             <tr>
                 @* The same columns however far the list has been narrowed, so narrowing moves
@@ -208,12 +210,12 @@ else
                is already read through — so the narrowing and the order travel with it without a
                form having to carry a copy of each. *@
             <Pager Page="CurrentPage" TotalPages="TotalPages"
-                   Href="@(page => Link(Sort, Descending, page))"/>
+                   Href="@(page => Link(Sort, Descending, page) + Pager.Landing)"/>
 
             @* Its own GET form, so the choice lands in the address bar like the order and the
                filter. Submitting on change saves a click; the button is the fallback when
                scripting is off. *@
-            <form class="page-size" method="get" action="@Service/dcb/aggregates/data">
+            <form class="page-size" method="get" action="@Service/dcb/aggregates/data#@Pager.Anchor">
                 <label for="size">Rows per page</label>
                 <select id="size" name="size" onchange="this.form.submit()">
                     @foreach (var option in InstanceQuery.PageSizes)

@@ -2471,6 +2471,13 @@ h2:focus {
     border-top: 0.28rem solid currentColor;
 }
 
+/* Given focus so a jump from the pager under it lands on the table rather than leaving the reader
+   at the footer, not because anyone tabbed to it — the ring would be drawn around a whole table the
+   reader did not choose. Every table that carries the mark is one a pager pages; see Pager.Anchor. */
+table[tabindex="-1"]:focus {
+    outline: none;
+}
+
 /* The line under the table, at the end the reader leaves from. No margin of its own: it sits inside
    the footer, which already holds itself off the table, and a second one would both double that gap
    and drop the pager below the picker it shares the line with. */

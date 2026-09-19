@@ -146,7 +146,9 @@ else
            met inside the model that folds it are read the same way. The position is where the row
            sits and what makes it unique — a DCB event is written into one log rather than into a
            stream of its own, so it has one number and no id beside it. *@
-        <table class="grid events tagged">
+        @* The place the pager under it lands, focusable so that landing there moves the focus as
+           well as the view — never tabbed to. See Pager.Anchor. *@
+        <table class="grid events tagged" id="@Pager.Anchor" tabindex="-1">
             <thead>
             <tr>
                 <th scope="col" class="col-position">Position</th>
@@ -288,13 +290,13 @@ else
                is already read through — so the narrowing, the order and the fold travel with it
                without a form having to carry a copy of each. *@
             <Pager Page="Events.Page" TotalPages="Events.TotalPages"
-                   Href="@(page => Link(Descending, page))"/>
+                   Href="@(page => Link(Descending, page) + Pager.Landing)"/>
 
             @* Its own GET form, so the choice lands in the address bar like the order and the type.
                Submitting on change saves a click; the button is the fallback when scripting is off.
                No page travels with it: a page number from a narrower page size would land somewhere
                a reader did not ask for, and the first page is what they can see they are getting. *@
-            <form class="page-size" method="get" action="@Service/dcb/events/data">
+            <form class="page-size" method="get" action="@Service/dcb/events/data#@Pager.Anchor">
                 <label for="size">Rows per page</label>
                 <select id="size" name="size" onchange="this.form.submit()">
                     @foreach (var option in InstanceQuery.PageSizes)

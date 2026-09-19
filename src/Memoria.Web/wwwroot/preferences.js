@@ -278,13 +278,25 @@ function rememberRefresh(seconds) {
 function refreshNow(address) {
     try {
         if (window.Blazor && typeof Blazor.navigateTo === "function") {
-            Blazor.navigateTo(address ?? location.href, { replaceHistoryEntry: true });
+            Blazor.navigateTo(here(address), { replaceHistoryEntry: true });
             return;
         }
     } catch {
     }
 
     location.reload();
+}
+
+// The address to ask for again, without the place a page link landed at. A refresh is this table
+// again rather than a jump to the top of it: Blazor scrolls a fragment into view on every enhanced
+// navigation, so a reader reading row eight with the timer running would be walked back to the head
+// row every few seconds. The link the reader clicks is rendered without one for the same reason;
+// this is the timer's copy of the same rule, since it asks for the address as it stands.
+function here(address) {
+    const asked = address ?? location.href;
+    const hash = asked.indexOf("#");
+
+    return hash < 0 ? asked : asked.substring(0, hash);
 }
 
 let refreshTimer = null;
@@ -458,6 +470,45 @@ document.addEventListener("click", async event => {
     }, 2000);
 });
 
+// Where a page link leaves the reader.
+//
+// Every page link under a table ends at the top of the table it pages — see Pager.Anchor — and after
+// an enhanced navigation Blazor scrolls that table into view and stops there. The focus stays where
+// the click left it, on a pager that has just been swapped out from under it, so a reader on the
+// keyboard carries on tabbing from the page they have just left rather than from the rows they have
+// just asked for. There is no markup that says this: it is the one part of landing somewhere that
+// only script can do, which is why it falls to this file.
+//
+// On a document that is loaded rather than swapped the browser does it unasked, which is the same
+// behaviour arrived at from the other side: with no scripting at all, following a page link is a
+// load, and the load lands.
+let landed = location.href;
+
+function land() {
+    const address = location.href;
+    const moved = address !== landed;
+    landed = address;
+
+    // Only on the way somewhere else. Every enhanced navigation comes through here, including the
+    // ones the refresh timer asks for, and a table that took the focus on each of those would take
+    // it out from under a reader halfway through typing in the filter box above it.
+    if (!moved || location.hash.length < 2) {
+        return;
+    }
+
+    // Looked up the way Blazor looks it up, by the name as written: the element it scrolls to and the
+    // element focused here have to be the same one, and decoding here and not there is how they
+    // would come to differ.
+    const target = document.getElementById(location.hash.substring(1));
+
+    // Only somewhere meant to be landed on: an id says where to scroll, and it is the tabindex
+    // beside it that says the thing is willing to hold the focus. Without the scroll, because Blazor
+    // does that part itself a moment after this.
+    if (target?.hasAttribute("tabindex")) {
+        target.focus({ preventScroll: true });
+    }
+}
+
 function apply() {
     // First, and before the early return below: the theme is the whole application's, and a reader
     // who never picked a rows-per-page size still has one.
@@ -528,4 +579,8 @@ apply();
 // Blazor says when it has swapped; that is the other moment a table appears.
 if (window.Blazor) {
     Blazor.addEventListener("enhancedload", apply);
+
+    // Its own listener rather than a line inside apply: what it does has nothing to do with what
+    // this browser remembers, and everything to do with the navigation that has just happened.
+    Blazor.addEventListener("enhancedload", land);
 }
