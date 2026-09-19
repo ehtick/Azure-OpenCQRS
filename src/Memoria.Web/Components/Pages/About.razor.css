@@ -1,10 +1,17 @@
-/* The two headings, at the size the home page names each model at: a heading over a card or a row
-   of tiles rather than a page's own title. The second stands off from the card above it by the
-   space the card leaves under itself, so the first needs no room of its own. */
+/* The headings, at the size the home page names each model at: a heading over a card or a row of
+   tiles rather than a page's own title. Each stands off from the section above it by the space
+   that section leaves under itself, so the headings need no room of their own. */
 h2 {
     font-size: var(--text-xl);
     font-weight: 600;
     margin: 0 0 0.75rem;
+}
+
+/* A row of tiles with a section after it leaves the space the card leaves under itself, so every
+   heading on the page stands the same distance from what is above it. The shared stylesheet gives
+   tiles no margin, because elsewhere they end the page. */
+.tiles:not(:last-child) {
+    margin-bottom: 1.5rem;
 }
 
 /* The card runs to the width of the tiles under it, so the two sections read as one column rather

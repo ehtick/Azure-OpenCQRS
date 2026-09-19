@@ -114,6 +114,33 @@
     </li>
 </ul>
 
+<h2 id="licensing">Licensing</h2>
+@* The two pages of the documentation the licence row in the build is decided by, drawn as the
+   tiles above are and opened in a tab of their own for the same reason. Last on the page, where a
+   reader looks for the terms, and after the documentation most come here for. The terms first,
+   because they say which licence applies; the prices second, because they matter only once the
+   commercial one does. *@
+<ul class="tiles" aria-labelledby="licensing">
+    <li>
+        <a href="@(Docs + "license.html")" target="_blank" rel="noopener noreferrer">
+            <SectionMark Kind="SectionKind.Documentation"/>
+            <span class="body">
+                <span class="name">Licence</span>
+                <span class="detail">RPL 1.5 or the commercial licence, and which one you need.</span>
+            </span>
+        </a>
+    </li>
+    <li>
+        <a href="@(Docs + "pricing.html")" target="_blank" rel="noopener noreferrer">
+            <SectionMark Kind="SectionKind.Documentation"/>
+            <span class="body">
+                <span class="name">Pricing</span>
+                <span class="detail">Who pays nothing, and what each edition costs.</span>
+            </span>
+        </a>
+    </li>
+</ul>
+
 @code {
 
     private const string Repository = "https://github.com/lucabriguglia/Memoria";
