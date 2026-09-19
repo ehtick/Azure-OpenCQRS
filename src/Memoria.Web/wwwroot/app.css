@@ -109,6 +109,7 @@
     --caution-ground: #fdf8ef;
     --caution-rule: #b8791a;
     --caution-ink: #7a4f0c;
+    --caution-edge: #ecd9b3;
 
     /* Text picked out because it is what the reader typed into a filter. The colour of a
        highlighter pen, which is the one ground every reader already knows the meaning of, and a
@@ -120,6 +121,7 @@
     --notice-ground: #f2f8f3;
     --notice-rule: #2f7d40;
     --notice-ink: #235f30;
+    --notice-edge: #cfe3d4;
 
     /* The page itself, and the sheet the reading happens on. Two tones rather than one: without a
        ground behind it a white sheet has no edge, and the application had been drawing every page
@@ -237,11 +239,13 @@
         --caution-ground: #2a2114;
         --caution-rule: #d9a441;
         --caution-ink: #e8c98a;
+        --caution-edge: #4a3a1e;
         --hit-ground: #6b5a12;
 
         --notice-ground: #14261a;
         --notice-rule: #4fa96a;
         --notice-ink: #9ad3ab;
+        --notice-edge: #24422d;
 
         --ground: #14171c;
         --surface: #1a1e24;
@@ -278,11 +282,13 @@
     --caution-ground: #2a2114;
     --caution-rule: #d9a441;
     --caution-ink: #e8c98a;
+    --caution-edge: #4a3a1e;
     --hit-ground: #6b5a12;
 
     --notice-ground: #14261a;
     --notice-rule: #4fa96a;
     --notice-ink: #9ad3ab;
+    --notice-edge: #24422d;
 
     --ground: #14171c;
     --surface: #1a1e24;
@@ -744,11 +750,15 @@ h2:focus {
     margin: 0 0 0.5rem;
 }
 
-/* Something went wrong and the page is saying what. */
+/* Something went wrong and the page is saying what. Edged all round in a pale line of its own
+   colour, as the notice and the caution are: the ground alone is barely a shade off the page's, and
+   without an edge the box reads as a stain rather than a message. The bar on the left stays the
+   strong mark. */
 .alert {
     background: var(--danger-ground);
+    border: 1px solid var(--danger-rule);
     border-left: 3px solid var(--danger);
-    border-radius: 2px;
+    border-radius: 4px;
     color: var(--danger);
     margin: 0 0 1.5rem;
     max-width: 34rem;
@@ -797,8 +807,9 @@ h2:focus {
    worth saying once and then getting out of the way. Hence the two buttons. */
 .caution {
     background: var(--caution-ground);
+    border: 1px solid var(--caution-edge);
     border-left: 3px solid var(--caution-rule);
-    border-radius: 2px;
+    border-radius: 4px;
     color: var(--caution-ink);
     margin: 0 0 1.5rem;
     max-width: 42rem;
@@ -902,8 +913,9 @@ h2:focus {
 /* Something went right and the page is saying so. */
 .notice {
     background: var(--notice-ground);
+    border: 1px solid var(--notice-edge);
     border-left: 3px solid var(--notice-rule);
-    border-radius: 2px;
+    border-radius: 4px;
     color: var(--notice-ink);
     margin: 0 0 1.5rem;
     max-width: 34rem;

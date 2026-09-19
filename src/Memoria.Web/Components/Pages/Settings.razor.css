@@ -416,12 +416,16 @@
 }
 
 /* What the last save did, as far below the button or the restore row above it as the button is
-   below the card, so the tab keeps one rhythm down its length. */
+   below the card, so the tab keeps one rhythm down its length — and as wide as the card, edge
+   for edge, so it reads as that form's answer. Counted with its padding and edge inside the
+   width, since the card's outer edge is what it lines up with. */
 .branding-panel .notice,
 .branding-panel .alert,
 .home-panel .notice,
 .home-panel .alert {
+    box-sizing: border-box;
     margin-top: 1.5rem;
+    max-width: 40rem;
 }
 
 /* How long Home keeps a count: a number a few digits wide with its unit after it on the same line,
