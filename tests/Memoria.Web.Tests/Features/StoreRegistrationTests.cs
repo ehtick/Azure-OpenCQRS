@@ -48,6 +48,7 @@ public class StoreRegistrationTests : IDisposable
 
         services.AddSingleton(configuration);
         services.AddDomainExtensions(new ExtensionStore(_root));
+        services.AddSingleton(new Memoria.Web.Data.CachingSettingsStore(Path.Combine(_root, "settings")));
         services.AddStores();
 
         var provider = services.BuildServiceProvider();
@@ -152,6 +153,7 @@ public class StoreRegistrationTests : IDisposable
         var services = new ServiceCollection();
         services.AddSingleton(Configuration());
         services.AddDomainExtensions(new ExtensionStore(_root));
+        services.AddSingleton(new Memoria.Web.Data.CachingSettingsStore(Path.Combine(_root, "settings")));
         services.AddStores();
         using var scope = services.BuildServiceProvider().CreateScope();
 

@@ -214,11 +214,12 @@ public static class EndpointRegistration
             return Back(message: "Memoria's own name and mark restored.", tab: BrandingTab);
         }).DisableAntiforgery().RequireAuthorization(Roles.Administrator);
 
-        app.MapPost("/settings/counts", (
-            CountsSettingsStore home,
+        app.MapPost("/settings/caching", (
+            CachingSettingsStore caching,
             ILoggerFactory loggerFactory,
             ClaimsPrincipal user,
-            [FromForm] string? countsKeptForMinutes) =>
+            [FromForm] string? countsKeptForMinutes,
+            [FromForm] string? recentKeptForSeconds) =>
         {
             var logger = loggerFactory.CreateLogger("Memoria.Web.Settings");
             var asked = Operator.Of(user);
@@ -227,22 +228,17 @@ public static class EndpointRegistration
             {
                 // Taken as text and read here, so a box left empty or holding a word is refused
                 // with the same sentence as a number out of range, rather than by the binder.
-                if (!int.TryParse(countsKeptForMinutes, NumberStyles.None, CultureInfo.InvariantCulture, out var minutes))
-                {
-                    minutes = -1;
-                }
-
-                home.Save(minutes);
+                caching.Save(WholeOrRefused(countsKeptForMinutes), WholeOrRefused(recentKeptForSeconds));
             }
             catch (InvalidDataException refused)
             {
-                logger.CountsSettingsNotSaved(refused.Message, asked);
-                return Back(error: refused.Message, tab: CountsTab);
+                logger.CachingSettingsNotSaved(refused.Message, asked);
+                return Back(error: refused.Message, tab: CachingTab);
             }
 
-            logger.CountsSettingsSaved(home.CountsKeptFor, asked);
+            logger.CachingSettingsSaved(caching.CountsKeptFor, caching.RecentKeptFor, asked);
 
-            return Back(message: "Counts settings saved.", tab: CountsTab);
+            return Back(message: "Caching settings saved.", tab: CachingTab);
         }).RequireAuthorization(Roles.Administrator);
 
         // Anyone, as the stylesheet: the signed-out page draws the header, and whoever reads it has no
@@ -278,8 +274,15 @@ public static class EndpointRegistration
     /// <summary>The settings tab the branding is kept on, which its writes come back to.</summary>
     private const string BrandingTab = "branding";
 
-    /// <summary>The settings tab the counts setting is kept on, which its writes come back to.</summary>
-    private const string CountsTab = "counts";
+    /// <summary>
+    /// A whole number as a form sent it, or one no setting allows when it is not one — empty, a word,
+    /// a fraction — so the store refuses it with the sentence it refuses any other.
+    /// </summary>
+    private static int WholeOrRefused(string? sent) =>
+        int.TryParse(sent, NumberStyles.None, CultureInfo.InvariantCulture, out var whole) ? whole : -1;
+
+    /// <summary>The settings tab the caching settings are kept on, which its writes come back to.</summary>
+    private const string CachingTab = "caching";
 
     /// <summary>
     /// The one write the DCB pages offer, and the same one for each of the two models.

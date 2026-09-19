@@ -63,7 +63,7 @@ public sealed record ModelActivity(
 /// as long as an Administrator has said. The newest event is asked on every visit where the store
 /// finds it at once — the DCB log is ordered by its key, and a Cosmos container indexes the date
 /// its documents are created — because it is the figure a reader looks at to see a service is
-/// alive. Where the store cannot find it at once, it is kept for <see cref="RecentFor"/>: nothing
+/// alive. Where the store cannot find it at once, it is kept for as long as recent figures are: nothing
 /// orders a relational streamed log by date alone, and nothing indexes the date a snapshot was last
 /// written in any store.
 /// <para>
@@ -82,21 +82,19 @@ public sealed class ServiceActivity(
     IServiceScopeFactory scopes,
     DomainTypeRegistry registry,
     ServiceStores stores,
-    CountsSettingsStore settings,
+    CachingSettingsStore settings,
     TimeProvider clock)
 {
     /// <summary>How long a store is given to answer before its tiles say it could not be read.</summary>
     public static readonly TimeSpan Patience = TimeSpan.FromSeconds(5);
 
-    /// <summary>
-    /// How long a newest date the store cannot find at once is kept: as long as a list's total,
-    /// the other figure the tool keeps because it is a scan.
-    /// </summary>
-    public static readonly TimeSpan RecentFor = TotalsCache.Lifetime;
-
     private readonly FigureCache _counts = new(clock, () => settings.CountsKeptFor);
 
-    private readonly FigureCache _recent = new(clock, () => RecentFor);
+    /// <summary>
+    /// Where a newest date the store cannot find at once is kept: for as long as recent figures
+    /// are, the list totals among them.
+    /// </summary>
+    private readonly FigureCache _recent = new(clock, () => settings.RecentKeptFor);
 
     private readonly Lock _catalogue = new();
 

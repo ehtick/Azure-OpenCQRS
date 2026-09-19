@@ -1,0 +1,37 @@
+@attribute [StreamRendering]
+@using Memoria.Web.Extensibility
+
+@* The clock beside a row's version on a snapshots data page, when the stored snapshot is behind its
+   history: the mark the info tab's warning wears, saying the same thing about one row of a table.
+   Its own component, streamed, so each row's mark follows its own check: the table is sent before
+   any check has answered, and a slow stream holds up its own row's mark and nothing else. No mark
+   while the check is being read, none when it could not be, and none when the row is up to date. *@
+@if (Lag is { } lag)
+{
+    <span class="behind-mark" role="img" aria-label="@lag.Note.Text" title="@lag.Note.Text">
+        <svg class="glyph" viewBox="0 0 20 20" aria-hidden="true" focusable="false"
+             fill="none" stroke="currentColor" stroke-width="1.6"
+             stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="10" cy="10" r="7"/>
+            <path d="M10 6.2V10l2.6 2"/>
+        </svg>
+    </span>
+}
+
+@code {
+
+    /// <summary>The row's check, started by the page with every other row's; null for a row with none.</summary>
+    [Parameter]
+    public Task<SnapshotLag?>? Check { get; set; }
+
+    private SnapshotLag? Lag { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Check is not null)
+        {
+            Lag = await Check;
+        }
+    }
+
+}

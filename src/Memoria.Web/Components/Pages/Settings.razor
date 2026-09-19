@@ -6,7 +6,7 @@
 @inject ExtensionStore Store
 @inject DomainTypeRegistry Types
 @inject BrandingStore Branding
-@inject CountsSettingsStore Counts
+@inject CachingSettingsStore Caching
 
 <PageTitle>Settings</PageTitle>
 
@@ -18,7 +18,7 @@
 
 <h1>Settings</h1>
 @* Two views of one setting — the archives that were uploaded and the types they turned out to hold —
-   a third for the header's name and logo, and a fourth for how long the counts the overview pages show are kept, which are
+   a third for the header's name and logo, and a fourth for how long what is read of the stores is kept, which are
    the tool's too and an Administrator's to change. Switched by the address rather than by script, the same way the aggregate pages switch theirs,
    so a view can be linked to and the back button steps between them. Marked with aria-current
    because these are places to go, not scripted tabs. The browser's own settings used to be a
@@ -31,8 +31,8 @@
        aria-current="@(Tab == TypesTab ? "page" : null)">Types</a>
     <a id="tab-@BrandingTab" href="settings?tab=@BrandingTab"
        aria-current="@(Tab == BrandingTab ? "page" : null)">Branding</a>
-    <a id="tab-@CountsTab" href="settings?tab=@CountsTab"
-       aria-current="@(Tab == CountsTab ? "page" : null)">Counts</a>
+    <a id="tab-@CachingTab" href="settings?tab=@CachingTab"
+       aria-current="@(Tab == CachingTab ? "page" : null)">Caching</a>
 </nav>
 
 @* Each panel is named by the tab that reaches it, so the label is written once. *@
@@ -408,20 +408,19 @@ else if (Tab == BrandingTab)
         </p>
     </section>
 }
-else if (Tab == CountsTab)
+else if (Tab == CachingTab)
 {
-    <section class="tab-panel counts-panel" aria-labelledby="tab-@CountsTab">
+    <section class="tab-panel caching-panel" aria-labelledby="tab-@CachingTab">
         <p class="lede">
-            How Home and the overview pages read each service's store. How many events, snapshots
-            and streams a store holds is a scan of a whole table, so each is counted and then kept
-            for as long as you say here. When the newest was written is not: it is asked on every
-            visit, or kept for half a minute where the store has to search for it.
+            How long the figures read from each service's store are kept before the store is asked
+            again. Counts are scans of a whole table, so they are kept for minutes. Recent figures
+            say what is happening now, so they are kept for seconds.
         </p>
 
-        @* One card with one field, drawn the way the Branding tab draws its two, so the tabs read
-           as one page. Whole minutes, because a count kept for seconds is hardly kept and one
-           kept for hours is said in minutes all the same. *@
-        <form method="post" action="settings/counts" class="counts-settings">
+        @* One card with two fields, each under a band drawn the way the Branding tab draws its
+           two, so the tabs read as one page. Each in the unit it is thought of in: a count kept for
+           seconds is hardly kept, and a recent figure kept for minutes is no longer recent. *@
+        <form method="post" action="settings/caching" class="caching-settings">
             <AntiforgeryToken/>
 
             <div class="field-card">
@@ -429,13 +428,32 @@ else if (Tab == CountsTab)
                 <div class="field-card-body">
                     <span class="minutes">
                         <input id="counts-kept-for" name="countsKeptForMinutes" type="number" required
-                               min="0" max="@CountsSettingsStore.MaxCountsKeptForMinutes" step="1"
-                               value="@((int)Counts.CountsKeptFor.TotalMinutes)"/>
+                               min="0" max="@CachingSettingsStore.MaxCountsKeptForMinutes" step="1"
+                               value="@((int)Caching.CountsKeptFor.TotalMinutes)"/>
                         <span>minutes</span>
                     </span>
                     <p class="hint">
-                        0 counts on every visit. Up to @CountsSettingsStore.MaxCountsKeptForMinutes,
-                        a day; @CountsSettingsStore.DefaultCountsKeptForMinutes until it is changed.
+                        How many events, snapshots and streams a store holds, on Home and the overview
+                        pages, and of the type being read on a Types page. 0 counts on every visit; up
+                        to @CachingSettingsStore.MaxCountsKeptForMinutes, a day;
+                        @CachingSettingsStore.DefaultCountsKeptForMinutes until it is changed.
+                    </p>
+                </div>
+
+                <h2 class="field-card-head"><label for="recent-kept-for">Recent figures kept for</label></h2>
+                <div class="field-card-body">
+                    <span class="minutes">
+                        <input id="recent-kept-for" name="recentKeptForSeconds" type="number" required
+                               min="0" max="@CachingSettingsStore.MaxRecentKeptForSeconds" step="1"
+                               value="@((int)Caching.RecentKeptFor.TotalSeconds)"/>
+                        <span>seconds</span>
+                    </span>
+                    <p class="hint">
+                        How many rows a data page's filter reaches, when the newest was written where
+                        the store has to search for it, and whether a stored snapshot is behind its
+                        history. 0 reads them on every visit; up to
+                        @CachingSettingsStore.MaxRecentKeptForSeconds, an hour;
+                        @CachingSettingsStore.DefaultRecentKeptForSeconds until it is changed.
                     </p>
                 </div>
             </div>
@@ -448,7 +466,7 @@ else if (Tab == CountsTab)
         @Notice
 
         <p class="shared">
-            Everyone using this server sees the same counts, so a change here changes what they see
+            Everyone using this server sees the same figures, so a change here changes what they see
             too, from their next visit.
         </p>
     </section>
@@ -473,7 +491,7 @@ else if (Tab == CountsTab)
 
     private const string BrandingTab = "branding";
 
-    private const string CountsTab = "counts";
+    private const string CachingTab = "caching";
 
     /// <summary>
     /// Which view the address asks for. Taken as text and matched against the two the page has, so
@@ -487,7 +505,7 @@ else if (Tab == CountsTab)
     {
         TypesTab => TypesTab,
         BrandingTab => BrandingTab,
-        CountsTab => CountsTab,
+        CachingTab => CachingTab,
         _ => InstalledTab,
     };
 

@@ -71,13 +71,17 @@ builder.Services.AddSingleton(new BrandingStore(
 
 // The tool's own settings, kept beside the branding for the same reason: how long Home and the
 // overview pages keep what they count. Read once, here, and held from then on.
-builder.Services.AddSingleton(new CountsSettingsStore(
+builder.Services.AddSingleton(new CachingSettingsStore(
     builder.Configuration["Settings:Directory"]
     ?? Path.Combine(builder.Environment.ContentRootPath, "App_Data", "settings")));
 
 // What each service's store is doing, as Home says it: one for the process, so a count is kept
 // across visits.
 builder.Services.AddSingleton<ServiceActivity>();
+
+// Whether each row on a snapshots data page is behind its history: one for the process, so a
+// row's check is kept across pages.
+builder.Services.AddSingleton<SnapshotLags>();
 
 // One store per service, over the connection string its manifest names: the readers, contexts and
 // domain services a request under a service resolves are built from the service the request is

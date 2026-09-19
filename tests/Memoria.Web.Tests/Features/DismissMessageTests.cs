@@ -27,13 +27,13 @@ public class DismissMessageTests
     {
         using var web = Administrator();
 
-        var page = Markup.Plain(await web.Client.GetStringAsync("/settings?tab=counts&message=Counts%20settings%20saved."));
+        var page = Markup.Plain(await web.Client.GetStringAsync("/settings?tab=caching&message=Caching%20settings%20saved."));
         var message = Message(page, "notice");
 
         using var scope = new AssertionScope();
 
-        message.Should().Contain("Counts settings saved.");
-        Dismiss(message).Should().Be("settings?tab=counts");
+        message.Should().Contain("Caching settings saved.");
+        Dismiss(message).Should().Be("settings?tab=caching");
         message.Should().Contain("aria-label=\"Dismiss\"");
     }
 
@@ -72,7 +72,7 @@ public class DismissMessageTests
     {
         using var web = Administrator();
 
-        var page = Markup.Plain(await web.Client.GetStringAsync("/settings?tab=counts"));
+        var page = Markup.Plain(await web.Client.GetStringAsync("/settings?tab=caching"));
 
         page.Should().NotContain("data-dismiss");
     }
@@ -83,8 +83,8 @@ public class DismissMessageTests
     /// </summary>
     [Theory]
     [InlineData("settings?message=Saved", "settings")]
-    [InlineData("settings?tab=counts&message=Saved", "settings?tab=counts")]
-    [InlineData("settings?error=No&tab=counts", "settings?tab=counts")]
+    [InlineData("settings?tab=caching&message=Saved", "settings?tab=caching")]
+    [InlineData("settings?error=No&tab=caching", "settings?tab=caching")]
     [InlineData("a?stream=sample%3A1&Message=x&id=s:1#row", "a?stream=sample%3A1&id=s:1#row")]
     [InlineData("a?messages=kept", "a?messages=kept")]
     [InlineData("settings", "settings")]

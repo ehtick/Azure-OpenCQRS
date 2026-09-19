@@ -19,11 +19,13 @@ namespace Memoria.Web.Data;
 /// <param name="configuration">Where the connection strings and their settings are.</param>
 /// <param name="registry">Where the services and their bindings come from.</param>
 /// <param name="clock">What the totals caches count time by.</param>
+/// <param name="caching">How long the totals caches keep a total: as long as recent figures are kept.</param>
 /// <remarks>
 /// A Cosmos client is one per account for the life of the process, whichever services read it:
 /// the client is the expensive thing, and two services over one account share it.
 /// </remarks>
-public sealed class ServiceStores(IConfiguration configuration, DomainTypeRegistry registry, TimeProvider clock)
+public sealed class ServiceStores(
+    IConfiguration configuration, DomainTypeRegistry registry, TimeProvider clock, CachingSettingsStore caching)
 {
     private readonly ConcurrentDictionary<string, (DomainTypeCatalogue From, ServiceStore Store)> _stores =
         new(StringComparer.OrdinalIgnoreCase);
@@ -52,7 +54,8 @@ public sealed class ServiceStores(IConfiguration configuration, DomainTypeRegist
                 }))
             : null;
 
-        var store = new ServiceStore(service, connection, catalogue.BindingsOf(service), new TotalsCache(clock), client);
+        var store = new ServiceStore(service, connection, catalogue.BindingsOf(service),
+            new TotalsCache(clock, () => caching.RecentKeptFor), client);
         _stores[service.Slug] = (catalogue, store);
 
         return store;

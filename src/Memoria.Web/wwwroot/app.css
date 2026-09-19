@@ -883,6 +883,20 @@ h2:focus {
         text-underline-offset: 0.15em;
     }
 
+/* The same clock on one row of a data table, in front of the version it is about: the warning's
+   colour and size, with the room of a space between it and the number so the digits keep the
+   column's right edge. */
+.behind-mark {
+    color: var(--caution-ink);
+    margin-right: 0.35em;
+}
+
+    .behind-mark .glyph {
+        height: 0.95em;
+        vertical-align: -0.15em;
+        width: 0.95em;
+    }
+
 /* A type the domain has retired, said two ways: a mark after its name wherever types are listed,
    and a line under its name once it is opened, in the words the attribute retired it with. The
    caution ink for both, for the reason the snapshot warning wears it — nothing failed and nothing

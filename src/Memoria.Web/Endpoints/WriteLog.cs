@@ -53,11 +53,11 @@ public static partial class WriteLog
     public static void BrandingReset(this ILogger logger, Operator asked) =>
         logger.BrandingReset(asked.ToString(), asked.Name, asked.Subject);
 
-    public static void CountsSettingsSaved(this ILogger logger, TimeSpan countsKeptFor, Operator asked) =>
-        logger.CountsSettingsSaved(countsKeptFor, asked.ToString(), asked.Name, asked.Subject);
+    public static void CachingSettingsSaved(this ILogger logger, TimeSpan countsKeptFor, TimeSpan recentKeptFor, Operator asked) =>
+        logger.CachingSettingsSaved(countsKeptFor, recentKeptFor, asked.ToString(), asked.Name, asked.Subject);
 
-    public static void CountsSettingsNotSaved(this ILogger logger, string error, Operator asked) =>
-        logger.CountsSettingsNotSaved(asked.ToString(), asked.Name, asked.Subject, error);
+    public static void CachingSettingsNotSaved(this ILogger logger, string error, Operator asked) =>
+        logger.CachingSettingsNotSaved(asked.ToString(), asked.Name, asked.Subject, error);
 
     public static void SnapshotRefreshed(this ILogger logger, string model, string instance, Operator asked) =>
         logger.SnapshotRefreshed(model, instance, asked.ToString(), asked.Name, asked.Subject);
@@ -123,15 +123,16 @@ public static partial class WriteLog
     private static partial void BrandingReset(
         this ILogger logger, string Operator, string? OperatorName, string? OperatorSubject);
 
-    [LoggerMessage(EventId = 1009, EventName = "CountsSettingsSaved", Level = LogLevel.Information,
-        Message = "Saved the counts settings, counts kept for {CountsKeptFor}, asked by {Operator}.")]
-    private static partial void CountsSettingsSaved(
-        this ILogger logger, TimeSpan CountsKeptFor, string Operator, string? OperatorName, string? OperatorSubject);
+    [LoggerMessage(EventId = 1009, EventName = "CachingSettingsSaved", Level = LogLevel.Information,
+        Message = "Saved the caching settings, counts kept for {CountsKeptFor} and recent figures for {RecentKeptFor}, asked by {Operator}.")]
+    private static partial void CachingSettingsSaved(
+        this ILogger logger, TimeSpan CountsKeptFor, TimeSpan RecentKeptFor, string Operator, string? OperatorName,
+        string? OperatorSubject);
 
     /// <summary>A warning, as a refused branding is: what was refused was the save, and the settings are as they were.</summary>
-    [LoggerMessage(EventId = 1010, EventName = "CountsSettingsNotSaved", Level = LogLevel.Warning,
-        Message = "Did not save the counts settings, asked by {Operator}: {Error}")]
-    private static partial void CountsSettingsNotSaved(
+    [LoggerMessage(EventId = 1010, EventName = "CachingSettingsNotSaved", Level = LogLevel.Warning,
+        Message = "Did not save the caching settings, asked by {Operator}: {Error}")]
+    private static partial void CachingSettingsNotSaved(
         this ILogger logger, string Operator, string? OperatorName, string? OperatorSubject, string Error);
 
     [LoggerMessage(EventId = 1011, EventName = "SnapshotRefreshed", Level = LogLevel.Information,

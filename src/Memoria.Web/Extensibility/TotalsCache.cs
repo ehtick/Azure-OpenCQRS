@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Text;
+using Memoria.Web.Data;
 
 namespace Memoria.Web.Extensibility;
 
@@ -8,10 +9,15 @@ namespace Memoria.Web.Extensibility;
 /// Remembers, for a short while, how many rows each list's narrowing reaches.
 /// </summary>
 /// <param name="clock">What time it is, for how long a total is kept.</param>
+/// <param name="lifetime">
+/// How long a total is kept, asked on every count so a change to the setting is felt on the next
+/// page; <see cref="Lifetime"/> when none is given.
+/// </param>
 /// <remarks>
 /// Every list page counts what it lists before it reads a page of it, and against a large store the
 /// count is the dearer of the two: a scan of everything the filter reaches, run again on every
-/// page, every sort and every reload. So a total is kept for <see cref="Lifetime"/> — long enough
+/// page, every sort and every reload. So a total is kept for as long as recent figures are, on the
+/// Caching tab of the settings page — thirty seconds unless an Administrator says otherwise: long enough
 /// that paging through a list costs one count, short enough that a store being written to is not
 /// misreported for long. Only totals: the rows themselves are always read, since the tool exists
 /// to show what the store holds now.
@@ -22,10 +28,10 @@ namespace Memoria.Web.Extensibility;
 /// up with when the total's lifetime runs out.
 /// </para>
 /// </remarks>
-public sealed class TotalsCache(TimeProvider clock)
+public sealed class TotalsCache(TimeProvider clock, Func<TimeSpan>? lifetime = null)
 {
-    /// <summary>How long a total is handed back before it is counted again.</summary>
-    public static readonly TimeSpan Lifetime = TimeSpan.FromSeconds(30);
+    /// <summary>How long a total is handed back before it is counted again, when nothing says otherwise.</summary>
+    public static readonly TimeSpan Lifetime = TimeSpan.FromSeconds(CachingSettingsStore.DefaultRecentKeptForSeconds);
 
     private readonly ConcurrentDictionary<string, (int Total, DateTimeOffset CountedAt)> _totals = new();
 
@@ -40,7 +46,7 @@ public sealed class TotalsCache(TimeProvider clock)
     /// </remarks>
     public async Task<int> Total(string key, Func<Task<int>> count)
     {
-        if (_totals.TryGetValue(key, out var held) && clock.GetUtcNow() - held.CountedAt < Lifetime)
+        if (_totals.TryGetValue(key, out var held) && clock.GetUtcNow() - held.CountedAt < (lifetime?.Invoke() ?? Lifetime))
         {
             return held.Total;
         }

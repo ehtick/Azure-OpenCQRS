@@ -5,6 +5,7 @@
 @inject CurrentService Current
 @inject IStreamedReads Store
 @inject NavigationManager Navigation
+@inject Memoria.Web.Data.SnapshotLags Lags
 
 <PageTitle>Streamed @Heading</PageTitle>
 
@@ -265,7 +266,7 @@ else
                             <span class="missing">—</span>
                         }
                     </td>
-                    <td class="numeric">@Cell((link, stored.Version.ToString(), true))</td>
+                    <td class="numeric">@VersionCell((link, stored.Version, CheckOf(Memoria.Web.Data.SnapshotLags.KeyOf(stored))))</td>
                     <td>@Cell((link, stored.Created.ToLocalTime().ToString("g"), true))</td>
                     <td>@Cell((link, stored.Updated.ToLocalTime().ToString("g"), true))</td>
                 </tr>
@@ -472,6 +473,31 @@ else
     /// text, which is also why the row is only marked clickable when it is — the stylesheet moves a
     /// clickable row's padding onto the anchor that fills it, and there would be none.
     /// </remarks>
+    /// <summary>
+    /// The version cell: the number, and in front of it the clock when the stored snapshot is
+    /// behind its history. In front, so the digits keep the right edge the column is set against;
+    /// inside the row's link, which carries the cell's padding, so the mark is not pushed onto a line
+    /// of its own.
+    /// </summary>
+    private RenderFragment<(string? Link, int Version, Task<SnapshotLag?>? Check)> VersionCell => cell =>
+        @<text>
+            @if (cell.Link is null)
+            {
+                <BehindMark Check="cell.Check"/>@cell.Version
+            }
+            else
+            {
+                <a href="@cell.Link" tabindex="-1" aria-hidden="true"><BehindMark Check="cell.Check"/>@cell.Version</a>
+            }
+        </text>;
+
+    /// <summary>Whether each row on the page is behind its history, by row, started once the rows are read.</summary>
+    private IReadOnlyDictionary<string, Task<SnapshotLag?>> Checks { get; set; } =
+        new Dictionary<string, Task<SnapshotLag?>>();
+
+    /// <summary>A row's check, or none for a row the page started none for.</summary>
+    private Task<SnapshotLag?>? CheckOf(string row) => Checks.GetValueOrDefault(row);
+
     private RenderFragment<(string? Link, string? Text, bool Repeat)> Cell => cell =>
         @<text>
             @if (cell.Link is null)
@@ -691,6 +717,9 @@ else
             Descending,
             int.TryParse(Value("page"), out var asked) ? asked : 1,
             PageSize));
+
+        // Started, not awaited: each row's mark waits for its own check, so the table is sent first.
+        Checks = Current.Service is { } service ? Lags.Streamed(service, Kind, Projections.Snapshots) : Checks;
     }
 
 }

@@ -35,7 +35,7 @@ can be overridden without editing a file.
 | `Database:Cosmos:ContainerName`  | No                              | `Domain`                              | Likewise                                         |
 | `Extensions:Directory`           | No                              | `<content root>/App_Data/extensions`  | Where uploaded archives and assemblies are kept  |
 | `Branding:Directory`             | No                              | `<content root>/App_Data/branding`    | Where the header's name and logo are kept — see [Branding](#branding) |
-| `Settings:Directory`             | No                              | `<content root>/App_Data/settings`    | Where the tool's own settings are kept — see [Counts](#counts) |
+| `Settings:Directory`             | No                              | `<content root>/App_Data/settings`    | Where the tool's own settings are kept — see [Caching](#caching) |
 | `Authentication:Oidc:Authority`  | Unless running open             | —                                     | The OpenID Connect provider operators sign in through |
 | `Authentication:Oidc:ClientId`   | Unless running open             | —                                     | What the tool is registered as at that provider  |
 | `Authentication:Oidc:ClientSecret` | Unless running open           | —                                     | What the tool proves that registration with      |
@@ -451,26 +451,37 @@ in memory, so drawing the header never reaches the disk; a save replaces what is
 Like uploads, the copy held in memory is the process's own: a second instance over the same
 directory sees a save when it is next restarted.
 
-## Counts
+## Caching
 
 Home says, under each service it lists, what that service's store is doing. A service's own page and
 each model's overview say the same one level down, under each section's tile: events, aggregates,
 projections, and for the streamed model streams. Each section's own page says its own figures under
 its **Data** tile, and asks the store about that section alone. A **Types** page asks about the
 type being read and no other — its rows found by the key they are written under — and the list
-beside it counts nothing, since that would be every type counted on every visit. The newest date
-of the type comes out of the same read as its count, so it is kept for as long as the count.
+beside it counts nothing, since that would be every type counted on every visit.
 
-- **When the newest was written**: the last event, or the snapshot last written. It is the figure
-  that shows a service is alive, so it is asked of the store on every visit wherever the store finds
-  it at once — the DCB log, ordered by its key, and a Cosmos container, which indexes the date an
-  event is written. Where the store has to search for it, it is kept for 30 seconds: nothing orders a
-  relational streamed log by date alone, and no store indexes the date a snapshot was last written.
-- **How many are stored**: events, snapshots of each kind, and the streams events are held in. A
-  count is a scan of a whole table, so it is kept and handed to every visitor until it has been
-  kept for as long as an Administrator has said on the **Counts** tab of the Settings page: from 0
-  minutes, which counts on every visit, to 1440, a day. It is 5 until it is changed. Every count
-  is kept for that same while, so none of them says when it was made.
+The aggregates and projections **Data** tables mark each row whose stored snapshot is behind its
+history with a clock, the rule the detail page's **Info** tab warns by: more events of the types
+the model applies than the version it was folded to, in the stream the identifier claims, or in
+the boundary a DCB model was keyed by. A row the rule cannot be applied to — a stream shared by
+several models whose identifier cannot be recovered, a boundary that cannot be read back — is not
+marked, rather than marked wrongly. The table is drawn first and the marks follow; each is its own
+read of one stream or boundary, a few at a time.
+
+What is read is kept for one of two whiles, both set on the **Caching** tab of the Settings page:
+
+- **Counts kept for**, in minutes: how many events, snapshots and streams are stored, and how many
+  of the type being read. A count is a scan of a whole table, so it is kept and handed to every
+  visitor until it runs out: from 0, which counts on every visit, to 1440, a day. It is 5 until it
+  is changed. Every count is kept for the same while, so none of them says when it was made. The
+  newest date of the type being read comes out of the same read, so it is kept as long.
+- **Recent figures kept for**, in seconds: a data page's total — how many rows its filter reaches —
+  whether a row is behind its history, and when the newest was written where the store has to
+  search for it: nothing orders a relational streamed log by date alone, and no store indexes the
+  date a snapshot was last written. From 0, which reads them on every visit, to 3600, an hour. It
+  is 30 until it is changed. Where the store finds the newest at once — the DCB log, ordered by
+  its key, and a Cosmos container, which indexes the date an event is written — it is asked on
+  every visit and never kept: it is the figure that shows a service is alive.
 
 On Home, a service over both models is both logs together: its last event is the newer of the two,
 and its count is the two added up. Home and a service's own pages keep one count between them, so
@@ -478,18 +489,18 @@ they never disagree. Each page is sent before any store is asked; the lines foll
 has answered, and a store is given 5 seconds before its lines say it could not be read. A store
 that is not configured says so instead, and is not asked.
 
-The setting is kept in a file, not in any store, for the reason the branding is:
+The settings are kept in a file, not in any store, for the reason the branding is:
 
 ```
 <Settings:Directory>/
-  counts.json   how long a count is kept, in minutes
+  caching.json   how long counts are kept, in minutes, and recent figures, in seconds
 ```
 
 The default is `App_Data/settings` under the content root. It is read once at start-up and held in
-memory; a save is felt from the next visit. A file that cannot be read is taken as the
-default, and the next save writes over it. Every figure is forgotten when an upload or a removal changes
-the services, since it may then be of another store. Like the branding, the copy held in
-memory is the process's own.
+memory; a save is felt from the next visit. A file that cannot be read is taken as the defaults, and
+the next save writes over it. Every figure is forgotten when an upload or a removal changes the
+services, since it may then be of another store. Like the branding, the copy held in memory is the
+process's own.
 
 ## Logging and hosting
 
@@ -508,7 +519,7 @@ Standard ASP.NET Core settings apply. The defaults in `appsettings.json` are:
 ```
 
 Two loggers of the tool's own are worth raising or quieting by name:
-`Memoria.Web.Settings` (uploads, removals, refreshes, branding and the counts settings) and `Memoria.Web.Streamed` /
+`Memoria.Web.Settings` (uploads, removals, refreshes, branding and the caching settings) and `Memoria.Web.Streamed` /
 `Memoria.Web.Dcb` (snapshot refreshes).
 
 ### What each write logs
@@ -526,8 +537,8 @@ so it can be found by the name rather than by its wording:
 | `BrandingSaved`        | 1006 | Information | The header's name, and logo if one was sent, were saved      |
 | `BrandingNotSaved`     | 1007 | Warning     | A branding save was refused; carries why                     |
 | `BrandingReset`        | 1008 | Information | **Restore Memoria's own** was pressed on the Branding tab    |
-| `CountsSettingsSaved`  | 1009 | Information | How long a count is kept was saved                           |
-| `CountsSettingsNotSaved` | 1010 | Warning   | That save was refused; carries why                           |
+| `CachingSettingsSaved` | 1009 | Information | How long counts and recent figures are kept was saved        |
+| `CachingSettingsNotSaved` | 1010 | Warning  | That save was refused; carries why                           |
 | `SnapshotRefreshed`    | 1011 | Information | **Update** wrote a snapshot                                  |
 | `SnapshotUpToDate`     | 1012 | Information | **Update** found no snapshot and no events to fold           |
 | `SnapshotNotRefreshed` | 1013 | Warning     | The store refused the update; carries its reason            |

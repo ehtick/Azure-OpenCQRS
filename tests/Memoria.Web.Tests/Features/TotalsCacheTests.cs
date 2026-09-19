@@ -1,6 +1,7 @@
 using AwesomeAssertions;
 using AwesomeAssertions.Execution;
 using Memoria.Web.Extensibility;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace Memoria.Web.Tests.Features;
@@ -65,6 +66,41 @@ public class TotalsCacheTests
         await totals.Total("events", store.Count);
 
         store.Asked.Should().Be(2);
+    }
+
+    /// <summary>
+    /// How long a total is kept is the Administrator's to say, asked on every count, so a change to
+    /// it is felt on the next page.
+    /// </summary>
+    [Fact]
+    public async Task Keeps_a_total_for_as_long_as_it_is_told_now()
+    {
+        var clock = new SetClock();
+        var kept = TimeSpan.FromMinutes(2);
+        var totals = new TotalsCache(clock, () => kept);
+        var store = new Counting(42);
+
+        await totals.Total("events", store.Count);
+        clock.Now = Start + TimeSpan.FromMinutes(1);
+        await totals.Total("events", store.Count);
+        kept = TimeSpan.FromSeconds(10);
+        await totals.Total("events", store.Count);
+
+        store.Asked.Should().Be(2, "kept for two minutes the second ask is handed the first count, then ten seconds is past");
+    }
+
+    /// <summary>The totals of a service's lists are kept for as long as the Caching tab says recent figures are.</summary>
+    [Fact]
+    public async Task Keeps_a_service_s_totals_for_as_long_as_the_setting_says()
+    {
+        using var web = MemoriaWeb.Open().WithSampleTypes();
+        web.Services.GetRequiredService<Memoria.Web.Data.CachingSettingsStore>().Save(5, recentKeptForSeconds: 0);
+        var store = new Counting(42);
+
+        await web.Totals().Total("events", store.Count);
+        await web.Totals().Total("events", store.Count);
+
+        store.Asked.Should().Be(2, "kept for no time, every page counts again");
     }
 
     [Fact]

@@ -98,7 +98,7 @@ bar carries Home, the service's name, and the menus over its models; outside one
 
 Under each service, Home says what its store is doing: when the last event was written, and how
 many events the store holds, counted and then kept for five minutes unless an Administrator
-[says otherwise](memoria-web-configuration.md#counts). A service's own page and each model's overview
+[says otherwise](memoria-web-configuration.md#caching). A service's own page and each model's overview
 say the same under every section: how many events, aggregates, projections and streams are stored,
 and when the newest was written. Each section's own page says it once more, under its **Data** tile,
 and its **Types** page says it for the type being read, over its tabs: how many of it are stored
