@@ -1,17 +1,20 @@
 using System;
 using System.Security.Claims;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using AwesomeAssertions;
 using AwesomeAssertions.Execution;
 using Memoria.EventSourcing.Dcb.Store.EntityFrameworkCore.Entities;
 using Memoria.EventSourcing.Store.EntityFrameworkCore.Entities;
 using Memoria.Web.Data;
+using Memoria.Web.Extensibility;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.DependencyInjection;
+using NSubstitute;
 using Xunit;
 
 namespace Memoria.Web.Tests.Features;
@@ -137,6 +140,60 @@ public class SectionActivityTests
         var page = Activity(await web.Client.GetStringAsync("/samples"), "samples/streamed/events");
 
         page.Should().Contain("1 stored");
+    }
+
+    /// <summary>
+    /// A section's own page says the same under its Data tile — the way into what has been stored —
+    /// and nothing under its Types tile, which is what the assemblies declare.
+    /// </summary>
+    [Theory]
+    [InlineData("/samples/streamed/events", "samples/streamed/events/data", "3 stored")]
+    [InlineData("/samples/streamed/aggregates", "samples/streamed/aggregates/data", "1 stored")]
+    [InlineData("/samples/streamed/projections", "samples/streamed/projections/data", "None stored yet")]
+    [InlineData("/samples/dcb/events", "samples/dcb/events/data", "2 stored")]
+    [InlineData("/samples/dcb/aggregates", "samples/dcb/aggregates/data", "None stored yet")]
+    [InlineData("/samples/dcb/projections", "samples/dcb/projections/data", "1 stored")]
+    public async Task Says_what_is_stored_under_a_section_page_s_data_tile(string address, string data, string said)
+    {
+        var clock = new SetClock();
+        using var web = MemoriaWeb.Open().WithSampleTypes().WithClock(clock);
+        await CreateTheStore(web);
+        await AppendStreamed(web, ("sample:1", 0), ("sample:1", 1), ("sample:2", 0));
+        await SaveAggregate(web, "sample-1");
+        await AppendDcb(web, 1);
+        await AppendDcb(web, 2);
+        await SaveDcbSnapshot(web, DcbSnapshotEntity.ProjectionKind);
+
+        var page = await web.Client.GetStringAsync(address);
+
+        using var scope = new AssertionScope();
+
+        Activity(page, data).Should().Contain(said);
+        Activity(page, address.TrimStart('/') + "/types").Should().BeEmpty();
+    }
+
+    /// <summary>
+    /// A section's page asks the store about its own section and no other: every figure is a scan
+    /// or near it, and the events page has no business counting snapshots.
+    /// </summary>
+    [Fact]
+    public async Task Asks_the_store_only_about_the_section_the_page_is()
+    {
+        var reads = Substitute.For<IStreamedReads>();
+        reads.Count(Arg.Any<StreamedEventFilter>(), Arg.Any<CancellationToken>())
+            .Returns(new EventCount(7, null));
+        reads.At(Arg.Any<StreamedEventFilter>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
+            .Returns(new PlacedStreamEvent(null, null));
+        using var web = MemoriaWeb.Open().WithSampleTypes().WithReads(reads).WithClock(new SetClock());
+
+        var page = await web.Client.GetStringAsync("/samples/streamed/events");
+
+        using var scope = new AssertionScope();
+
+        Activity(page, "samples/streamed/events/data").Should().Contain("7 stored");
+        await reads.DidNotReceiveWithAnyArgs().CountSnapshots(default);
+        await reads.DidNotReceiveWithAnyArgs().LastWritten(default);
+        await reads.DidNotReceiveWithAnyArgs().CountStreams();
     }
 
     [Fact]

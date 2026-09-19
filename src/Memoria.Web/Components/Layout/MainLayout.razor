@@ -101,22 +101,22 @@
                 <div class="submenu-group">
                     <span class="submenu-label">Events</span>
                     <NavLink href="@At("streamed/events")" Match="NavLinkMatch.All"><SectionMark Kind="SectionKind.Overview"/>Overview</NavLink>
-                    <NavLink href="@At("streamed/events/types")" Match="NavLinkMatch.All"><SectionMark Kind="SectionKind.Types"/>Types</NavLink>
                     <NavLink href="@At("streamed/events/data")" Match="NavLinkMatch.All"><SectionMark Kind="SectionKind.Data"/>Data</NavLink>
+                    <NavLink href="@At("streamed/events/types")" Match="NavLinkMatch.All"><SectionMark Kind="SectionKind.Types"/>Types</NavLink>
                 </div>
 
                 <div class="submenu-group">
                     <span class="submenu-label">Aggregates</span>
                     <NavLink href="@At("streamed/aggregates")" Match="NavLinkMatch.All"><SectionMark Kind="SectionKind.Overview"/>Overview</NavLink>
-                    <NavLink href="@At("streamed/aggregates/types")" Match="NavLinkMatch.All"><SectionMark Kind="SectionKind.Types"/>Types</NavLink>
                     <NavLink href="@At("streamed/aggregates/data")" Match="NavLinkMatch.All"><SectionMark Kind="SectionKind.Data"/>Data</NavLink>
+                    <NavLink href="@At("streamed/aggregates/types")" Match="NavLinkMatch.All"><SectionMark Kind="SectionKind.Types"/>Types</NavLink>
                 </div>
 
                 <div class="submenu-group">
                     <span class="submenu-label">Projections</span>
                     <NavLink href="@At("streamed/projections")" Match="NavLinkMatch.All"><SectionMark Kind="SectionKind.Overview"/>Overview</NavLink>
-                    <NavLink href="@At("streamed/projections/types")" Match="NavLinkMatch.All"><SectionMark Kind="SectionKind.Types"/>Types</NavLink>
                     <NavLink href="@At("streamed/projections/data")" Match="NavLinkMatch.All"><SectionMark Kind="SectionKind.Data"/>Data</NavLink>
+                    <NavLink href="@At("streamed/projections/types")" Match="NavLinkMatch.All"><SectionMark Kind="SectionKind.Types"/>Types</NavLink>
                 </div>
 
                 @* One link rather than a group: a stream is declared and nothing else, so there is
@@ -134,22 +134,22 @@
                 <div class="submenu-group">
                     <span class="submenu-label">Events</span>
                     <NavLink href="@At("dcb/events")" Match="NavLinkMatch.All"><SectionMark Kind="SectionKind.Overview"/>Overview</NavLink>
-                    <NavLink href="@At("dcb/events/types")" Match="NavLinkMatch.All"><SectionMark Kind="SectionKind.Types"/>Types</NavLink>
                     <NavLink href="@At("dcb/events/data")" Match="NavLinkMatch.All"><SectionMark Kind="SectionKind.Data"/>Data</NavLink>
+                    <NavLink href="@At("dcb/events/types")" Match="NavLinkMatch.All"><SectionMark Kind="SectionKind.Types"/>Types</NavLink>
                 </div>
 
                 <div class="submenu-group">
                     <span class="submenu-label">Aggregates</span>
                     <NavLink href="@At("dcb/aggregates")" Match="NavLinkMatch.All"><SectionMark Kind="SectionKind.Overview"/>Overview</NavLink>
-                    <NavLink href="@At("dcb/aggregates/types")" Match="NavLinkMatch.All"><SectionMark Kind="SectionKind.Types"/>Types</NavLink>
                     <NavLink href="@At("dcb/aggregates/data")" Match="NavLinkMatch.All"><SectionMark Kind="SectionKind.Data"/>Data</NavLink>
+                    <NavLink href="@At("dcb/aggregates/types")" Match="NavLinkMatch.All"><SectionMark Kind="SectionKind.Types"/>Types</NavLink>
                 </div>
 
                 <div class="submenu-group">
                     <span class="submenu-label">Projections</span>
                     <NavLink href="@At("dcb/projections")" Match="NavLinkMatch.All"><SectionMark Kind="SectionKind.Overview"/>Overview</NavLink>
-                    <NavLink href="@At("dcb/projections/types")" Match="NavLinkMatch.All"><SectionMark Kind="SectionKind.Types"/>Types</NavLink>
                     <NavLink href="@At("dcb/projections/data")" Match="NavLinkMatch.All"><SectionMark Kind="SectionKind.Data"/>Data</NavLink>
+                    <NavLink href="@At("dcb/projections/types")" Match="NavLinkMatch.All"><SectionMark Kind="SectionKind.Types"/>Types</NavLink>
                 </div>
             </div>
         </details>
@@ -314,8 +314,8 @@
             <summary class="@(InSection(href) ? "active" : null)"><SectionMark Kind="@mark"/>@label</summary>
             <div class="submenu">
                 <NavLink href="@At(href)" Match="NavLinkMatch.All"><SectionMark Kind="SectionKind.Overview"/>Overview</NavLink>
-                <NavLink href="@At($"{href}/types")" Match="NavLinkMatch.All"><SectionMark Kind="SectionKind.Types"/>Types</NavLink>
                 <NavLink href="@At($"{href}/data")" Match="NavLinkMatch.All"><SectionMark Kind="SectionKind.Data"/>Data</NavLink>
+                <NavLink href="@At($"{href}/types")" Match="NavLinkMatch.All"><SectionMark Kind="SectionKind.Types"/>Types</NavLink>
             </div>
         </details>;
 

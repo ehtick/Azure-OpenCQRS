@@ -20,6 +20,22 @@ public sealed record StoreActivity(DateTimeOffset? LastEvent, Kept<int>? Events,
 /// <param name="Stored">How many are stored, and when they were counted.</param>
 public sealed record SectionActivity(DateTimeOffset? Latest, Kept<int> Stored);
 
+/// <summary>A section of a model, as its overview lays them out.</summary>
+public enum ModelSection
+{
+    /// <summary>The events the model's log holds.</summary>
+    Events,
+
+    /// <summary>The aggregate snapshots.</summary>
+    Aggregates,
+
+    /// <summary>The projection snapshots.</summary>
+    Projections,
+
+    /// <summary>The streams the events are held in; the streamed model's alone.</summary>
+    Streams
+}
+
 /// <summary>What the store holds of each section of one model, or why it could not be read.</summary>
 /// <param name="Events">The events the model's log holds.</param>
 /// <param name="Aggregates">The aggregate snapshots.</param>
@@ -108,41 +124,65 @@ public sealed class ServiceActivity(
         return read.Value ?? new StoreActivity(null, null, read.Problem);
     }
 
-    /// <summary>What the service's store holds of each section of the streamed model.</summary>
-    public async Task<ModelActivity> Streamed(Service service, CancellationToken cancellationToken = default)
+    /// <summary>What the service's store holds of each section of the streamed model, or of the one asked for.</summary>
+    /// <param name="service">The service.</param>
+    /// <param name="only">
+    /// The one section to read, for a section's own page, which has no business asking about the
+    /// others; null for every section. The sections not read are null.
+    /// </param>
+    /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
+    public async Task<ModelActivity> Streamed(
+        Service service, ModelSection? only = null, CancellationToken cancellationToken = default)
     {
         var read = await Read(service, async (inside, _, token) =>
         {
             var reads = inside.Provider.GetRequiredService<IStreamedReads>();
 
             return new ModelActivity(
-                await StreamedEvents(inside, token),
-                await Snapshots(inside, "streamed/aggregates", StreamedModelKind.Aggregate, reads, token),
-                await Snapshots(inside, "streamed/projections", StreamedModelKind.Projection, reads, token),
-                new SectionActivity(null, await _counts.Keep(inside.Key("streamed/streams"), reads.CountStreams, token)),
+                Wanted(only, ModelSection.Events) ? await StreamedEvents(inside, token) : null,
+                Wanted(only, ModelSection.Aggregates)
+                    ? await Snapshots(inside, "streamed/aggregates", StreamedModelKind.Aggregate, reads, token)
+                    : null,
+                Wanted(only, ModelSection.Projections)
+                    ? await Snapshots(inside, "streamed/projections", StreamedModelKind.Projection, reads, token)
+                    : null,
+                Wanted(only, ModelSection.Streams)
+                    ? new SectionActivity(null, await _counts.Keep(inside.Key("streamed/streams"), reads.CountStreams, token))
+                    : null,
                 Problem: null);
         }, cancellationToken);
 
         return read.Value ?? new ModelActivity(null, null, null, null, read.Problem);
     }
 
-    /// <summary>What the service's store holds of each section of the DCB model.</summary>
-    public async Task<ModelActivity> Dcb(Service service, CancellationToken cancellationToken = default)
+    /// <summary>What the service's store holds of each section of the DCB model, or of the one asked for.</summary>
+    /// <param name="service">The service.</param>
+    /// <param name="only">The one section to read, or null for every section. A DCB model has no streams.</param>
+    /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
+    public async Task<ModelActivity> Dcb(
+        Service service, ModelSection? only = null, CancellationToken cancellationToken = default)
     {
         var read = await Read(service, async (inside, _, token) =>
         {
             var context = inside.Provider.GetRequiredService<DcbStoreDbContext>();
 
             return new ModelActivity(
-                await DcbEvents(inside, token),
-                await DcbSnapshots(inside, "dcb/aggregates", DcbSnapshotEntity.AggregateKind, context, token),
-                await DcbSnapshots(inside, "dcb/projections", DcbSnapshotEntity.ProjectionKind, context, token),
+                Wanted(only, ModelSection.Events) ? await DcbEvents(inside, token) : null,
+                Wanted(only, ModelSection.Aggregates)
+                    ? await DcbSnapshots(inside, "dcb/aggregates", DcbSnapshotEntity.AggregateKind, context, token)
+                    : null,
+                Wanted(only, ModelSection.Projections)
+                    ? await DcbSnapshots(inside, "dcb/projections", DcbSnapshotEntity.ProjectionKind, context, token)
+                    : null,
                 Streams: null,
                 Problem: null);
         }, cancellationToken);
 
         return read.Value ?? new ModelActivity(null, null, null, null, read.Problem);
     }
+
+    /// <summary>Whether a section is to be read: every one when none was singled out, else that one.</summary>
+    private static bool Wanted(ModelSection? only, ModelSection section) => only is null || only == section;
 
     /// <summary>A service being read: its scope, its store, and where its figures are kept.</summary>
     private sealed record Inside(IServiceProvider Provider, Service Service, bool Cosmos)

@@ -455,7 +455,8 @@ directory sees a save when it is next restarted.
 
 Home says, under each service it lists, what that service's store is doing. A service's own page and
 each model's overview say the same one level down, under each section's tile: events, aggregates,
-projections, and for the streamed model streams.
+projections, and for the streamed model streams. Each section's own page says its own figures under
+its **Data** tile, and asks the store about that section alone.
 
 - **When the newest was written**: the last event, or the snapshot last written. It is the figure
   that shows a service is alive, so it is asked of the store on every visit wherever the store finds

@@ -1,23 +1,26 @@
 @* The two ways into a section, each on its own tile: they are not steps in a sequence but a choice
-   between what the model declares and what has been stored of it, and a tile says that where a
+   between what has been stored of it and what the model declares, and a tile says that where a
    stacked list said one came before the other. The mark in front carries the same distinction
-   without the words — braces for what is declared, a store for what is kept. *@
+   without the words — a store for what is kept, braces for what is declared. *@
+@* Data first: what has been stored is what a reader most often comes for, and the declarations
+   are what they turn to once a row needs explaining. The menus list the two the same way. *@
 <ul class="tiles">
-    <li>
-        <a href="@TypesHref">
-            <SectionMark Kind="SectionKind.Types"/>
-            <span class="body">
-                <span class="name">Types</span>
-                <span class="detail">@TypesDetail</span>
-            </span>
-        </a>
-    </li>
     <li>
         <a href="@DataHref">
             <SectionMark Kind="SectionKind.Data"/>
             <span class="body">
                 <span class="name">Data</span>
                 <span class="detail">@DataDetail</span>
+                @DataActivity
+            </span>
+        </a>
+    </li>
+    <li>
+        <a href="@TypesHref">
+            <SectionMark Kind="SectionKind.Types"/>
+            <span class="body">
+                <span class="name">Types</span>
+                <span class="detail">@TypesDetail</span>
             </span>
         </a>
     </li>
@@ -53,5 +56,12 @@
     [Parameter]
     [EditorRequired]
     public RenderFragment? DataDetail { get; set; }
+
+    /// <summary>
+    /// What the store holds of the section, under the Data tile's sentence — the tile that leads to
+    /// what has been stored. The Types tile has none: what the assemblies declare is not in any store.
+    /// </summary>
+    [Parameter]
+    public RenderFragment? DataActivity { get; set; }
 
 }

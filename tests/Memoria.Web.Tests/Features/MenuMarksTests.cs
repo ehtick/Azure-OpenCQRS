@@ -20,7 +20,7 @@ public class MenuMarksTests
         var items = Markup.MenuItems(await web.Client.GetStringAsync("/samples"));
 
         items.Select(item => item.Label).Should().ContainInOrder(
-            "Home", "samples", "Streamed", "Overview", "Types", "Data", "Streams", "DCB", "Settings", "Preferences");
+            "Home", "samples", "Streamed", "Overview", "Data", "Types", "Streams", "DCB", "Settings", "Preferences");
         items.Should().OnlyContain(item => item.Marked, "each item is told apart by its mark before its words");
     }
 
