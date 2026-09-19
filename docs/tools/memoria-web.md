@@ -102,7 +102,8 @@ many events the store holds, counted and then kept for five minutes unless an Ad
 say the same under every section: how many events, aggregates, projections and streams are stored,
 and when the newest was written. Each section's own page says it once more, under its **Data** tile,
 and its **Types** page says it for the type being read, over its tabs: how many of it are stored
-and when the newest was written.
+and when the newest was written. The **Streams** page says, for the stream type being read, when a stream
+of it was last written to and how many of its streams hold events.
 
 A service's own page sets the two consistency models side by side when it registered types under
 both, and lays the one model out directly when it registered types under one alone. Each model is

@@ -458,7 +458,9 @@ each model's overview say the same one level down, under each section's tile: ev
 projections, and for the streamed model streams. Each section's own page says its own figures under
 its **Data** tile, and asks the store about that section alone. A **Types** page asks about the
 type being read and no other — its rows found by the key they are written under — and the list
-beside it counts nothing, since that would be every type counted on every visit.
+beside it counts nothing, since that would be every type counted on every visit. The **Streams**
+page does the same for the stream type being read: its streams are the ones whose ids the type's
+pattern matches, so a type whose ids no pattern can match says nothing.
 
 The aggregates and projections **Data** tables mark each row whose stored snapshot is behind its
 history with a clock, the rule the detail page's **Info** tab warns by: more events of the types

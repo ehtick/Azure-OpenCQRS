@@ -114,8 +114,17 @@ public sealed class EfStreamedReads(StreamedStoreDbContext context, TotalsCache?
                 .FirstOrDefaultAsync(cancellationToken);
 
     /// <inheritdoc />
-    public Task<int> CountStreams(CancellationToken cancellationToken = default) =>
-        context.Events.Select(appended => appended.StreamId).Distinct().CountAsync(cancellationToken);
+    /// <remarks>
+    /// Like rather than a prefix comparison, as the log's own narrowing is: a stream type's values
+    /// are not always at the end of its ids.
+    /// </remarks>
+    public Task<int> CountStreams(string? streamPattern = null, CancellationToken cancellationToken = default) =>
+        (string.IsNullOrWhiteSpace(streamPattern)
+            ? context.Events
+            : context.Events.Where(appended => EF.Functions.Like(appended.StreamId, streamPattern)))
+        .Select(appended => appended.StreamId)
+        .Distinct()
+        .CountAsync(cancellationToken);
 
     /// <inheritdoc />
     /// <remarks>

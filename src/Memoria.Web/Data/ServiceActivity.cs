@@ -150,7 +150,7 @@ public sealed class ServiceActivity(
                     ? await Snapshots(inside, "streamed/projections", StreamedModelKind.Projection, reads, token)
                     : null,
                 Wanted(only, ModelSection.Streams)
-                    ? new SectionActivity(null, await _counts.Keep(inside.Key("streamed/streams"), reads.CountStreams, token))
+                    ? new SectionActivity(null, await _counts.Keep(inside.Key("streamed/streams"), ct => reads.CountStreams(cancellationToken: ct), token))
                     : null,
                 Problem: null);
         }, cancellationToken);
@@ -251,6 +251,39 @@ public sealed class ServiceActivity(
 
         return new TypeActivity(
             new SectionActivity(kept.Value?.Latest, new Kept<int>(kept.Value?.Stored ?? 0, kept.At)), Problem: null);
+    }
+
+    /// <summary>What the service's store holds of one stream type, for the Streams page reading it.</summary>
+    /// <param name="service">The service.</param>
+    /// <param name="streamType">The stream type being read.</param>
+    /// <param name="pattern">The pattern the type's ids match, which is how its streams are found.</param>
+    /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
+    /// <remarks>
+    /// When the last event was written in any stream of the type, and how many of its streams hold
+    /// events. Both are a search of the events the pattern reaches, which neither store can answer
+    /// from an index: the newest is kept as recent figures are, the count as counts are.
+    /// </remarks>
+    public async Task<TypeActivity> StreamType(
+        Service service, Type streamType, string pattern, CancellationToken cancellationToken = default)
+    {
+        var read = await Read(service, async (inside, _, token) =>
+        {
+            var reads = inside.Provider.GetRequiredService<IStreamedReads>();
+            var figure = $"streamed/streams/types/{streamType.FullName}";
+
+            var latest = await _recent.Keep(inside.Key($"{figure}/latest"), async ct =>
+            {
+                var placed = await reads.At(Everything with { StreamPattern = pattern, Descending = true }, index: 0, ct);
+
+                return placed.Error is { } error ? throw new InvalidOperationException(error) : placed.Event?.Event.Written;
+            }, token);
+
+            var stored = await _counts.Keep(inside.Key(figure), ct => reads.CountStreams(pattern, ct), token);
+
+            return new TypeActivity(new SectionActivity(latest.Value, stored), Problem: null);
+        }, cancellationToken);
+
+        return read.Value ?? new TypeActivity(null, read.Problem);
     }
 
     /// <summary>A section as its address names it.</summary>

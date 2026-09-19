@@ -6,6 +6,7 @@
               Problem="@Activity?.Problem"
               Activity="@Activity?.Figures"
               Latest="@Latest"
+              Noun="@Noun"
               Empty="@Empty"/>
 
 @code {
@@ -17,6 +18,10 @@
     /// <summary>What the newest date is called: <c>Last event</c> or <c>Last written</c>.</summary>
     [Parameter, EditorRequired]
     public string Latest { get; set; } = null!;
+
+    /// <summary>What follows the count: <c>stored</c>, or <c>with events</c> for a stream type.</summary>
+    [Parameter]
+    public string Noun { get; set; } = "stored";
 
     /// <summary>What is said when nothing of the type is stored.</summary>
     [Parameter]

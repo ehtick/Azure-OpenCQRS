@@ -146,6 +146,20 @@ public class SqliteStreamedFiguresTests : IAsyncLifetime
             .Should().BeNull("a projection's key is not an aggregate's");
     }
 
+    /// <summary>The streams of one stream type: those whose ids its pattern matches, each counted once.</summary>
+    [Fact]
+    public async Task Counts_the_streams_whose_ids_a_pattern_matches()
+    {
+        await AppendEvents(("customer:c-1", 0), ("customer:c-1", 1), ("customer:c-2", 0), ("order:o-1", 0));
+
+        var reads = Reads();
+
+        using var scope = new AssertionScope();
+
+        (await reads.CountStreams("customer:%")).Should().Be(2);
+        (await reads.CountStreams("invoice:%")).Should().Be(0);
+    }
+
     [Fact]
     public async Task Counts_nothing_in_an_empty_store()
     {

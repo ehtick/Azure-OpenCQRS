@@ -1,6 +1,9 @@
 @page "/{service}/streamed/streams"
+@attribute [StreamRendering]
+@using Memoria.Web.Data
 @using Memoria.Web.Extensibility
 @inject CurrentService Current
+@inject ServiceActivity Activity
 
 <PageTitle>Streamed @Heading</PageTitle>
 
@@ -47,6 +50,13 @@ else
                    class — which is why the info tab leads with the full one. *@
                 <h2>@BoundAs(Selected)</h2>
                 <ObsoleteNote Type="Selected"/>
+                @* What the store holds of the type: when a stream of it was last written to, and how many of
+                   its streams hold events. None for a type whose ids no pattern matches, since then there is
+                   no telling its streams apart from any other type's. *@
+                @if (IdShape.Of(Selected)?.Pattern is not null)
+                {
+                    <TypeLine Activity="@Figures" Latest="Last event" Noun="with events" Empty="No events yet"/>
+                }
 
                 @* Two views, switched by the address rather than by script: each tab is a link, so a
                    view can be linked to and gone back to, and the page stays statically rendered
@@ -137,6 +147,21 @@ else
     /// <summary>The service this page sits under: the first segment of its address.</summary>
     [Parameter]
     public string Service { get; set; } = string.Empty;
+
+    /// <summary>What the store holds of the stream type being read, or null while it is being read.</summary>
+    private TypeActivity? Figures { get; set; }
+
+    /// <summary>
+    /// Asks the store about the stream type being read and no other; the list and the panel have
+    /// been sent by the time this waits.
+    /// </summary>
+    protected override async Task OnInitializedAsync()
+    {
+        if (Current.Service is { } service && Selected is { } type && IdShape.Of(type)?.Pattern is { } pattern)
+        {
+            Figures = await Activity.StreamType(service, type, pattern);
+        }
+    }
 
     /// <summary>
     /// What the page is, for the heading and the title. One value for both, so they cannot drift

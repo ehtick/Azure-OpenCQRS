@@ -328,9 +328,17 @@ public sealed class CosmosStreamedReads(
     /// The distinct stream ids of the event documents, counted: a stream is nothing but the events
     /// held in it, so no document of its own says it is there.
     /// </remarks>
-    public async Task<int> CountStreams(CancellationToken cancellationToken = default)
+    public async Task<int> CountStreams(string? streamPattern = null, CancellationToken cancellationToken = default)
     {
         var narrowing = OfDocumentType(DocumentType.Event);
+
+        if (!string.IsNullOrWhiteSpace(streamPattern))
+        {
+            narrowing = new Narrowing(
+                $"{narrowing.Where} AND c.streamId LIKE @streamPattern",
+                [.. narrowing.Values, ("@streamPattern", streamPattern)]);
+        }
+
         var counted = await Read<int>(client.GetContainer(databaseName, containerName),
             narrowing.Apply(new QueryDefinition(
                 $"SELECT VALUE COUNT(1) FROM (SELECT DISTINCT VALUE c.streamId FROM c WHERE {narrowing.Where})")),

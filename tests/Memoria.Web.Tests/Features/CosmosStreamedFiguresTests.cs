@@ -112,6 +112,17 @@ public class CosmosStreamedFiguresTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Counts_the_streams_whose_ids_a_pattern_matches()
+    {
+        await Append(("customer:c-1", 0), ("customer:c-1", 1), ("customer:c-2", 0), ("order:o-1", 0));
+
+        using var scope = new AssertionScope();
+
+        (await _reads.CountStreams("customer:%")).Should().Be(2);
+        (await _reads.CountStreams("invoice:%")).Should().Be(0);
+    }
+
+    [Fact]
     public async Task Counts_nothing_in_an_empty_container()
     {
         using var scope = new AssertionScope();

@@ -99,15 +99,17 @@ public interface IStreamedReads
     Task<DateTimeOffset?> LastWritten(StreamedModelKind kind, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Counts the streams the store's events are held in.
+    /// Counts the streams the store's events are held in, or those of them one stream type's
+    /// pattern matches.
     /// </summary>
+    /// <param name="streamPattern">The pattern the ids of one stream type match, or null for every stream.</param>
     /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
     /// <remarks>
     /// A stream is stored as nothing but the events in it, so this counts the distinct stream ids
-    /// across the log: a scan, which the overview keeps as it keeps its other counts. Throws when
-    /// the store cannot be read.
+    /// across the log, or across the events the pattern reaches: a scan, which the pages keep as
+    /// they keep their other counts. Throws when the store cannot be read.
     /// </remarks>
-    Task<int> CountStreams(CancellationToken cancellationToken = default);
+    Task<int> CountStreams(string? streamPattern = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// How many events of one type the log holds, and when the newest of them was written; null
