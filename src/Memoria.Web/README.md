@@ -51,6 +51,7 @@ for what to register at the provider.
 | `Databases:{name}:Cosmos:ContainerName` | No                         | `Domain`                             |
 | `Extensions:Directory`             | No                              | `<content root>/App_Data/extensions` |
 | `Branding:Directory`               | No                              | `<content root>/App_Data/branding`   |
+| `Settings:Directory`               | No                              | `<content root>/App_Data/settings`   |
 | `Authentication:Oidc:Authority`    | Unless running open             | —                                    |
 | `Authentication:Oidc:ClientId`     | Unless running open             | —                                    |
 | `Authentication:Oidc:ClientSecret` | Unless running open             | —                                    |

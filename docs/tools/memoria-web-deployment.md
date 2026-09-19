@@ -68,7 +68,7 @@ note above.
 | ---------------------- | --------------------------------------------------------------------------------------- |
 | ASP.NET Core 10 runtime | The published application is framework-dependent                                        |
 | Network to the store    | The only external dependency there is                                                   |
-| A writable content root | Uploaded archives and assemblies are written under it unless `Extensions:Directory` moves them elsewhere, and the header's branding unless `Branding:Directory` does |
+| A writable content root | Uploaded archives and assemblies are written under it unless `Extensions:Directory` moves them elsewhere, the header's branding unless `Branding:Directory` does, and the tool's own settings unless `Settings:Directory` does |
 
 Nothing else. There is no cache, no message broker, no background worker and no scheduled job.
 
@@ -112,7 +112,8 @@ Without a volume, every deployment starts with nothing installed and everyone ha
 
 The header's [branding](memoria-web-configuration.md#branding) is kept the same way, in its own
 directory; mount `Branding__Directory` too, or it goes back to Memoria's own name and mark on every
-deployment.
+deployment. So are the tool's own [settings](memoria-web-configuration.md#home), under
+`Settings__Directory`; without a volume, how long Home keeps a count goes back to 5 minutes.
 
 ### Run one instance
 

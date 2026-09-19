@@ -69,6 +69,16 @@ builder.Services.AddSingleton(new BrandingStore(
     builder.Configuration["Branding:Directory"]
     ?? Path.Combine(builder.Environment.ContentRootPath, "App_Data", "branding")));
 
+// The tool's own settings, kept beside the branding for the same reason: how long Home keeps what
+// it counts. Read once, here, and held from then on.
+builder.Services.AddSingleton(new HomeSettingsStore(
+    builder.Configuration["Settings:Directory"]
+    ?? Path.Combine(builder.Environment.ContentRootPath, "App_Data", "settings")));
+
+// What each service's store is doing, as Home says it: one for the process, so a count is kept
+// across visits.
+builder.Services.AddSingleton<ServiceActivity>();
+
 // One store per service, over the connection string its manifest names: the readers, contexts and
 // domain services a request under a service resolves are built from the service the request is
 // inside. A relational store brings the contexts with it; a Cosmos store brings a client and none.

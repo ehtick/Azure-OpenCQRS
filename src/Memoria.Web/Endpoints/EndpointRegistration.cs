@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Security.Claims;
 using Memoria.EventSourcing;
 using Memoria.EventSourcing.Dcb;
@@ -50,7 +51,8 @@ public static class EndpointRegistration
 
     /// <summary>
     /// The writes the settings page offers: installing uploads, removing one, and rereading what is
-    /// installed; saving the header's branding and restoring Memoria's own. And the logo that
+    /// installed; saving the header's branding and restoring Memoria's own; saving how long Home
+    /// keeps what it counts. And the logo that
     /// branding draws, which is not a write but is the settings' alone to answer.
     /// </summary>
     private static void MapSettings(this WebApplication app)
@@ -212,6 +214,37 @@ public static class EndpointRegistration
             return Back(message: "Memoria's own name and mark restored.", tab: BrandingTab);
         }).DisableAntiforgery().RequireAuthorization(Roles.Administrator);
 
+        app.MapPost("/settings/home", (
+            HomeSettingsStore home,
+            ILoggerFactory loggerFactory,
+            ClaimsPrincipal user,
+            [FromForm] string? countsKeptForMinutes) =>
+        {
+            var logger = loggerFactory.CreateLogger("Memoria.Web.Settings");
+            var asked = Operator.Of(user);
+
+            try
+            {
+                // Taken as text and read here, so a box left empty or holding a word is refused
+                // with the same sentence as a number out of range, rather than by the binder.
+                if (!int.TryParse(countsKeptForMinutes, NumberStyles.None, CultureInfo.InvariantCulture, out var minutes))
+                {
+                    minutes = -1;
+                }
+
+                home.Save(minutes);
+            }
+            catch (InvalidDataException refused)
+            {
+                logger.HomeSettingsNotSaved(refused.Message, asked);
+                return Back(error: refused.Message, tab: HomeTab);
+            }
+
+            logger.HomeSettingsSaved(home.CountsKeptFor, asked);
+
+            return Back(message: "Home settings saved.", tab: HomeTab);
+        }).RequireAuthorization(Roles.Administrator);
+
         // Anyone, as the stylesheet: the signed-out page draws the header, and whoever reads it has no
         // session. It shows the name beside the logo already, so the image gives away nothing more.
         // Cached for as long as a browser likes, because the header asks for it by a version the
@@ -244,6 +277,9 @@ public static class EndpointRegistration
 
     /// <summary>The settings tab the branding is kept on, which its writes come back to.</summary>
     private const string BrandingTab = "branding";
+
+    /// <summary>The settings tab Home's settings are kept on, which its writes come back to.</summary>
+    private const string HomeTab = "home";
 
     /// <summary>
     /// The one write the DCB pages offer, and the same one for each of the two models.

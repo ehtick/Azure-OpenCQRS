@@ -35,6 +35,7 @@ can be overridden without editing a file.
 | `Database:Cosmos:ContainerName`  | No                              | `Domain`                              | Likewise                                         |
 | `Extensions:Directory`           | No                              | `<content root>/App_Data/extensions`  | Where uploaded archives and assemblies are kept  |
 | `Branding:Directory`             | No                              | `<content root>/App_Data/branding`    | Where the header's name and logo are kept — see [Branding](#branding) |
+| `Settings:Directory`             | No                              | `<content root>/App_Data/settings`    | Where the tool's own settings are kept — see [Home](#home) |
 | `Authentication:Oidc:Authority`  | Unless running open             | —                                     | The OpenID Connect provider operators sign in through |
 | `Authentication:Oidc:ClientId`   | Unless running open             | —                                     | What the tool is registered as at that provider  |
 | `Authentication:Oidc:ClientSecret` | Unless running open           | —                                     | What the tool proves that registration with      |
@@ -450,6 +451,35 @@ in memory, so drawing the header never reaches the disk; a save replaces what is
 Like uploads, the copy held in memory is the process's own: a second instance over the same
 directory sees a save when it is next restarted.
 
+## Home
+
+Home says, under each service it lists, what that service's store is doing:
+
+- **When the last event was written**, asked of the store on every visit. It is one row read along
+  the log's own order, and it is the figure that shows a service is alive, so it is never kept.
+- **How many events the store holds**, and how long ago that was counted. A count is a scan of the
+  whole log, so it is kept and handed to every visitor until it has been kept for as long as an
+  Administrator has said on the **Home** tab of the Settings page: from 0 minutes, which counts on
+  every visit, to 1440, a day. It is 5 until it is changed.
+
+A service over both models is both logs together: its last event is the newer of the two, and its
+count is the two added up. Home is sent before any store is asked; the lines follow once every store
+has answered, and a store is given 5 seconds before its line says it could not be read. A
+store that is not configured says so instead, and is not asked.
+
+The setting is kept in a file, not in any store, for the reason the branding is:
+
+```
+<Settings:Directory>/
+  home.json   how long a count is kept, in minutes
+```
+
+The default is `App_Data/settings` under the content root. It is read once at start-up and held in
+memory; a save is felt from the next visit to Home. A file that cannot be read is taken as the
+default, and the next save writes over it. Counts are forgotten when an upload or a removal changes
+the services, since a count may then be of another store. Like the branding, the copy held in
+memory is the process's own.
+
 ## Logging and hosting
 
 Standard ASP.NET Core settings apply. The defaults in `appsettings.json` are:
@@ -467,7 +497,7 @@ Standard ASP.NET Core settings apply. The defaults in `appsettings.json` are:
 ```
 
 Two loggers of the tool's own are worth raising or quieting by name:
-`Memoria.Web.Settings` (uploads, removals, refreshes and branding) and `Memoria.Web.Streamed` /
+`Memoria.Web.Settings` (uploads, removals, refreshes, branding and Home's settings) and `Memoria.Web.Streamed` /
 `Memoria.Web.Dcb` (snapshot refreshes).
 
 ### What each write logs
@@ -485,6 +515,8 @@ so it can be found by the name rather than by its wording:
 | `BrandingSaved`        | 1006 | Information | The header's name, and logo if one was sent, were saved      |
 | `BrandingNotSaved`     | 1007 | Warning     | A branding save was refused; carries why                     |
 | `BrandingReset`        | 1008 | Information | **Restore Memoria's own** was pressed on the Branding tab    |
+| `HomeSettingsSaved`    | 1009 | Information | How long Home keeps a count was saved                        |
+| `HomeSettingsNotSaved` | 1010 | Warning     | That save was refused; carries why                           |
 | `SnapshotRefreshed`    | 1011 | Information | **Update** wrote a snapshot                                  |
 | `SnapshotUpToDate`     | 1012 | Information | **Update** found no snapshot and no events to fold           |
 | `SnapshotNotRefreshed` | 1013 | Warning     | The store refused the update; carries its reason            |

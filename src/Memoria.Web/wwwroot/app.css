@@ -682,6 +682,39 @@ h2:focus {
         margin-top: 0.15rem;
     }
 
+    /* What the store is doing, under what the service is: the last event and the count, a dot
+       between them, in the faint ink and the small size, so it reads as a status line under the
+       sentence rather than a second sentence. Wraps whole parts rather than breaking one. */
+    .tiles.services .activity {
+        color: var(--ink-soft);
+        display: flex;
+        flex-wrap: wrap;
+        font-size: var(--text-sm);
+        gap: 0.1rem 0;
+        margin-top: 0.35rem;
+    }
+
+        .tiles.services .activity > span {
+            white-space: nowrap;
+        }
+
+        .tiles.services .activity > span + span::before {
+            color: var(--ink-faint);
+            content: "·";
+            padding: 0 0.5rem;
+        }
+
+        .tiles.services .activity .reading {
+            color: var(--ink-faint);
+        }
+
+        /* Said in the danger ink, since it is the one thing on the tile someone has to act on;
+           allowed to wrap, since the driver's words can run long. */
+        .tiles.services .activity .problem {
+            color: var(--danger);
+            white-space: normal;
+        }
+
 /* The two models set beside each other, so what belongs to one is read against the other rather
    than as one long list. Shared by any page that has something to say about both.
 

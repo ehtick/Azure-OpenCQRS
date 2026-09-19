@@ -178,6 +178,18 @@ internal sealed class MemoriaWeb : WebApplicationFactory<Program>
 
     private Memoria.EventSourcing.IDomainService? _domainService;
 
+    private TimeProvider? _clock;
+
+    /// <summary>
+    /// The same instance telling the time by the clock given: what the audit interceptor stamps a
+    /// row with, and what Home measures how long ago a row was written, and a count made, against.
+    /// </summary>
+    public MemoriaWeb WithClock(TimeProvider clock)
+    {
+        _clock = clock;
+        return this;
+    }
+
     /// <summary>
     /// The same instance writing the streamed store through the service given rather than the
     /// SQLite file: for a test of what a refresh does around the write, not of the write itself.
@@ -267,6 +279,9 @@ internal sealed class MemoriaWeb : WebApplicationFactory<Program>
 
     /// <summary>Where this instance keeps the header's name and logo.</summary>
     public string BrandingDirectory => Path.Combine(_scratch, "branding");
+
+    /// <summary>Where the tool keeps its own settings, such as how long Home keeps a count.</summary>
+    public string SettingsDirectory => Path.Combine(_scratch, "settings");
 
     /// <summary>Every file an upload has left under the extensions directory, archives and assemblies alike.</summary>
     public string[] Installed =>
@@ -413,6 +428,7 @@ internal sealed class MemoriaWeb : WebApplicationFactory<Program>
             ["ConnectionStrings:Memoria"] = $"Data Source={Path.Combine(_scratch, "store.db")}",
             ["Extensions:Directory"] = ExtensionsDirectory,
             ["Branding:Directory"] = BrandingDirectory,
+            ["Settings:Directory"] = SettingsDirectory,
             ["Authentication:Disabled"] = null,
             ["Authentication:Oidc:Authority"] = null,
             ["Authentication:Oidc:ClientId"] = null,
@@ -491,6 +507,11 @@ internal sealed class MemoriaWeb : WebApplicationFactory<Program>
             if (_domainService is { } domainService)
             {
                 services.AddScoped(_ => domainService);
+            }
+
+            if (_clock is { } clock)
+            {
+                services.AddSingleton(clock);
             }
 
             if (_operator is null)

@@ -9,10 +9,11 @@ internal static class Markup
 {
     /// <summary>
     /// The page as written, without the attribute scoped CSS stamps on every element of a
-    /// component that has a stylesheet of its own: a test says what the page says, not which
-    /// component said it.
+    /// component that has a stylesheet of its own, nor the comments a stream-rendered page marks
+    /// each component's bounds with: a test says what the page says, not which component said it.
     /// </summary>
-    public static string Plain(string page) => Regex.Replace(page, " b-[a-z0-9]{10}(?=[ >/])", string.Empty);
+    public static string Plain(string page) =>
+        Regex.Replace(page, " b-[a-z0-9]{10}(?=[ >/])|<!--/?bl:\\d+-->", string.Empty);
 
     /// <summary>
     /// The markup without the marks drawn in front of words: a test asking what a menu says reads

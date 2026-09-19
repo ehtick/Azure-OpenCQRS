@@ -1,9 +1,13 @@
 @page "/"
+@attribute [StreamRendering]
+@using System.Globalization
 @using Memoria.Web.Data
 @using Memoria.Web.Extensibility
 @inject DomainTypeRegistry Types
 @inject ServiceStores Stores
 @inject ServiceAccess Access
+@inject ServiceActivity Activity
+@inject TimeProvider Clock
 @inject Memoria.Web.Branding.BrandingStore Branding
 
 @* Titled with the name the header shows, so a branded deployment's tab says what it is — or
@@ -89,6 +93,41 @@ else
                         {
                             <span class="detail">@detail</span>
                         }
+                        @* What the store is doing, under what the service is: when its last event
+                           was written, asked on every visit, and how many events it holds, counted
+                           and kept a while — so the count says when it was made. The tiles are sent
+                           before any store is asked, and these lines follow once every store has
+                           answered or run out of patience, so the way into a service is never
+                           behind a slow store. Nothing for a store that cannot be reached: the
+                           line above already says why. *@
+                        @if (Stores.For(service).Reachable)
+                        {
+                            <span class="activity">
+                                @if (!Activities.TryGetValue(service.Slug, out var activity))
+                                {
+                                    <span class="reading">Reading the store…</span>
+                                }
+                                else if (activity.Problem is { } problem)
+                                {
+                                    <span class="problem">Could not read the store: @problem</span>
+                                }
+                                else
+                                {
+                                    @if (activity.LastEvent is { } last)
+                                    {
+                                        <span>Last event <time datetime="@last.UtcDateTime.ToString("O", CultureInfo.InvariantCulture)" title="@last.ToUniversalTime().ToString("u", CultureInfo.InvariantCulture)">@Ago.Since(last, Now)</time></span>
+                                    }
+                                    else
+                                    {
+                                        <span>No events yet</span>
+                                    }
+                                    @if (activity.Events is { } events && (events.Total > 0 || activity.LastEvent is not null))
+                                    {
+                                        <span title="Counted at @events.CountedAt.ToUniversalTime().ToString("u", CultureInfo.InvariantCulture)">@EventCount(events.Total), counted @Ago.Since(events.CountedAt, Now)</span>
+                                    }
+                                }
+                            </span>
+                        }
                     </span>
                 </a>
             </li>
@@ -115,7 +154,26 @@ else
         var user = AuthenticationState is { } state ? (await state).User : new System.Security.Claims.ClaimsPrincipal();
 
         Visible = Access.Readable(user, Services);
+
+        // Every reachable store asked at once, each in a scope of its own, so the page waits for the
+        // slowest store rather than for all of them one after another — and for no store longer
+        // than the patience it is given.
+        var reachable = Visible.Where(service => Stores.For(service).Reachable).ToList();
+        var read = await Task.WhenAll(reachable.Select(service => Activity.Of(service)));
+
+        Activities = reachable.Zip(read).ToDictionary(pair => pair.First.Slug, pair => pair.Second);
+        Now = Clock.GetUtcNow();
     }
+
+    /// <summary>What each reachable store is doing, by the service's slug; empty until the stores have answered.</summary>
+    private IReadOnlyDictionary<string, StoreActivity> Activities { get; set; } = new Dictionary<string, StoreActivity>();
+
+    /// <summary>When the stores answered, which every age on the page is measured from.</summary>
+    private DateTimeOffset Now { get; set; }
+
+    /// <summary>A number of events, worded for a reader.</summary>
+    private static string EventCount(int total) =>
+        total == 1 ? "1 event" : $"{total.ToString("N0", CultureInfo.CurrentCulture)} events";
 
     /// <summary>
     /// The line under a service's name: that its store cannot be reached, and why, before

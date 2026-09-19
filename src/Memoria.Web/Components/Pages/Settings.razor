@@ -1,10 +1,12 @@
 @page "/settings"
 @attribute [Authorize(Policy = Roles.Administrator)]
 @using Memoria.Web.Branding
+@using Memoria.Web.Data
 @using Memoria.Web.Extensibility
 @inject ExtensionStore Store
 @inject DomainTypeRegistry Types
 @inject BrandingStore Branding
+@inject HomeSettingsStore Home
 
 <PageTitle>Settings</PageTitle>
 
@@ -16,8 +18,8 @@
 
 <h1>Settings</h1>
 @* Two views of one setting — the archives that were uploaded and the types they turned out to hold —
-   and a third for the header's name and logo, which are the tool's too and an Administrator's to
-   change. Switched by the address rather than by script, the same way the aggregate pages switch theirs,
+   a third for the header's name and logo, and a fourth for how Home reads the stores, which are
+   the tool's too and an Administrator's to change. Switched by the address rather than by script, the same way the aggregate pages switch theirs,
    so a view can be linked to and the back button steps between them. Marked with aria-current
    because these are places to go, not scripted tabs. The browser's own settings used to be a
    tab here and are a page of their own now, under the operator's name: this page is an
@@ -29,6 +31,8 @@
        aria-current="@(Tab == TypesTab ? "page" : null)">Types</a>
     <a id="tab-@BrandingTab" href="settings?tab=@BrandingTab"
        aria-current="@(Tab == BrandingTab ? "page" : null)">Branding</a>
+    <a id="tab-@HomeTab" href="settings?tab=@HomeTab"
+       aria-current="@(Tab == HomeTab ? "page" : null)">Home</a>
 </nav>
 
 @* Each panel is named by the tab that reaches it, so the label is written once. *@
@@ -404,6 +408,50 @@ else if (Tab == BrandingTab)
         </p>
     </section>
 }
+else if (Tab == HomeTab)
+{
+    <section class="tab-panel home-panel" aria-labelledby="tab-@HomeTab">
+        <p class="lede">
+            How Home reads each service's store. When the last event was written is asked on every
+            visit; how many events a store holds is a scan of its whole log, so it is counted and
+            then kept for as long as you say here.
+        </p>
+
+        @* One card with one field, drawn the way the Branding tab draws its two, so the tabs read
+           as one page. Whole minutes, because a count kept for seconds is hardly kept and one
+           kept for hours is said in minutes all the same. *@
+        <form method="post" action="settings/home" class="home-settings">
+            <AntiforgeryToken/>
+
+            <div class="field-card">
+                <h2 class="field-card-head"><label for="counts-kept-for">Counts kept for</label></h2>
+                <div class="field-card-body">
+                    <span class="minutes">
+                        <input id="counts-kept-for" name="countsKeptForMinutes" type="number" required
+                               min="0" max="@HomeSettingsStore.MaxCountsKeptForMinutes" step="1"
+                               value="@((int)Home.CountsKeptFor.TotalMinutes)"/>
+                        <span>minutes</span>
+                    </span>
+                    <p class="hint">
+                        0 counts on every visit. Up to @HomeSettingsStore.MaxCountsKeptForMinutes,
+                        a day; @HomeSettingsStore.DefaultCountsKeptForMinutes until it is changed.
+                    </p>
+                </div>
+            </div>
+
+            <p class="actions-row">
+                <button type="submit" class="button">Save</button>
+            </p>
+        </form>
+
+        @Notice
+
+        <p class="shared">
+            Everyone using this server sees the same Home, so a change here changes what they see
+            too, from their next visit.
+        </p>
+    </section>
+}
 
 @code {
 
@@ -424,6 +472,8 @@ else if (Tab == BrandingTab)
 
     private const string BrandingTab = "branding";
 
+    private const string HomeTab = "home";
+
     /// <summary>
     /// Which view the address asks for. Taken as text and matched against the two the page has, so
     /// anything else in the query string — including the preferences tab this page used to have,
@@ -436,6 +486,7 @@ else if (Tab == BrandingTab)
     {
         TypesTab => TypesTab,
         BrandingTab => BrandingTab,
+        HomeTab => HomeTab,
         _ => InstalledTab,
     };
 

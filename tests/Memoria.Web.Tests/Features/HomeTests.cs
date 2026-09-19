@@ -41,8 +41,9 @@ public class HomeTests
     /// Beside the name, how much domain is behind the door: the types the service registered,
     /// counted by kind and the empty kinds left out. Each count is drawn as its section's mark
     /// with the number after it, and the words the mark stands for are kept on the span for a
-    /// reader who cannot see it. Nothing says which model the service uses, nor which engine its
-    /// store runs on.
+    /// reader who cannot see it. Nothing beside the name says which model the service uses, nor
+    /// which engine its store runs on — asked of the name's line alone, since a store that cannot
+    /// be read is said under it in the driver's own words, and those may well name the engine.
     /// </summary>
     [Fact]
     public async Task Counts_a_service_s_types_beside_its_name_under_each_kind_s_mark()
@@ -55,7 +56,8 @@ public class HomeTests
         {
             page.Should().Contain("<span class=\"fact\" title=\"2 aggregates\" aria-label=\"2 aggregates\"><svg class=\"glyph\"");
             Markup.Unmarked(page).Should().Contain("aria-label=\"2 aggregates\">2</span>");
-            page.Should().NotContain("class=\"engine\"").And.NotContain("SQLite");
+            page.Should().NotContain("class=\"engine\"");
+            NameLine(page).Should().NotBeEmpty().And.NotContain("SQLite");
         }
     }
 
@@ -330,5 +332,13 @@ public class HomeTests
 
         Markup.Breadcrumb(page).Should().Contain("<a href=\"samples\">samples</a>")
             .And.Contain("<a href=\"samples/streamed\">Streamed</a>");
+    }
+
+    /// <summary>The line holding a service's name and what is counted beside it.</summary>
+    private static string NameLine(string page)
+    {
+        var start = page.IndexOf("<span class=\"head\">", StringComparison.Ordinal);
+
+        return start < 0 ? string.Empty : page[start..page.IndexOf("</span></span>", start, StringComparison.Ordinal)];
     }
 }
