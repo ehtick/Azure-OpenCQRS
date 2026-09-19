@@ -424,7 +424,7 @@ over the stores it is pointed at and owns none of them:
 
 ```
 <Branding:Directory>/
-  branding.json   the name, which logo is drawn, and a version each save moves on
+  branding.json   your own name, which name and which logo are drawn, and a version each save moves on
   logo.png        or logo.jpg, or logo.webp — only while an uploaded logo is drawn
 ```
 
@@ -433,10 +433,11 @@ in memory, so drawing the header never reaches the disk; a save replaces what is
 
 - **The logo is a PNG, JPEG or WebP of 512 KB or less**, told apart by its first bytes rather than
   its name. SVG is refused: one can carry script, and the logo is served from the tool's own origin.
-- **The name is at most 60 characters.** Left blank, the header says Memoria.
-- **Beside the name goes Memoria's mark, your own logo, or nothing.** Choosing none leaves the name
-  alone in the header. Choosing the mark or none deletes an uploaded logo; a file chosen is taken as
-  your own logo whichever option is ticked.
+- **The name and the logo are each Memoria's, your own, or none.** Either can stand alone, and with
+  neither the header draws no brand at all and starts with its links. Choosing Memoria's mark or
+  none for the logo deletes an uploaded one; a file chosen is taken as your own logo whichever option
+  is ticked. Your own name is kept while another is chosen, so it is there to choose again.
+- **The name is at most 60 characters.**
 - **The logo is served at `/branding/logo` to anyone**, signed in or not, because the signed-out page
   draws the header too — beside the name, which it shows already. The header asks for it by the
   version, so a browser caches it for good and still fetches a new one after the next save.

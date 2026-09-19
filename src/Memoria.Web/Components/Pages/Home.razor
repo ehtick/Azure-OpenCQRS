@@ -6,8 +6,9 @@
 @inject ServiceAccess Access
 @inject Memoria.Web.Branding.BrandingStore Branding
 
-@* Titled with the name the header shows, so a branded deployment's tab says what it is. *@
-<PageTitle>@Branding.Current.Name</PageTitle>
+@* Titled with the name the header shows, so a branded deployment's tab says what it is — or
+   Home, when the header shows a logo alone. *@
+<PageTitle>@(Branding.Current.HasName ? Branding.Current.Name : "Home")</PageTitle>
 
 @* The header names the deployment already, so the page does not say it again over the list.
    The heading stays for a screen reader, which moves by headings: it names what the page lists. *@

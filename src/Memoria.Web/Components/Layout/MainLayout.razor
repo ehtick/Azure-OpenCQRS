@@ -1,4 +1,5 @@
 @inherits LayoutComponentBase
+@using Memoria.Web.Branding
 @using Memoria.Web.Extensibility
 @inject NavigationManager Navigation
 @inject Memoria.Web.Data.ServiceStores Stores
@@ -6,7 +7,7 @@
 @inject ServiceAccess Access
 @inject CurrentService Current
 @inject AuthenticationSettings SignIn
-@inject Memoria.Web.Branding.BrandingStore Branding
+@inject BrandingStore Branding
 
 <header>
     @* The project's own mark, the same artwork the tab icon is cut from. An <img> rather than the
@@ -18,21 +19,27 @@
        alt="" because the link says Memoria beside it, and a screen reader naming the mark as well
        would say it twice.
 
-       Both are an Administrator's to replace, on the Branding tab of Settings: their own name, and
-       their own logo drawn from the address that serves it, by a version each save moves on so a
-       browser that cached the last one asks again — or no mark at all, and the name alone. *@
-    <a class="brand" href="">
-        @switch (Brand.Choice)
-        {
-            case Memoria.Web.Branding.LogoChoice.Own:
-                <img class="mark" src="branding/logo?v=@Brand.Version" alt=""/>
-                break;
-            case Memoria.Web.Branding.LogoChoice.Memoria:
-                <img class="mark" src="@Assets["logo.png"]" alt=""/>
-                break;
-        }
-        @Brand.Name
-    </a>
+       Each is an Administrator's to choose on the Branding tab of Settings, the name and the
+       logo alike: Memoria's own, theirs, or none. Their logo is drawn from the address that
+       serves it, by a version each save moves on so a browser that cached the last one asks
+       again. With neither a name nor a logo the link is left out, and the bar starts with Home. *@
+    @if (Brand.IsShown)
+    {
+        @* With no name the mark stands alone, and alt="" leaves the link saying nothing: it is
+           labelled with where it goes instead. *@
+        <a class="brand" href="" aria-label="@(Brand.HasName ? null : "Home")">
+            @switch (Brand.LogoChoice)
+            {
+                case BrandChoice.Own:
+                    <img class="mark" src="branding/logo?v=@Brand.Version" alt=""/>
+                    break;
+                case BrandChoice.Memoria:
+                    <img class="mark" src="@Assets["logo.png"]" alt=""/>
+                    break;
+            }
+            @Brand.Name
+        </a>
+    }
     <nav>
         @* Every item on the bar and under its headings is fronted by the mark its tile wears on
            the home page, so a menu is read at a glance the way the tiles are, and a place looks
@@ -262,7 +269,7 @@
     private IReadOnlyList<Service> Readable { get; set; } = [];
 
     /// <summary>What the header is drawn with, held in memory by the store, so reading it costs nothing.</summary>
-    private Memoria.Web.Branding.Brand Brand => Branding.Current;
+    private Brand Brand => Branding.Current;
 
     protected override async Task OnInitializedAsync()
     {

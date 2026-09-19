@@ -11,6 +11,10 @@ header {
     border-bottom: 1px solid var(--rule);
     display: flex;
     gap: 1.5rem;
+    /* The height the brand gives the bar, kept when there is no brand: its mark is 1.6em of the
+       brand's size, and without it the bar would shrink to the links and every page would move
+       up under it. */
+    min-height: calc(var(--text-xl) * 1.6);
     padding-block: 0.75rem;
     /* The 1.75rem is the column's own inner padding, added so the brand lands on the page title
        rather than a hair to the left of it. There is no border to account for any more: the column

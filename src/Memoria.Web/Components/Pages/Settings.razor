@@ -307,11 +307,35 @@ else if (Tab == BrandingTab)
             <AntiforgeryToken/>
 
             <div class="field-card">
-                <h2 class="field-card-head"><label for="brand-name">Name</label></h2>
-                <div class="field-card-body">
-                    <input id="brand-name" name="name" type="text" value="@Branding.Current.Name"
-                           maxlength="@BrandingStore.MaxNameLength"/>
-                    <p class="hint">Left blank, the header says Memoria.</p>
+                <h2 class="field-card-head" id="brand-name-head">Name</h2>
+                @* The logo's three choices, for the name: Memoria's, theirs, or none. Their own
+                   keeps its text while another is chosen, so it is there to choose again; typing
+                   in it ticks it. With no name and no logo the header has no brand at all. *@
+                <div class="field-card-body logo-choices" role="radiogroup" aria-labelledby="brand-name-head">
+                    <label class="logo-option">
+                        <input type="radio" name="nameChoice" value="memoria"
+                               checked="@(Branding.Current.NameChoice == BrandChoice.Memoria)"/>
+                        <span>Memoria</span>
+                    </label>
+
+                    <div class="logo-option">
+                        <label class="logo-option" for="name-own">
+                            <input id="name-own" type="radio" name="nameChoice" value="own"
+                                   checked="@(Branding.Current.NameChoice == BrandChoice.Own)"/>
+                            <span>Your own</span>
+                        </label>
+                        <input id="brand-name" name="name" type="text" value="@Branding.Current.OwnName"
+                               maxlength="@BrandingStore.MaxNameLength" aria-label="Your own name"
+                               oninput="document.getElementById('name-own').checked = true"/>
+                    </div>
+
+                    <label class="logo-option">
+                        <input type="radio" name="nameChoice" value="none"
+                               checked="@(Branding.Current.NameChoice == BrandChoice.None)"/>
+                        <span>None</span>
+                    </label>
+
+                    <p class="hint">With neither a name nor a logo, the header starts with its links.</p>
                 </div>
 
                 <h2 class="field-card-head" id="brand-logo-head">Logo</h2>
@@ -322,7 +346,7 @@ else if (Tab == BrandingTab)
                 <div class="field-card-body logo-choices" role="radiogroup" aria-labelledby="brand-logo-head">
                     <label class="logo-option">
                         <input type="radio" name="logoChoice" value="memoria"
-                               checked="@(Branding.Current.Choice == LogoChoice.Memoria)"/>
+                               checked="@(Branding.Current.LogoChoice == BrandChoice.Memoria)"/>
                         <img class="brand-preview" src="@Assets["logo.png"]" alt=""/>
                         <span>Memoria's mark</span>
                     </label>
@@ -330,7 +354,7 @@ else if (Tab == BrandingTab)
                     <div class="logo-option">
                         <label class="logo-option">
                             <input id="logo-own" type="radio" name="logoChoice" value="own"
-                                   checked="@(Branding.Current.Choice == LogoChoice.Own)"/>
+                                   checked="@(Branding.Current.LogoChoice == BrandChoice.Own)"/>
                             @if (Branding.Current.HasLogo)
                             {
                                 <img class="brand-preview" src="branding/logo?v=@Branding.Current.Version" alt=""/>
@@ -344,8 +368,8 @@ else if (Tab == BrandingTab)
 
                     <label class="logo-option">
                         <input type="radio" name="logoChoice" value="none"
-                               checked="@(Branding.Current.Choice == LogoChoice.None)"/>
-                        <span>None — the name alone</span>
+                               checked="@(Branding.Current.LogoChoice == BrandChoice.None)"/>
+                        <span>None</span>
                     </label>
 
                     <p class="hint">

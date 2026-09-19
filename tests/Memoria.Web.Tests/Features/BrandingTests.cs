@@ -224,6 +224,91 @@ public class BrandingTests
         footer.Should().MatchRegex($"Memoria &#xA9; {System.DateTime.UtcNow.Year} Luca Briguglia|Memoria © {System.DateTime.UtcNow.Year} Luca Briguglia");
     }
 
+    /// <summary>
+    /// A name left blank leaves the logo alone in the header. The link it is drawn in says where it
+    /// goes, since there is no text left in it to say so, and the home page is titled Home.
+    /// </summary>
+    [Fact]
+    public async Task Draws_the_logo_alone_when_the_name_is_left_blank()
+    {
+        using var web = Administrator();
+        var client = web.Client;
+
+        var response = await client.PostAsync("/settings/branding",
+            await Branding(client, "", BrandingStoreTests.Png()));
+        var page = await client.GetStringAsync("/");
+        var brand = Brand(page);
+
+        using (new AssertionScope())
+        {
+            Query(response, "error").Should().BeEmpty();
+            brand.Should().Contain("branding/logo").And.NotContain("Memoria");
+            brand.Should().Contain("aria-label=\"Home\"");
+            Regex.Replace(brand, "<[^>]*>", string.Empty).Trim().Should().BeEmpty();
+            page.Should().Contain("<title>Home</title>");
+        }
+    }
+
+    [Fact]
+    public async Task Starts_the_header_with_its_links_when_there_is_neither_name_nor_logo()
+    {
+        using var web = Administrator();
+        var client = web.Client;
+
+        var response = await client.PostAsync("/settings/branding",
+            await Branding(client, "Contoso Ops", choice: "none", nameChoice: "none"));
+        var header = Regex.Match(await client.GetStringAsync("/"), "<header.*?</header>", RegexOptions.Singleline).Value;
+
+        using (new AssertionScope())
+        {
+            Query(response, "error").Should().BeEmpty();
+            header.Should().NotContain("class=\"brand\"").And.NotContain("Contoso Ops");
+            header.Should().MatchRegex(@"^<header[^>]*>\s*<nav");
+        }
+    }
+
+    [Fact]
+    public async Task Draws_Memoria_s_name_beside_their_logo_when_chosen()
+    {
+        using var web = Administrator();
+        var client = web.Client;
+
+        await client.PostAsync("/settings/branding",
+            await Branding(client, "Contoso Ops", BrandingStoreTests.Png(), nameChoice: "memoria"));
+        var brand = Brand(await client.GetStringAsync("/"));
+
+        brand.Should().Contain("Memoria").And.Contain("branding/logo").And.NotContain("Contoso Ops");
+    }
+
+    [Fact]
+    public async Task Offers_the_three_name_choices_with_their_own_name_kept_in_its_field()
+    {
+        using var web = Administrator();
+        var client = web.Client;
+        await client.PostAsync("/settings/branding", await Branding(client, "Contoso Ops", nameChoice: "memoria"));
+
+        var page = await client.GetStringAsync("/settings?tab=branding");
+
+        using (new AssertionScope())
+        {
+            page.Should().MatchRegex("name=\"nameChoice\"[^>]*value=\"memoria\"[^>]*checked");
+            page.Should().MatchRegex("name=\"nameChoice\"[^>]*value=\"own\"");
+            page.Should().MatchRegex("name=\"nameChoice\"[^>]*value=\"none\"");
+            page.Should().Contain("value=\"Contoso Ops\"");
+        }
+    }
+
+    [Fact]
+    public async Task Says_a_name_is_needed_when_their_own_is_chosen_without_one()
+    {
+        using var web = Administrator();
+        var client = web.Client;
+
+        var response = await client.PostAsync("/settings/branding", await Branding(client, "", nameChoice: "own"));
+
+        Query(response, "error").Should().StartWith("Type the name");
+    }
+
     [Fact]
     public async Task Restores_Memoria_s_own_name_and_mark()
     {
@@ -332,7 +417,8 @@ public class BrandingTests
         Regex.Match(page, "<a class=\"brand\".*?</a>", RegexOptions.Singleline).Value;
 
     private static async Task<MultipartFormDataContent> Branding(
-        HttpClient client, string name, byte[]? logo = null, string tokenPage = "/settings?tab=branding", string? choice = null)
+        HttpClient client, string name, byte[]? logo = null, string tokenPage = "/settings?tab=branding", string? choice = null,
+        string? nameChoice = null)
     {
         var page = await client.GetStringAsync(tokenPage);
         var form = new MultipartFormDataContent
@@ -349,6 +435,11 @@ public class BrandingTests
         if (choice is not null)
         {
             form.Add(new StringContent(choice), "logoChoice");
+        }
+
+        if (nameChoice is not null)
+        {
+            form.Add(new StringContent(nameChoice), "nameChoice");
         }
 
         return form;

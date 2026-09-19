@@ -71,19 +71,142 @@ public class BrandingStoreTests : IDisposable
     }
 
     [Fact]
-    public void Trims_the_name_and_falls_back_to_Memoria_when_it_is_blank()
+    public void Trims_the_name()
     {
         var store = Store();
 
         store.Save("  Contoso  ");
-        var trimmed = store.Current.Name;
-        store.Save("   ");
+
+        store.Current.Name.Should().Be("Contoso");
+    }
+
+    /// <summary>
+    /// A blank name is a name left out, so the logo stands alone in the header — Memoria's mark
+    /// or their own — and it is remembered that way.
+    /// </summary>
+    [Theory]
+    [InlineData(BrandChoice.Memoria)]
+    [InlineData(BrandChoice.Own)]
+    public void Leaves_the_name_out_when_it_is_blank_so_the_logo_stands_alone(BrandChoice choice)
+    {
+        var store = Store();
+        store.Save("Contoso", new MemoryStream(Png()));
+
+        store.Save("   ", choice);
 
         using (new AssertionScope())
         {
-            trimmed.Should().Be("Contoso");
-            store.Current.Name.Should().Be("Memoria");
+            store.Current.Name.Should().BeEmpty();
+            store.Current.HasName.Should().BeFalse();
+            store.Current.LogoChoice.Should().Be(choice);
+            Store().Current.Name.Should().BeEmpty();
         }
+    }
+
+    /// <summary>
+    /// Neither a name nor a logo is a choice too: the header then draws no brand at all and starts
+    /// with its links.
+    /// </summary>
+    [Fact]
+    public void Draws_no_brand_at_all_with_neither_name_nor_logo_and_remembers_it()
+    {
+        var store = Store();
+        store.Save("Contoso", new MemoryStream(Png()));
+
+        store.Save(BrandChoice.None, null, BrandChoice.None);
+
+        using (new AssertionScope())
+        {
+            store.Current.IsShown.Should().BeFalse();
+            store.Current.Name.Should().BeEmpty();
+            Store().Current.IsShown.Should().BeFalse();
+        }
+    }
+
+    [Theory]
+    [InlineData(BrandChoice.Memoria, BrandChoice.None)]
+    [InlineData(BrandChoice.None, BrandChoice.Memoria)]
+    [InlineData(BrandChoice.Own, BrandChoice.None)]
+    public void Draws_a_brand_while_either_half_of_it_is_drawn(BrandChoice name, BrandChoice logo)
+    {
+        var store = Store();
+
+        store.Save(name, "Contoso", logo);
+
+        store.Current.IsShown.Should().BeTrue();
+    }
+
+    /// <summary>
+    /// The name follows the logo's three choices. Memoria's is drawn as Memoria, and the name
+    /// they typed is kept beside it, to be chosen again without typing it again.
+    /// </summary>
+    [Fact]
+    public void Draws_Memoria_s_name_when_chosen_and_keeps_their_own_for_later()
+    {
+        var store = Store();
+        store.Save("Contoso");
+
+        store.Save(BrandChoice.Memoria, "Contoso", BrandChoice.Memoria);
+
+        using (new AssertionScope())
+        {
+            store.Current.NameChoice.Should().Be(BrandChoice.Memoria);
+            store.Current.Name.Should().Be("Memoria");
+            store.Current.OwnName.Should().Be("Contoso");
+            Store().Current.OwnName.Should().Be("Contoso");
+        }
+    }
+
+    [Fact]
+    public void Refuses_their_own_name_left_blank_and_keeps_what_was_there()
+    {
+        var store = Store();
+        store.Save("Contoso");
+
+        var saving = () => store.Save(BrandChoice.Own, "  ", BrandChoice.Memoria);
+
+        using (new AssertionScope())
+        {
+            saving.Should().Throw<InvalidDataException>().WithMessage("Type the name*");
+            store.Current.Name.Should().Be("Contoso");
+        }
+    }
+
+    /// <summary>
+    /// A file written before the name was a choice says only the name: blank there is no name, so
+    /// with no logo either it draws no brand.
+    /// </summary>
+    [Fact]
+    public void Reads_a_blank_name_from_an_earlier_file_as_no_name()
+    {
+        Directory.CreateDirectory(_root);
+        File.WriteAllText(Path.Combine(_root, "branding.json"), """{ "name": "", "version": 2, "noLogo": true }""");
+
+        var current = Store().Current;
+
+        using (new AssertionScope())
+        {
+            current.NameChoice.Should().Be(BrandChoice.None);
+            current.IsShown.Should().BeFalse();
+        }
+    }
+
+    [Fact]
+    public void Reads_their_own_name_chosen_with_none_typed_as_Memoria_s()
+    {
+        Directory.CreateDirectory(_root);
+        File.WriteAllText(Path.Combine(_root, "branding.json"), """{ "name": "", "nameChoice": "own", "version": 2 }""");
+
+        Store().Current.Name.Should().Be("Memoria");
+    }
+
+    [Fact]
+    public void Reads_a_file_with_no_name_setting_as_Memoria_s_name()
+    {
+        Directory.CreateDirectory(_root);
+        File.WriteAllText(Path.Combine(_root, "branding.json"), """{ "version": 2 }""");
+
+        Store().Current.Name.Should().Be("Memoria");
     }
 
     [Fact]
@@ -271,7 +394,7 @@ public class BrandingStoreTests : IDisposable
     [Fact]
     public void Draws_Memoria_s_mark_until_told_otherwise()
     {
-        Store().Current.Choice.Should().Be(LogoChoice.Memoria);
+        Store().Current.LogoChoice.Should().Be(BrandChoice.Memoria);
     }
 
     /// <summary>
@@ -284,15 +407,15 @@ public class BrandingStoreTests : IDisposable
         var store = Store();
         store.Save("Contoso", new MemoryStream(Png()));
 
-        store.Save("Contoso", LogoChoice.None);
+        store.Save("Contoso", BrandChoice.None);
 
         using (new AssertionScope())
         {
-            store.Current.Choice.Should().Be(LogoChoice.None);
+            store.Current.LogoChoice.Should().Be(BrandChoice.None);
             store.Current.HasLogo.Should().BeFalse();
             store.LogoPath.Should().BeNull();
             Files().Should().NotContain(name => name.StartsWith("logo"));
-            Store().Current.Choice.Should().Be(LogoChoice.None);
+            Store().Current.LogoChoice.Should().Be(BrandChoice.None);
             Store().Current.Name.Should().Be("Contoso");
         }
     }
@@ -301,11 +424,11 @@ public class BrandingStoreTests : IDisposable
     public void Keeps_the_logo_removed_when_only_the_name_changes()
     {
         var store = Store();
-        store.Save("Contoso", LogoChoice.None);
+        store.Save("Contoso", BrandChoice.None);
 
         store.Save("Fabrikam");
 
-        store.Current.Choice.Should().Be(LogoChoice.None);
+        store.Current.LogoChoice.Should().Be(BrandChoice.None);
     }
 
     [Fact]
@@ -314,11 +437,11 @@ public class BrandingStoreTests : IDisposable
         var store = Store();
         store.Save("Contoso", new MemoryStream(Png()));
 
-        store.Save("Contoso", LogoChoice.Memoria);
+        store.Save("Contoso", BrandChoice.Memoria);
 
         using (new AssertionScope())
         {
-            store.Current.Choice.Should().Be(LogoChoice.Memoria);
+            store.Current.LogoChoice.Should().Be(BrandChoice.Memoria);
             store.Current.Name.Should().Be("Contoso");
             store.LogoPath.Should().BeNull();
             Files().Should().NotContain(name => name.StartsWith("logo"));
@@ -327,19 +450,19 @@ public class BrandingStoreTests : IDisposable
 
     /// <summary>A file sent is a logo meant, whichever choice came with it.</summary>
     [Theory]
-    [InlineData(LogoChoice.Memoria)]
-    [InlineData(LogoChoice.None)]
-    [InlineData(LogoChoice.Own)]
-    public void Takes_an_uploaded_logo_as_the_owner_s_whatever_was_chosen(LogoChoice chosen)
+    [InlineData(BrandChoice.Memoria)]
+    [InlineData(BrandChoice.None)]
+    [InlineData(BrandChoice.Own)]
+    public void Takes_an_uploaded_logo_as_the_owner_s_whatever_was_chosen(BrandChoice chosen)
     {
         var store = Store();
-        store.Save("Contoso", LogoChoice.None);
+        store.Save("Contoso", BrandChoice.None);
 
         store.Save("Contoso", chosen, new MemoryStream(Png()));
 
         using (new AssertionScope())
         {
-            store.Current.Choice.Should().Be(LogoChoice.Own);
+            store.Current.LogoChoice.Should().Be(BrandChoice.Own);
             File.ReadAllBytes(store.LogoPath!).Should().Equal(Png());
         }
     }
@@ -350,11 +473,11 @@ public class BrandingStoreTests : IDisposable
         var store = Store();
         store.Save("Contoso", new MemoryStream(Png()));
 
-        store.Save("Fabrikam", LogoChoice.Own);
+        store.Save("Fabrikam", BrandChoice.Own);
 
         using (new AssertionScope())
         {
-            store.Current.Choice.Should().Be(LogoChoice.Own);
+            store.Current.LogoChoice.Should().Be(BrandChoice.Own);
             File.ReadAllBytes(store.LogoPath!).Should().Equal(Png());
         }
     }
@@ -363,15 +486,15 @@ public class BrandingStoreTests : IDisposable
     public void Refuses_its_own_logo_with_none_uploaded_and_keeps_what_was_there()
     {
         var store = Store();
-        store.Save("Contoso", LogoChoice.None);
+        store.Save("Contoso", BrandChoice.None);
 
-        var saving = () => store.Save("Fabrikam", LogoChoice.Own);
+        var saving = () => store.Save("Fabrikam", BrandChoice.Own);
 
         using (new AssertionScope())
         {
             saving.Should().Throw<InvalidDataException>().WithMessage("Choose an image*");
             store.Current.Name.Should().Be("Contoso");
-            store.Current.Choice.Should().Be(LogoChoice.None);
+            store.Current.LogoChoice.Should().Be(BrandChoice.None);
         }
     }
 
@@ -380,7 +503,7 @@ public class BrandingStoreTests : IDisposable
     {
         var store = Store();
 
-        store.Save("Memoria", LogoChoice.None);
+        store.Save("Memoria", BrandChoice.None);
 
         store.Current.IsDefault.Should().BeFalse();
     }
@@ -389,11 +512,11 @@ public class BrandingStoreTests : IDisposable
     public void Restores_Memoria_s_mark_after_the_logo_was_removed()
     {
         var store = Store();
-        store.Save("Contoso", LogoChoice.None);
+        store.Save("Contoso", BrandChoice.None);
 
         store.Reset();
 
-        store.Current.Choice.Should().Be(LogoChoice.Memoria);
+        store.Current.LogoChoice.Should().Be(BrandChoice.Memoria);
     }
 
     public void Dispose()

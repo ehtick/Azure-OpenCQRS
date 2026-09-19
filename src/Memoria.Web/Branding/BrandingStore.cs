@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Memoria.Web.Branding;
 
@@ -21,7 +22,11 @@ public sealed class BrandingStore
 
     private const string SettingsFileName = "branding.json";
 
-    private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web) { WriteIndented = true };
+    private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web)
+    {
+        WriteIndented = true,
+        Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) }
+    };
 
     private readonly string _root;
     private readonly Lock _writing = new();
@@ -36,59 +41,68 @@ public sealed class BrandingStore
     /// <summary>What the header is drawn with now.</summary>
     public Brand Current => _current;
 
-    /// <summary>Where the current logo is on disk, or null when Memoria's own mark is drawn.</summary>
+    /// <summary>Where the current logo is on disk, or null when no uploaded logo is drawn.</summary>
     public string? LogoPath => _current.Logo is { } logo ? Path.Combine(_root, logo) : null;
 
     /// <summary>
-    /// Saves the name and, when one is sent, a logo to replace the current one; with none sent,
-    /// the current logo is kept.
+    /// Saves a name of their own — or none, when it is blank — and, when one is sent, a logo to
+    /// replace the current one; with none sent, the current logo is kept.
     /// </summary>
-    /// <param name="name">The name to draw; blank draws Memoria's.</param>
-    /// <param name="logo">A PNG, JPEG or WebP image of 512 KB or less, or null to keep the logo.</param>
-    /// <exception cref="InvalidDataException">The name is too long, or the logo is refused.</exception>
+    public void Save(string? name, Stream? logo = null) => Save(name, _current.LogoChoice, logo);
+
+    /// <summary>
+    /// Saves a name of their own — or none, when it is blank — and which logo is drawn.
+    /// </summary>
+    public void Save(string? name, BrandChoice logoChoice, Stream? logo = null) =>
+        Save(string.IsNullOrWhiteSpace(name) ? BrandChoice.None : BrandChoice.Own, name, logoChoice, logo);
+
+    /// <summary>
+    /// Saves which name and which logo are drawn: each Memoria's own, the Administrator's own, or
+    /// nothing. With nothing for both, the header draws no brand at all.
+    /// </summary>
+    /// <param name="nameChoice">Which name to draw.</param>
+    /// <param name="name">
+    /// Their own name. Kept whichever name is chosen, so it is there to choose again; required
+    /// only when it is the one chosen.
+    /// </param>
+    /// <param name="logoChoice">Which logo to draw.</param>
+    /// <param name="logo">
+    /// A PNG, JPEG or WebP image of 512 KB or less. A file sent is a logo meant, so it is taken as
+    /// the Administrator's own whatever <paramref name="logoChoice"/> says.
+    /// </param>
+    /// <exception cref="InvalidDataException">
+    /// The name is too long, or their own is chosen and blank; the logo is refused, or their own is
+    /// chosen with none sent and none uploaded before.
+    /// </exception>
     /// <remarks>
     /// Everything is checked before anything is written, so a save that is refused leaves the
     /// branding as it was. The files are written whole and then moved into place, so a page never
-    /// reads half of one.
+    /// reads half of one. Choosing Memoria's mark or none at all removes an uploaded logo rather
+    /// than keeping it aside: what is on disk is always what is drawn.
     /// </remarks>
-    public void Save(string? name, Stream? logo = null) => Save(name, _current.Choice, logo);
-
-    /// <summary>
-    /// Saves the name and what is drawn beside it: Memoria's mark, the Administrator's own logo,
-    /// or nothing.
-    /// </summary>
-    /// <param name="name">The name to draw; blank draws Memoria's.</param>
-    /// <param name="choice">What to draw beside it.</param>
-    /// <param name="logo">
-    /// A PNG, JPEG or WebP image of 512 KB or less. A file sent is a logo meant, so it is taken as
-    /// the Administrator's own whatever <paramref name="choice"/> says.
-    /// </param>
-    /// <exception cref="InvalidDataException">
-    /// The name is too long, the logo is refused, or their own logo is chosen with none sent and none
-    /// uploaded before.
-    /// </exception>
-    /// <remarks>
-    /// Choosing Memoria's mark or none at all removes an uploaded logo rather than keeping it
-    /// aside: what is on disk is always what is drawn.
-    /// </remarks>
-    public void Save(string? name, LogoChoice choice, Stream? logo = null)
+    public void Save(BrandChoice nameChoice, string? name, BrandChoice logoChoice, Stream? logo = null)
     {
-        var named = string.IsNullOrWhiteSpace(name) ? Brand.DefaultName : name.Trim();
+        var ownName = name?.Trim() ?? string.Empty;
 
-        if (named.Length > MaxNameLength)
+        if (ownName.Length > MaxNameLength)
         {
             throw new InvalidDataException($"The name must be {MaxNameLength} characters or fewer.");
+        }
+
+        if (nameChoice == BrandChoice.Own && ownName.Length == 0)
+        {
+            throw new InvalidDataException("Type the name to show, or choose another.");
         }
 
         var image = logo is null ? null : LogoImage.Read(logo);
 
         lock (_writing)
         {
-            var kept = (image, choice) switch
+            var kept = (image, logoChoice) switch
             {
                 (not null, _) => image.FileName,
-                (null, LogoChoice.Own) => _current.Logo ??
-                                          throw new InvalidDataException("Choose an image to use as the logo."),
+                (null, BrandChoice.Own) => _current.Logo ??
+                                           throw new InvalidDataException("Choose an image to use as the logo."),
                 _ => null
             };
 
@@ -99,7 +113,12 @@ public sealed class BrandingStore
                 WriteWhole(image.FileName, image.Bytes);
             }
 
-            Commit(new Brand(named, kept, _current.Version + 1, NoLogo: kept is null && choice == LogoChoice.None));
+            Commit(new Brand(
+                nameChoice,
+                ownName.Length > 0 ? ownName : _current.OwnName,
+                kept,
+                _current.Version + 1,
+                NoLogo: kept is null && logoChoice == BrandChoice.None));
         }
     }
 
@@ -119,7 +138,8 @@ public sealed class BrandingStore
     /// </summary>
     private void Commit(Brand next)
     {
-        WriteWhole(SettingsFileName, JsonSerializer.SerializeToUtf8Bytes(new Settings(next.Name, next.Logo, next.Version, next.NoLogo), Json));
+        var settings = new Settings(next.OwnName, next.Logo, next.Version, next.NoLogo, next.NameChoice);
+        WriteWhole(SettingsFileName, JsonSerializer.SerializeToUtf8Bytes(settings, Json));
         _current = next;
 
         foreach (var stale in LogoImage.FileNames.Where(fileName => fileName != next.Logo))
@@ -178,13 +198,28 @@ public sealed class BrandingStore
             ? named
             : null;
 
-        var name = string.IsNullOrWhiteSpace(settings.Name) || settings.Name.Length > MaxNameLength
-            ? Brand.DefaultName
-            : settings.Name;
+        var ownName = settings.Name?.Trim() ?? string.Empty;
 
-        return new Brand(name, logo, settings.Version, NoLogo: logo is null && settings.NoLogo);
+        if (ownName.Length > MaxNameLength)
+        {
+            ownName = string.Empty;
+        }
+
+        // A file written before the name was a choice of its own says only the name: none set is
+        // Memoria's, blank is none, and anything else is theirs. Their own chosen with nothing
+        // typed has no name to draw, and is drawn as Memoria's.
+        var nameChoice = settings.NameChoice ?? (settings.Name is null ? BrandChoice.Memoria
+            : ownName.Length == 0 ? BrandChoice.None
+            : BrandChoice.Own);
+
+        if ((nameChoice == BrandChoice.Own && ownName.Length == 0) || !Enum.IsDefined(nameChoice))
+        {
+            nameChoice = BrandChoice.Memoria;
+        }
+
+        return new Brand(nameChoice, ownName, logo, settings.Version, NoLogo: logo is null && settings.NoLogo);
     }
 
-    /// <summary>The file's shape.</summary>
-    private sealed record Settings(string? Name, string? Logo, int Version, bool NoLogo = false);
+    /// <summary>The file's shape. <see cref="Name"/> is their own name, whichever is drawn.</summary>
+    private sealed record Settings(string? Name, string? Logo, int Version, bool NoLogo = false, BrandChoice? NameChoice = null);
 }

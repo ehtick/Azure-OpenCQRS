@@ -155,6 +155,7 @@ public static class EndpointRegistration
             ILoggerFactory loggerFactory,
             ClaimsPrincipal user,
             [FromForm] string? name,
+            [FromForm] string? nameChoice,
             [FromForm] string? logoChoice,
             IFormFile? logo) =>
         {
@@ -168,17 +169,13 @@ public static class EndpointRegistration
             try
             {
                 using var content = replaced ? logo!.OpenReadStream() : null;
-                // Sent by the Branding tab's three choices; anything else, or nothing, keeps what is
-                // drawn now.
-                if (Enum.TryParse<LogoChoice>(logoChoice, ignoreCase: true, out var choice) &&
-                    Enum.IsDefined(choice))
-                {
-                    branding.Save(name, choice, content);
-                }
-                else
-                {
-                    branding.Save(name, content);
-                }
+                // Each sent by the Branding tab's three choices. With no name choice, a name typed
+                // is theirs and a blank one is none; with no logo choice, the logo drawn now stays.
+                branding.Save(
+                    ChoiceOf(nameChoice) ?? (string.IsNullOrWhiteSpace(name) ? BrandChoice.None : BrandChoice.Own),
+                    name,
+                    ChoiceOf(logoChoice) ?? branding.Current.LogoChoice,
+                    content);
             }
             catch (InvalidDataException refused)
             {
@@ -240,6 +237,10 @@ public static class EndpointRegistration
             return Results.File(path, contentType);
         }).AllowAnonymous();
     }
+
+    /// <summary>One of the Branding tab's three choices, or null for anything else or nothing.</summary>
+    private static BrandChoice? ChoiceOf(string? sent) =>
+        Enum.TryParse<BrandChoice>(sent, ignoreCase: true, out var choice) && Enum.IsDefined(choice) ? choice : null;
 
     /// <summary>The settings tab the branding is kept on, which its writes come back to.</summary>
     private const string BrandingTab = "branding";
