@@ -1,0 +1,68 @@
+@attribute [StreamRendering]
+@using System.Globalization
+@using Memoria.Web.Data
+@using Memoria.Web.Extensibility
+@inject ServiceActivity Activity
+@inject TimeProvider Clock
+
+@* Two facts about a service's store on its sheet, under the connection string they are about:
+   whether the store answers and how long it took — asked every time the sheet is opened, since a
+   string can be configured and still name a store that cannot be reached — and when its last event
+   was written, the figure Home says under the service. Streamed on their own, so the sheet opens at
+   once and a store that is slow to answer is slow on these two rows alone. *@
+<dt>Store</dt>
+<dd class="prose">
+    @if (Probe is null)
+    {
+        <span class="missing">Asking the store…</span>
+    }
+    else if (Probe.Took is { } took)
+    {
+        @($"Answered in {Math.Max(1, (int)Math.Round(took.TotalMilliseconds)).ToString(CultureInfo.CurrentCulture)} ms")
+    }
+    else
+    {
+        <span class="problem">Could not be reached: @Probe.Problem</span>
+    }
+</dd>
+<dt>Last event</dt>
+<dd class="prose">
+    @if (Stored is null)
+    {
+        <span class="missing">Reading the store…</span>
+    }
+    else if (Stored.Problem is { } problem)
+    {
+        <span class="problem">Could not be read: @problem</span>
+    }
+    else if (Stored.LastEvent is { } last)
+    {
+        <time datetime="@last.UtcDateTime.ToString("O", CultureInfo.InvariantCulture)" title="@last.ToUniversalTime().ToString("u", CultureInfo.InvariantCulture)">@Ago.Since(last, Clock.GetUtcNow())</time>
+    }
+    else
+    {
+        <span class="missing">No events yet</span>
+    }
+</dd>
+
+@code {
+
+    /// <summary>The service whose store is asked.</summary>
+    [Parameter, EditorRequired]
+    public Service Service { get; set; } = null!;
+
+    private StoreProbe? Probe { get; set; }
+
+    private StoreActivity? Stored { get; set; }
+
+    /// <summary>Both asked at once, each in a scope of its own.</summary>
+    protected override async Task OnInitializedAsync()
+    {
+        var probing = Activity.Probe(Service);
+        var reading = Activity.Of(Service);
+
+        Probe = await probing;
+        Stored = await reading;
+    }
+
+}

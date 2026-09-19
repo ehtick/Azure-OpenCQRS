@@ -75,7 +75,9 @@ zip is loaded as dependencies and registers nothing. A zip without a manifest is
 The Settings page lists what each archive declares: the file, its size and upload time, and each
 service on a line of its own. A service opens a sheet over the table, read two ways. **Info** is
 the address it is browsed under, the connection string it reads over and whether that is
-configured, and who may read and update it. **Types** is its assemblies with the domain types
+configured, whether the store it opens answers — how long a round trip took, asked each time the
+sheet is opened, or why it could not be reached — and when its last event was written, and who
+may read and update it. **Types** is its assemblies with the domain types
 registered from each; a file that registered nothing says so on a line of its own, which is the
 case worth noticing: an assembly that did not load, or one built against another Memoria. A zip
 already there without a manifest is listed, marked **No manifest**, and its row says why.

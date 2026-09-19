@@ -127,6 +127,13 @@
                            beside each other: a name that meets nothing is the one fact on this
                            sheet the person reading it can fix, and it is said where they look. *@
                         <dd><code>@Service.ConnectionString</code> <span class="state">@State</span></dd>
+                        @* Whether the store it opens answers, for a string there is a store behind:
+                           one that is not configured, or cannot be read, is said on the row above
+                           and has nothing to ask. *@
+                        @if (ConnectionStrings.Named(Configuration, Service.ConnectionString).Database is not null)
+                        {
+                            <StoreFacts Service="Service"/>
+                        }
                         <dt>Read Roles</dt>
                         <dd>@Roles(Service.ReadRoles)</dd>
                         <dt>Update Roles</dt>

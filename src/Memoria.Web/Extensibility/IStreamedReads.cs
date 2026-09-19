@@ -99,6 +99,17 @@ public interface IStreamedReads
     Task<DateTimeOffset?> LastWritten(StreamedModelKind kind, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Asks the store the smallest question it can answer, for how long a round trip to it takes.
+    /// </summary>
+    /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
+    /// <remarks>
+    /// What a service's sheet says of whether its store answers: nothing of the domain is read, so
+    /// the time is the store's and the network's, and a store that cannot be reached says why in
+    /// the exception it throws.
+    /// </remarks>
+    Task Ping(CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Counts the streams the store's events are held in, or those of them one stream type's
     /// pattern matches.
     /// </summary>

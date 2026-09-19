@@ -36,6 +36,11 @@ public enum ModelSection
     Streams
 }
 
+/// <summary>How long a round trip to a service's store took, or why there was none.</summary>
+/// <param name="Took">How long the store took to answer, when it did.</param>
+/// <param name="Problem">Why it could not be reached, or null when it was.</param>
+public sealed record StoreProbe(TimeSpan? Took, string? Problem);
+
 /// <summary>What the store holds of one type, or why it could not be read.</summary>
 /// <param name="Figures">How many of it are stored and when the newest was written, once read.</param>
 /// <param name="Problem">Why the store could not be read, or null when it was.</param>
@@ -251,6 +256,33 @@ public sealed class ServiceActivity(
 
         return new TypeActivity(
             new SectionActivity(kept.Value?.Latest, new Kept<int>(kept.Value?.Stored ?? 0, kept.At)), Problem: null);
+    }
+
+    /// <summary>How long a round trip to the service's store takes now, for its sheet in the settings.</summary>
+    /// <remarks>
+    /// Never kept: it is what the store is doing now, and whoever opens the sheet is asking because
+    /// it might have changed. Asked twice, and only the second timed: the first pays for opening a
+    /// connection and, the first time in a process, for the model being built — hundreds of
+    /// milliseconds that are the tool's, not the store's. A store that cannot be reached fails the
+    /// first, and says why. Timed by the clock's own timestamps, so it is the round trip and nothing
+    /// of the scope put around it.
+    /// </remarks>
+    public async Task<StoreProbe> Probe(Service service, CancellationToken cancellationToken = default)
+    {
+        var read = await Read(service, async (inside, _, token) =>
+        {
+            var reads = inside.Provider.GetRequiredService<IStreamedReads>();
+
+            await reads.Ping(token);
+
+            var started = clock.GetTimestamp();
+
+            await reads.Ping(token);
+
+            return new StoreProbe(clock.GetElapsedTime(started), Problem: null);
+        }, cancellationToken);
+
+        return read.Value ?? new StoreProbe(null, read.Problem);
     }
 
     /// <summary>What the service's store holds of one stream type, for the Streams page reading it.</summary>

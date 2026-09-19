@@ -325,6 +325,14 @@ public sealed class CosmosStreamedReads(
 
     /// <inheritdoc />
     /// <remarks>
+    /// The container's own record: one point read, costing the least a request can, and failing
+    /// the way every other read would — no account, no database, no container, no key.
+    /// </remarks>
+    public Task Ping(CancellationToken cancellationToken = default) =>
+        client.GetContainer(databaseName, containerName).ReadContainerAsync(cancellationToken: cancellationToken);
+
+    /// <inheritdoc />
+    /// <remarks>
     /// The distinct stream ids of the event documents, counted: a stream is nothing but the events
     /// held in it, so no document of its own says it is there.
     /// </remarks>

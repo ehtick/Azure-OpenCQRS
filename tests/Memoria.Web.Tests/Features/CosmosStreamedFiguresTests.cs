@@ -122,6 +122,22 @@ public class CosmosStreamedFiguresTests : IAsyncLifetime
         (await _reads.CountStreams("invoice:%")).Should().Be(0);
     }
 
+    /// <summary>
+    /// The sheet's round trip: the container's own record, read and nothing of the domain; a
+    /// container that is not there fails the way every other read over it would.
+    /// </summary>
+    [Fact]
+    public async Task Answers_a_ping_and_fails_one_over_a_container_that_is_not_there()
+    {
+        var missing = new CosmosStreamedReads(_client, _databaseName, "Missing", TypeBindingSet.Default);
+
+        var pinging = () => _reads.Ping();
+        var failing = () => missing.Ping();
+
+        await pinging.Should().NotThrowAsync();
+        await failing.Should().ThrowAsync<CosmosException>();
+    }
+
     [Fact]
     public async Task Counts_nothing_in_an_empty_container()
     {

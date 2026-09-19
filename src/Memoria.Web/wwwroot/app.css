@@ -1763,6 +1763,13 @@ h2:focus {
             font-size: var(--text-lg);
         }
 
+        /* A store that could not be reached or read, in the driver's own words: prose like the
+           note above, in the danger ink, since it is the one fact on the sheet someone has to act on. */
+        .facts dd .problem {
+            color: var(--danger);
+            font-family: var(--font);
+        }
+
 .plain {
     list-style: none;
     margin: 0;

@@ -115,6 +115,14 @@ public sealed class EfStreamedReads(StreamedStoreDbContext context, TotalsCache?
 
     /// <inheritdoc />
     /// <remarks>
+    /// A statement rather than opening a connection: a pooled connection opens without the server
+    /// hearing of it, and the time would be the pool's.
+    /// </remarks>
+    public Task Ping(CancellationToken cancellationToken = default) =>
+        context.Database.ExecuteSqlRawAsync("SELECT 1", cancellationToken);
+
+    /// <inheritdoc />
+    /// <remarks>
     /// Like rather than a prefix comparison, as the log's own narrowing is: a stream type's values
     /// are not always at the end of its ids.
     /// </remarks>

@@ -5,8 +5,10 @@
 }
 
 /* A sentence the manifest wrote rather than a value the store did, so it is read in the page's
-   face like the rest of the prose here. */
-.facts dd.prose {
+   face like the rest of the prose here — and the sheet's own sentences about the store, which
+   StoreFacts draws: reached with ::deep, since scoped styles stop at a child component's markup. */
+.facts dd.prose,
+.facts ::deep dd.prose {
     font-family: var(--font);
 }
 
