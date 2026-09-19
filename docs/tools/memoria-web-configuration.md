@@ -456,18 +456,21 @@ directory sees a save when it is next restarted.
 Home says, under each service it lists, what that service's store is doing. A service's own page and
 each model's overview say the same one level down, under each section's tile: events, aggregates,
 projections, and for the streamed model streams. Each section's own page says its own figures under
-its **Data** tile, and asks the store about that section alone.
+its **Data** tile, and asks the store about that section alone. A **Types** page asks about the
+type being read and no other — its rows found by the key they are written under — and the list
+beside it counts nothing, since that would be every type counted on every visit. The newest date
+of the type comes out of the same read as its count, so it is kept for as long as the count.
 
 - **When the newest was written**: the last event, or the snapshot last written. It is the figure
   that shows a service is alive, so it is asked of the store on every visit wherever the store finds
   it at once — the DCB log, ordered by its key, and a Cosmos container, which indexes the date an
   event is written. Where the store has to search for it, it is kept for 30 seconds: nothing orders a
   relational streamed log by date alone, and no store indexes the date a snapshot was last written.
-- **How many are stored**, and how long ago that was counted: events, snapshots of each kind, and
-  the streams events are held in. A count is a scan of a whole table, so it is kept and handed to
-  every visitor until it has been kept for as long as an Administrator has said on the **Counts** tab
-  of the Settings page: from 0 minutes, which counts on every visit, to 1440, a day. It is 5 until
-  it is changed.
+- **How many are stored**: events, snapshots of each kind, and the streams events are held in. A
+  count is a scan of a whole table, so it is kept and handed to every visitor until it has been
+  kept for as long as an Administrator has said on the **Counts** tab of the Settings page: from 0
+  minutes, which counts on every visit, to 1440, a day. It is 5 until it is changed. Every count
+  is kept for that same while, so none of them says when it was made.
 
 On Home, a service over both models is both logs together: its last event is the newer of the two,
 and its count is the two added up. Home and a service's own pages keep one count between them, so

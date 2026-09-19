@@ -94,11 +94,10 @@ else
                             <span class="detail">@detail</span>
                         }
                         @* What the store is doing, under what the service is: when its last event
-                           was written, asked on every visit, and how many events it holds, counted
-                           and kept a while — so the count says when it was made. The tiles are sent
-                           before any store is asked, and these lines follow once every store has
-                           answered or run out of patience, so the way into a service is never
-                           behind a slow store. Nothing for a store that cannot be reached: the
+                           was written, and how many events it holds, counted and kept a while. The
+                           tiles are sent before any store is asked, and these lines follow once
+                           every store has answered or run out of patience, so the way into a
+                           service is never behind a slow store. Nothing for a store that cannot be reached: the
                            line above already says why. *@
                         @if (Stores.For(service).Reachable)
                         {
@@ -123,7 +122,7 @@ else
                                     }
                                     @if (activity.Events is { } events && (events.Value > 0 || activity.LastEvent is not null))
                                     {
-                                        <span title="Counted at @events.At.ToUniversalTime().ToString("u", CultureInfo.InvariantCulture)">@EventCount(events.Value), counted @Ago.Since(events.At, Now)</span>
+                                        <span>@EventCount(events.Value)</span>
                                     }
                                 }
                             </span>

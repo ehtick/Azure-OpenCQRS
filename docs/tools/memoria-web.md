@@ -100,7 +100,9 @@ Under each service, Home says what its store is doing: when the last event was w
 many events the store holds, counted and then kept for five minutes unless an Administrator
 [says otherwise](memoria-web-configuration.md#counts). A service's own page and each model's overview
 say the same under every section: how many events, aggregates, projections and streams are stored,
-and when the newest was written. Each section's own page says it once more, under its **Data** tile.
+and when the newest was written. Each section's own page says it once more, under its **Data** tile,
+and its **Types** page says it for the type being read, over its tabs: how many of it are stored
+and when the newest was written.
 
 A service's own page sets the two consistency models side by side when it registered types under
 both, and lays the one model out directly when it registered types under one alone. Each model is

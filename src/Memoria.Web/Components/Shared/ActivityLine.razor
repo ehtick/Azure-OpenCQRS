@@ -1,0 +1,64 @@
+@using System.Globalization
+@using Memoria.Web.Data
+@inject TimeProvider Clock
+
+@* What the store holds of one thing — a section, or one type in it: when the newest was written,
+   and how many are stored, each on a row of its own. The count is kept a while and says nothing of
+   when it was made: every count on a page is kept for the same while, so saying so on each was
+   noise. The page is sent before the store is asked and the line follows its answer, so until
+   then it says the store is being read. *@
+<span class="activity stacked">
+    @if (Reading)
+    {
+        <span class="reading">Reading the store…</span>
+    }
+    else if (Problem is { } problem)
+    {
+        <span class="problem">Could not read the store: @problem</span>
+    }
+    else if (Activity is { } activity)
+    {
+        @if (activity.Stored.Value == 0 && activity.Latest is null)
+        {
+            <span>@Empty</span>
+        }
+        else
+        {
+            @if (Latest is not null && activity.Latest is { } latest)
+            {
+                <span>@Latest <time datetime="@latest.UtcDateTime.ToString("O", CultureInfo.InvariantCulture)" title="@latest.ToUniversalTime().ToString("u", CultureInfo.InvariantCulture)">@Ago.Since(latest, Now)</time></span>
+            }
+            <span>@activity.Stored.Value.ToString("N0", CultureInfo.CurrentCulture) @Noun</span>
+        }
+    }
+</span>
+
+@code {
+
+    /// <summary>Whether the store is still being read.</summary>
+    [Parameter]
+    public bool Reading { get; set; }
+
+    /// <summary>Why the store could not be read, or null when it was.</summary>
+    [Parameter]
+    public string? Problem { get; set; }
+
+    /// <summary>What the store holds of the thing, once read.</summary>
+    [Parameter]
+    public SectionActivity? Activity { get; set; }
+
+    /// <summary>What the newest date is called — <c>Last event</c>, <c>Last written</c> — or null for a thing with none.</summary>
+    [Parameter]
+    public string? Latest { get; set; }
+
+    /// <summary>What follows the count: <c>stored</c>, or <c>with events</c> for streams.</summary>
+    [Parameter]
+    public string Noun { get; set; } = "stored";
+
+    /// <summary>What is said when nothing is stored.</summary>
+    [Parameter]
+    public string Empty { get; set; } = "None stored yet";
+
+    private DateTimeOffset Now => Clock.GetUtcNow();
+
+}

@@ -118,6 +118,34 @@ public sealed class EfStreamedReads(StreamedStoreDbContext context, TotalsCache?
         context.Events.Select(appended => appended.StreamId).Distinct().CountAsync(cancellationToken);
 
     /// <inheritdoc />
+    /// <remarks>
+    /// Narrowed by the type column, which the log indexes, so only the type's own rows are read; a
+    /// grouping of that narrowing gives the count and the newest date in one trip, and no group at
+    /// all when there are none.
+    /// </remarks>
+    public async Task<TypeTally?> TallyEvents(string eventType, CancellationToken cancellationToken = default) =>
+        await context.Events
+            .Where(appended => appended.EventType == eventType)
+            .GroupBy(appended => appended.EventType)
+            .Select(group => new TypeTally(group.Count(), group.Max(appended => appended.CreatedDate)))
+            .FirstOrDefaultAsync(cancellationToken);
+
+    /// <inheritdoc />
+    public async Task<TypeTally?> TallySnapshots(
+        StreamedModelKind kind, string modelType, CancellationToken cancellationToken = default) =>
+        kind is StreamedModelKind.Projection
+            ? await context.Projections
+                .Where(projection => projection.ProjectionType == modelType)
+                .GroupBy(projection => projection.ProjectionType)
+                .Select(group => new TypeTally(group.Count(), group.Max(projection => projection.UpdatedDate)))
+                .FirstOrDefaultAsync(cancellationToken)
+            : await context.Aggregates
+                .Where(aggregate => aggregate.AggregateType == modelType)
+                .GroupBy(aggregate => aggregate.AggregateType)
+                .Select(group => new TypeTally(group.Count(), group.Max(aggregate => aggregate.UpdatedDate)))
+                .FirstOrDefaultAsync(cancellationToken);
+
+    /// <inheritdoc />
     public Task<ReadStreamModel> Model(
         StreamedModelAddress address, CancellationToken cancellationToken = default) =>
         StreamedSnapshots.Model(context, address, cancellationToken);

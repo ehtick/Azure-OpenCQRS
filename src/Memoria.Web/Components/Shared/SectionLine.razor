@@ -1,36 +1,14 @@
-@using System.Globalization
 @using Memoria.Web.Data
-@inject TimeProvider Clock
 
-@* What the store holds of one section, under the tile that leads to it: when the newest was
-   written, and how many are stored with when they were counted — the line Home draws under a
-   service, one level down. The tiles are sent before the store is asked and the line follows its
-   answer, so until then it says the store is being read. *@
-<span class="activity stacked">
-    @if (Model is null)
-    {
-        <span class="reading">Reading the store…</span>
-    }
-    else if (Model.Problem is { } problem)
-    {
-        <span class="problem">Could not read the store: @problem</span>
-    }
-    else if (Section(Model) is { } section)
-    {
-        @if (section.Stored.Value == 0 && section.Latest is null)
-        {
-            <span>@Empty</span>
-        }
-        else
-        {
-            @if (Latest is not null && section.Latest is { } latest)
-            {
-                <span>@Latest <time datetime="@latest.UtcDateTime.ToString("O", CultureInfo.InvariantCulture)" title="@latest.ToUniversalTime().ToString("u", CultureInfo.InvariantCulture)">@Ago.Since(latest, Now)</time></span>
-            }
-            <span title="Counted at @section.Stored.At.ToUniversalTime().ToString("u", CultureInfo.InvariantCulture)">@section.Stored.Value.ToString("N0", CultureInfo.CurrentCulture) @Noun, counted @Ago.Since(section.Stored.At, Now)</span>
-        }
-    }
-</span>
+@* What the store holds of one section, under the tile that leads to it: the line Home draws under
+   a service, one level down. The model is read once for every tile on the page; this picks out
+   the tile's own section. *@
+<ActivityLine Reading="@(Model is null)"
+              Problem="@Model?.Problem"
+              Activity="@(Model is null ? null : Section(Model))"
+              Latest="@Latest"
+              Noun="@Noun"
+              Empty="@Empty"/>
 
 @code {
 
@@ -53,7 +31,5 @@
     /// <summary>What is said when nothing is stored.</summary>
     [Parameter]
     public string Empty { get; set; } = "None stored yet";
-
-    private DateTimeOffset Now => Clock.GetUtcNow();
 
 }

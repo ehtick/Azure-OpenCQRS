@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Security.Claims;
 using System.Threading.Tasks;
@@ -18,7 +19,8 @@ namespace Memoria.Web.Tests.Features;
 /// <summary>
 /// What the overview pages say of a relational streamed store beside each section: how many
 /// snapshots of each kind it holds and when the newest was last written, and how many streams its
-/// events are held in — each asked on its own, since each is kept for a different while.
+/// events are held in — each asked on its own, since each is kept for a different while — and what
+/// the Types pages say over the type being read, read of that type alone.
 /// </summary>
 public class SqliteStreamedFiguresTests : IAsyncLifetime
 {
@@ -103,6 +105,47 @@ public class SqliteStreamedFiguresTests : IAsyncLifetime
         (await reads.LastWritten(StreamedModelKind.Projection)).Should().BeNull();
     }
 
+    /// <summary>
+    /// A Types page says, over the type being read, how many of it are stored and when the newest
+    /// was written: a read of that type's rows alone, narrowed by the key they are written under,
+    /// and nothing when none are.
+    /// </summary>
+    [Fact]
+    public async Task Tallies_the_events_of_one_type()
+    {
+        await AppendEvents(("customer:c-1", 0), ("customer:c-2", 0));
+        _clock.Now = Start + TimeSpan.FromHours(2);
+        await AppendEvents(("customer:c-1", 1));
+        _clock.Now = Start + TimeSpan.FromHours(5);
+        await AppendEvents([("order:o-1", 0)], "OrderShippedEvent:1");
+
+        var reads = Reads();
+
+        using var scope = new AssertionScope();
+
+        (await reads.TallyEvents("OrderPlacedEvent:1")).Should().Be(new TypeTally(3, Start + TimeSpan.FromHours(2)));
+        (await reads.TallyEvents("OrderCancelledEvent:1")).Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Tallies_the_snapshots_of_one_type()
+    {
+        await SaveAggregates("c-1", "c-2");
+        _clock.Now = Start + TimeSpan.FromHours(3);
+        await RefreshAggregate("c-1");
+        await SaveProjection("history-1");
+
+        var reads = Reads();
+
+        using var scope = new AssertionScope();
+
+        (await reads.TallySnapshots(StreamedModelKind.Aggregate, "CustomerAccount:1"))
+            .Should().Be(new TypeTally(2, Start + TimeSpan.FromHours(3)));
+        (await reads.TallySnapshots(StreamedModelKind.Projection, "CustomerOrderHistory:1"))!.Stored.Should().Be(1);
+        (await reads.TallySnapshots(StreamedModelKind.Aggregate, "CustomerOrderHistory:1"))
+            .Should().BeNull("a projection's key is not an aggregate's");
+    }
+
     [Fact]
     public async Task Counts_nothing_in_an_empty_store()
     {
@@ -114,7 +157,10 @@ public class SqliteStreamedFiguresTests : IAsyncLifetime
         (await reads.CountStreams()).Should().Be(0);
     }
 
-    private async Task AppendEvents(params (string Stream, int Sequence)[] events)
+    private Task AppendEvents(params (string Stream, int Sequence)[] events) =>
+        AppendEvents(events, "OrderPlacedEvent:1");
+
+    private async Task AppendEvents((string Stream, int Sequence)[] events, string eventType)
     {
         await using var seed = Seed();
 
@@ -124,7 +170,7 @@ public class SqliteStreamedFiguresTests : IAsyncLifetime
             {
                 Id = $"{stream}:{sequence}",
                 StreamId = stream,
-                EventType = "OrderPlacedEvent:1",
+                EventType = eventType,
                 Sequence = sequence,
                 Data = "{}"
             });

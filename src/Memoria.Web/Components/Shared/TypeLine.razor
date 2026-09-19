@@ -1,0 +1,25 @@
+@using Memoria.Web.Data
+
+@* What the store holds of the type being read on a Types page, over its tabs: when the newest of it
+   was written, and how many are stored. Asked of the store for this type alone. *@
+<ActivityLine Reading="@(Activity is null)"
+              Problem="@Activity?.Problem"
+              Activity="@Activity?.Figures"
+              Latest="@Latest"
+              Empty="@Empty"/>
+
+@code {
+
+    /// <summary>What the store holds of the type, or null while it is still being read.</summary>
+    [Parameter]
+    public TypeActivity? Activity { get; set; }
+
+    /// <summary>What the newest date is called: <c>Last event</c> or <c>Last written</c>.</summary>
+    [Parameter, EditorRequired]
+    public string Latest { get; set; } = null!;
+
+    /// <summary>What is said when nothing of the type is stored.</summary>
+    [Parameter]
+    public string Empty { get; set; } = "None stored yet";
+
+}

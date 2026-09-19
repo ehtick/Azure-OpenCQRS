@@ -86,6 +86,32 @@ public class CosmosStreamedFiguresTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Tallies_the_events_and_the_snapshots_of_one_type()
+    {
+        await Append(("customer:c-1", 0), ("customer:c-2", 0));
+        await _container.UpsertItemAsync(new EventDocument
+        {
+            Id = "order:o-1:0",
+            StreamId = "order:o-1",
+            EventType = "OrderShippedEvent:1",
+            Sequence = 0,
+            Data = "{}",
+            CreatedDate = Start + TimeSpan.FromHours(2)
+        }, new PartitionKey("order:o-1"));
+        await SaveAggregate("customer:c-1", Start + TimeSpan.FromHours(3));
+        await SaveAggregate("customer:c-2", Start + TimeSpan.FromHours(1));
+
+        using var scope = new AssertionScope();
+
+        (await _reads.TallyEvents("OrderPlacedEvent:1")).Should().Be(new TypeTally(2, Start));
+        (await _reads.TallyEvents("OrderShippedEvent:1")).Should().Be(new TypeTally(1, Start + TimeSpan.FromHours(2)));
+        (await _reads.TallyEvents("OrderCancelledEvent:1")).Should().BeNull();
+        (await _reads.TallySnapshots(StreamedModelKind.Aggregate, "CustomerAccount:1"))
+            .Should().Be(new TypeTally(2, Start + TimeSpan.FromHours(3)));
+        (await _reads.TallySnapshots(StreamedModelKind.Projection, "CustomerOrderHistory:1")).Should().BeNull();
+    }
+
+    [Fact]
     public async Task Counts_nothing_in_an_empty_container()
     {
         using var scope = new AssertionScope();

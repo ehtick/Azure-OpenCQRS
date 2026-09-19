@@ -691,7 +691,7 @@ h2:focus {
     /* What the store is doing, under a tile's sentence — a service's on Home, a section's on the
        overview pages: the newest date and the count, a dot between them, in the faint ink and the small size, so it reads as a status line under the
        sentence rather than a second sentence. Wraps whole parts rather than breaking one. */
-    .tiles .activity {
+    .activity {
         color: var(--ink-soft);
         display: flex;
         flex-wrap: wrap;
@@ -700,23 +700,23 @@ h2:focus {
         margin-top: 0.35rem;
     }
 
-        .tiles .activity > span {
+        .activity > span {
             white-space: nowrap;
         }
 
-        .tiles .activity > span + span::before {
+        .activity > span + span::before {
             color: var(--ink-faint);
             content: "·";
             padding: 0 0.5rem;
         }
 
-        .tiles .activity .reading {
+        .activity .reading {
             color: var(--ink-faint);
         }
 
         /* Said in the danger ink, since it is the one thing on the tile someone has to act on;
            allowed to wrap, since the driver's words can run long. */
-        .tiles .activity .problem {
+        .activity .problem {
             color: var(--danger);
             white-space: normal;
         }
@@ -724,12 +724,12 @@ h2:focus {
         /* A section's tile shares the row with others, so its line is too narrow for the newest
            date and the count side by side: one wrapped under the other left the dot at the start
            of a line. Each on a row of its own instead, with no dot to part them. */
-        .tiles .activity.stacked {
+        .activity.stacked {
             flex-direction: column;
             gap: 0.1rem;
         }
 
-            .tiles .activity.stacked > span + span::before {
+            .activity.stacked > span + span::before {
                 content: none;
             }
 
@@ -920,6 +920,19 @@ h2:focus {
     .panel-detail > .obsolete,
     .dialog-body > .obsolete {
         margin-top: -0.5rem;
+    }
+
+/* What the store holds of the type being read, over its tabs: pulled up under the heading the way
+   the retired note is, or under that note when there is one, with the heading's own space kept
+   between it and the tabs. */
+.panel-detail > .activity {
+    margin: -0.5rem 0 1rem;
+}
+
+    /* After a retired note, a little further down: the note is a sentence about the name and the
+       figures are not part of it, so they should not read as its second line. */
+    .panel-detail > .obsolete + .activity {
+        margin-top: -0.1rem;
     }
 
 /* Something went right and the page is saying so. */

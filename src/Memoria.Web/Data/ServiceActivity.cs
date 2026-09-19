@@ -36,6 +36,11 @@ public enum ModelSection
     Streams
 }
 
+/// <summary>What the store holds of one type, or why it could not be read.</summary>
+/// <param name="Figures">How many of it are stored and when the newest was written, once read.</param>
+/// <param name="Problem">Why the store could not be read, or null when it was.</param>
+public sealed record TypeActivity(SectionActivity? Figures, string? Problem);
+
 /// <summary>What the store holds of each section of one model, or why it could not be read.</summary>
 /// <param name="Events">The events the model's log holds.</param>
 /// <param name="Aggregates">The aggregate snapshots.</param>
@@ -180,6 +185,96 @@ public sealed class ServiceActivity(
 
         return read.Value ?? new ModelActivity(null, null, null, null, read.Problem);
     }
+
+    /// <summary>What the service's store holds of one type in a streamed section, for the Types page reading it.</summary>
+    /// <param name="service">The service.</param>
+    /// <param name="section">Events, aggregates or projections.</param>
+    /// <param name="type">The type being read.</param>
+    /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
+    /// <remarks>
+    /// The one type alone, found by the key its rows are written under, and kept as the counts are;
+    /// the newest date comes out of the same read, so it is as old as the count beside it.
+    /// </remarks>
+    public async Task<TypeActivity> StreamedType(
+        Service service, ModelSection section, Type type, CancellationToken cancellationToken = default)
+    {
+        var read = await Read(service, async (inside, _, token) =>
+        {
+            var reads = inside.Provider.GetRequiredService<IStreamedReads>();
+
+            return await Tallied(inside, $"streamed/{Segment(section)}", type, (key, ct) => section switch
+            {
+                ModelSection.Aggregates => reads.TallySnapshots(StreamedModelKind.Aggregate, key, ct),
+                ModelSection.Projections => reads.TallySnapshots(StreamedModelKind.Projection, key, ct),
+                _ => reads.TallyEvents(key, ct)
+            }, token);
+        }, cancellationToken);
+
+        return read.Value ?? new TypeActivity(null, read.Problem);
+    }
+
+    /// <summary>What the service's store holds of one type in a DCB section, for the Types page reading it.</summary>
+    /// <param name="service">The service.</param>
+    /// <param name="section">Events, aggregates or projections.</param>
+    /// <param name="type">The type being read.</param>
+    /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
+    public async Task<TypeActivity> DcbType(
+        Service service, ModelSection section, Type type, CancellationToken cancellationToken = default)
+    {
+        var read = await Read(service, async (inside, _, token) =>
+        {
+            var context = inside.Provider.GetRequiredService<DcbStoreDbContext>();
+
+            return await Tallied(inside, $"dcb/{Segment(section)}", type, (key, ct) => section switch
+            {
+                ModelSection.Aggregates => TallyDcbSnapshots(context, DcbSnapshotEntity.AggregateKind, key, ct),
+                ModelSection.Projections => TallyDcbSnapshots(context, DcbSnapshotEntity.ProjectionKind, key, ct),
+                _ => TallyDcbEvents(context, key, ct)
+            }, token);
+        }, cancellationToken);
+
+        return read.Value ?? new TypeActivity(null, read.Problem);
+    }
+
+    /// <summary>
+    /// One type's tally, kept under its section and key. A type carrying no attribute has no key to
+    /// be written under, so nothing of it can be stored, and the store is not asked.
+    /// </summary>
+    private async Task<TypeActivity> Tallied(
+        Inside inside, string section, Type type, Func<string, CancellationToken, Task<TypeTally?>> tally,
+        CancellationToken cancellationToken)
+    {
+        if (DomainTypeDescriber.BindingOf(type)?.Key is not { } key)
+        {
+            return new TypeActivity(new SectionActivity(null, new Kept<int>(0, clock.GetUtcNow())), Problem: null);
+        }
+
+        var kept = await _counts.Keep(inside.Key($"{section}/types/{key}"), token => tally(key, token), cancellationToken);
+
+        return new TypeActivity(
+            new SectionActivity(kept.Value?.Latest, new Kept<int>(kept.Value?.Stored ?? 0, kept.At)), Problem: null);
+    }
+
+    /// <summary>A section as its address names it.</summary>
+    private static string Segment(ModelSection section) => section.ToString().ToLowerInvariant();
+
+    /// <summary>The events of one type in the DCB log, narrowed by the key they are written under.</summary>
+    private static Task<TypeTally?> TallyDcbEvents(
+        DcbStoreDbContext context, string eventType, CancellationToken cancellationToken) =>
+        context.DcbEvents
+            .Where(appended => appended.EventType == eventType)
+            .GroupBy(appended => appended.EventType)
+            .Select(group => new TypeTally(group.Count(), group.Max(appended => appended.CreatedDate)))
+            .FirstOrDefaultAsync(cancellationToken);
+
+    /// <summary>The snapshots of one kind and one model type, narrowed by both.</summary>
+    private static Task<TypeTally?> TallyDcbSnapshots(
+        DcbStoreDbContext context, string kind, string modelType, CancellationToken cancellationToken) =>
+        context.DcbSnapshots
+            .Where(snapshot => snapshot.SnapshotKind == kind && snapshot.ModelType == modelType)
+            .GroupBy(snapshot => snapshot.ModelType)
+            .Select(group => new TypeTally(group.Count(), group.Max(snapshot => snapshot.UpdatedDate)))
+            .FirstOrDefaultAsync(cancellationToken);
 
     /// <summary>Whether a section is to be read: every one when none was singled out, else that one.</summary>
     private static bool Wanted(ModelSection? only, ModelSection section) => only is null || only == section;

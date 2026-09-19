@@ -110,6 +110,29 @@ public interface IStreamedReads
     Task<int> CountStreams(CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// How many events of one type the log holds, and when the newest of them was written; null
+    /// when none are.
+    /// </summary>
+    /// <param name="eventType">The key the type's events are written under.</param>
+    /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
+    /// <remarks>
+    /// What the events Types page says over the type being read. One type rather than every type:
+    /// its rows are found by the key they are written under, which the store indexes, where a count
+    /// of every type would read the whole log on every visit. Throws when the store cannot be read.
+    /// </remarks>
+    Task<TypeTally?> TallyEvents(string eventType, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// How many snapshots of one type are stored, and when the newest of them was last written;
+    /// null when none are.
+    /// </summary>
+    /// <param name="kind">Aggregates or projections.</param>
+    /// <param name="modelType">The key the type's snapshots are written under.</param>
+    /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
+    Task<TypeTally?> TallySnapshots(
+        StreamedModelKind kind, string modelType, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Reads the one model stored under an exact address, payload and all.
     /// </summary>
     /// <param name="address">Which kind, in which stream, under which key.</param>
@@ -184,6 +207,11 @@ public sealed record ReadStreamModel(StoredStreamModel? Snapshot, string? Error)
 /// <param name="Total">The count, or null when the log could not be read.</param>
 /// <param name="Error">Why it could not be, or null when it was.</param>
 public sealed record EventCount(int? Total, string? Error);
+
+/// <summary>How many of one type are stored, and when the newest of them was written.</summary>
+/// <param name="Stored">How many rows are written under the type's key.</param>
+/// <param name="Latest">When the newest was written — an event appended, a snapshot last written.</param>
+public sealed record TypeTally(int Stored, DateTimeOffset Latest);
 
 /// <summary>The one event at a place in the narrowed log, or why it could not be read.</summary>
 /// <param name="Event">The event, or null when there is none at that place or the log could not be read.</param>

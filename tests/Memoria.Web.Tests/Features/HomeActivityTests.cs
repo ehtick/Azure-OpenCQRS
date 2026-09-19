@@ -92,7 +92,7 @@ public class HomeActivityTests
 
     /// <summary>
     /// The last event is asked for on every visit, so an event written a moment ago is on the next
-    /// visit's tile; the count is kept, and says how old it is, until it has been kept for as long
+    /// visit's tile; the count is kept, and handed back unchanged, until it has been kept for as long
     /// as counts are kept.
     /// </summary>
     [Fact]
@@ -113,8 +113,8 @@ public class HomeActivityTests
         using var scope = new AssertionScope();
 
         kept.Should().Contain("Last event <time datetime=\"2026-01-01T12:02:00.0000000Z\"");
-        kept.Should().Contain("1 event").And.Contain("counted 2 minutes ago");
-        counted.Should().Contain("2 events").And.Contain("counted just now");
+        kept.Should().Contain(">1 event</span>", "the count says how many and nothing more");
+        counted.Should().Contain(">2 events</span>");
     }
 
     /// <summary>How long a count is kept is the Administrator's to say, and a change to it is felt on the next visit.</summary>

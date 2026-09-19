@@ -54,11 +54,11 @@ public class SectionActivityTests
 
         using var scope = new AssertionScope();
 
-        Activity(page, "samples/streamed/events").Should().Contain(">13 minutes ago</time>").And.Contain("3 stored, counted just now");
+        Activity(page, "samples/streamed/events").Should().Contain(">13 minutes ago</time>").And.Contain(">3 stored</span>");
         Activity(page, "samples/streamed/aggregates").Should().Contain("Last written <time").And.Contain(">3 minutes ago</time>")
             .And.Contain("1 stored");
         Activity(page, "samples/streamed/projections").Should().Contain("None stored yet");
-        Activity(page, "samples/streamed/streams").Should().Contain("2 with events, counted just now");
+        Activity(page, "samples/streamed/streams").Should().Contain(">2 with events</span>");
     }
 
     [Theory]
