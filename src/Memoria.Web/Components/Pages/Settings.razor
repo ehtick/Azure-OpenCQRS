@@ -511,20 +511,12 @@ else if (Tab == HomeTab)
     /// <summary>
     /// What the last press did, rendered under the button that did it rather than at the top of the
     /// page, so the answer is read where the question was asked. Written once because both panels
-    /// end the same way; only the showing panel renders it.
+    /// end the same way; only the showing panel renders it. A blank one is none: the address can
+    /// carry the parameter with nothing in it.
     /// </summary>
     private RenderFragment Notice =>
-        @<text>
-            @if (!string.IsNullOrWhiteSpace(Message))
-            {
-                <p class="notice" role="status">@Message</p>
-            }
-
-            @if (!string.IsNullOrWhiteSpace(Error))
-            {
-                <p class="alert" role="alert">@Error</p>
-            }
-        </text>;
+        @<PressAnswer Message="@(string.IsNullOrWhiteSpace(Message) ? null : Message)"
+                      Error="@(string.IsNullOrWhiteSpace(Error) ? null : Error)"/>;
 
     /// <summary>
     /// Whether the upload form should already be open. Asked for in the address so the page decides

@@ -106,6 +106,23 @@ document.addEventListener("click", event => {
     }
 });
 
+// The x beside what the last press did. It is a link to this address without the message, which is
+// what happens with no script; here the box is taken away in place and that address put in the bar
+// instead, so the page neither scrolls nor flashes and a reload still leaves the message gone. Heard
+// while the click is on its way down, because Blazor's own link handling listens on the way back up
+// and would otherwise navigate first; it leaves alone a click already answered.
+document.addEventListener("click", event => {
+    const control = event.target instanceof Element ? event.target.closest("[data-dismiss]") : null;
+
+    if (!control || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) {
+        return;
+    }
+
+    event.preventDefault();
+    control.closest("[data-dismissible]")?.remove();
+    history.replaceState(history.state, "", control.href);
+}, true);
+
 // The pick, wherever it was made. The picker under a table submits its form and the size lands in
 // the address; the one on the settings page has no form to submit and this is all that happens. One
 // listener on the document rather than one per select: the selects come and go as pages are swapped

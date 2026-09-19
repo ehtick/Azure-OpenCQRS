@@ -419,10 +419,10 @@
    below the card, so the tab keeps one rhythm down its length — and as wide as the card, edge
    for edge, so it reads as that form's answer. Counted with its padding and edge inside the
    width, since the card's outer edge is what it lines up with. */
-.branding-panel .notice,
-.branding-panel .alert,
-.home-panel .notice,
-.home-panel .alert {
+.branding-panel ::deep .notice,
+.branding-panel ::deep .alert,
+.home-panel ::deep .notice,
+.home-panel ::deep .alert {
     box-sizing: border-box;
     margin-top: 1.5rem;
     max-width: 40rem;

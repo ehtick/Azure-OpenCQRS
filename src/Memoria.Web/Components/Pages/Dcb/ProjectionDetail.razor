@@ -655,14 +655,7 @@ else
                 @* What the last press did, carried back on the address so it survives the redirect.
                    Below the button rather than at the top of the page, so the answer is read where
                    the question was asked. *@
-                @if (Message is not null)
-                {
-                    <p class="notice" role="status">@Message</p>
-                }
-                else if (RefreshError is not null)
-                {
-                    <p class="alert" role="alert">@RefreshError</p>
-                }
+                <PressAnswer Message="@Message" Error="@RefreshError"/>
             }
             </Authorized>
             </AuthorizeView>

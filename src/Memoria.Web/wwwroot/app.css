@@ -922,6 +922,48 @@ h2:focus {
     padding: 0.6rem 0.75rem;
 }
 
+/* A notice or an alert a reader can send away: the words, and an x across from them, held to the
+   middle of the box however many lines the words wrap to. The words keep their own column, so a
+   long message wraps under itself rather than under the x. */
+.dismissible {
+    align-items: center;
+    display: flex;
+    gap: 0.75rem;
+}
+
+    .dismissible p {
+        flex: 1;
+        margin: 0;
+    }
+
+    /* The message's own ink, a little quieter until pointed at, and a target bigger than the mark
+       drawn in it. Pulled in by what it adds, so the box is no taller for it and the words keep
+       its padding. */
+    .dismissible .dismiss {
+        border-radius: 3px;
+        color: inherit;
+        display: inline-flex;
+        flex: none;
+        margin: -0.25rem -0.4rem -0.25rem 0;
+        opacity: 0.7;
+        padding: 0.25rem;
+    }
+
+        .dismissible .dismiss:hover {
+            opacity: 1;
+        }
+
+        .dismissible .dismiss:focus-visible {
+            opacity: 1;
+            outline: 2px solid currentColor;
+            outline-offset: 1px;
+        }
+
+        .dismissible .dismiss svg {
+            height: 1rem;
+            width: 1rem;
+        }
+
 /* A narrow index beside the detail of whatever is picked out of it. Stacks below the width where
    two columns stop being readable. */
 .panels {

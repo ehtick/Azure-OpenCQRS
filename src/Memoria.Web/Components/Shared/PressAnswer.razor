@@ -1,0 +1,73 @@
+@inject NavigationManager Navigation
+
+@* What the last press did — a save, a refresh, or why either was refused — carried back on the
+   address so it survives the redirect, with an x to send it away. The x is a link to the same
+   address without the message: it works with no script, and a reload after it does not bring the
+   message back. With script, preferences.js takes the box away in place and puts that address in
+   the bar instead of going to it, so the page does not scroll or flash. The notice first: a press
+   that worked has nothing to have been refused. *@
+@if (Message is not null)
+{
+    <div class="notice dismissible" role="status" data-dismissible>
+        <p>@Message</p>
+        @Dismiss
+    </div>
+}
+else if (Error is not null)
+{
+    <div class="alert dismissible" role="alert" data-dismissible>
+        <p>@Error</p>
+        @Dismiss
+    </div>
+}
+
+@code {
+
+    /// <summary>What the press did, when it worked.</summary>
+    [Parameter]
+    public string? Message { get; set; }
+
+    /// <summary>Why the press was refused, when it was.</summary>
+    [Parameter]
+    public string? Error { get; set; }
+
+    /// <summary>The query parameters the answer is carried in, which the x takes off the address.</summary>
+    private static readonly string[] Carried = ["message", "error"];
+
+    private RenderFragment Dismiss =>
+        @<a class="dismiss" href="@Without(Navigation.ToBaseRelativePath(Navigation.Uri), Carried)"
+            aria-label="Dismiss" title="Dismiss" data-dismiss>
+            <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false" fill="none" stroke="currentColor"
+                 stroke-width="1.6" stroke-linecap="round">
+                <path d="M4 4l8 8M12 4l-8 8"/>
+            </svg>
+        </a>;
+
+    /// <summary>
+    /// An address with the parameters named taken off its query, and everything else in it left
+    /// exactly as it was written — encoding and order alike, so the address a reader was at is the
+    /// address they are left at.
+    /// </summary>
+    public static string Without(string address, IReadOnlyCollection<string> names)
+    {
+        var fragmentAt = address.IndexOf('#');
+        var fragment = fragmentAt < 0 ? string.Empty : address[fragmentAt..];
+        var rest = fragmentAt < 0 ? address : address[..fragmentAt];
+
+        var queryAt = rest.IndexOf('?');
+
+        if (queryAt < 0)
+        {
+            return address;
+        }
+
+        var kept = rest[(queryAt + 1)..]
+            .Split('&', StringSplitOptions.RemoveEmptyEntries)
+            .Where(pair => !names.Contains(Uri.UnescapeDataString(pair.Split('=')[0]), StringComparer.OrdinalIgnoreCase));
+
+        var query = string.Join('&', kept);
+
+        return rest[..queryAt] + (query.Length > 0 ? "?" + query : string.Empty) + fragment;
+    }
+
+}
