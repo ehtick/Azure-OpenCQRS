@@ -79,8 +79,8 @@ public sealed record ModelActivity(
 /// reaches a store.
 /// </para>
 /// <para>
-/// A store is given <see cref="Patience"/> to answer, so a slow one cannot hold a page up past it;
-/// the tiles then say it could not be read.
+/// A store is given <see cref="StorePatience"/> to answer, so a slow one cannot hold a page up past
+/// it; the tiles then say it could not be read.
 /// </para>
 /// </remarks>
 public sealed class ServiceActivity(
@@ -88,11 +88,9 @@ public sealed class ServiceActivity(
     DomainTypeRegistry registry,
     ServiceStores stores,
     CachingSettingsStore settings,
+    StorePatience patience,
     TimeProvider clock)
 {
-    /// <summary>How long a store is given to answer before its tiles say it could not be read.</summary>
-    public static readonly TimeSpan Patience = TimeSpan.FromSeconds(5);
-
     /// <summary>
     /// Where the counts are kept. Handed back while they are read again: a count is a scan of a
     /// whole table, and a page that waited for one would be waiting on what it could already say.
@@ -376,8 +374,8 @@ public sealed class ServiceActivity(
             return new Outcome<T>(null, unreachable);
         }
 
-        using var patience = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        patience.CancelAfter(Patience);
+        using var answering = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        answering.CancelAfter(patience.Waiting);
 
         await using var scope = scopes.CreateAsyncScope();
         scope.ServiceProvider.GetRequiredService<CurrentService>().Enter(service, catalogue);
@@ -387,11 +385,17 @@ public sealed class ServiceActivity(
 
         try
         {
-            return new Outcome<T>(await read(inside, shown, patience.Token), Problem: null);
+            return new Outcome<T>(await read(inside, shown, answering.Token), Problem: null);
         }
-        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        // Whatever shape the failure arrives in, once the patience has run out. A driver that
+        // cancels a read by tearing its connection down does not report a cancellation: Npgsql
+        // aborts the socket, and what comes back is the aborted read's own exception, which EF Core
+        // then wraps as a failure likely to be transient. Reading that off a tile sends whoever is
+        // looking after a fault in the store, when what happened is that this gave up waiting for
+        // it. It is the patience that says which happened, not the exception.
+        catch (Exception) when (answering.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
         {
-            return new Outcome<T>(null, $"It did not answer within {Patience.TotalSeconds:0} seconds.");
+            return new Outcome<T>(null, patience.DidNotAnswer);
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {

@@ -33,6 +33,7 @@ can be overridden without editing a file.
 | `Database:Provider`              | No                              | —                                     | The older form of the three above, still read for the string called `Memoria` alone |
 | `Database:Cosmos:DatabaseName`   | No                              | `Memoria`                             | Likewise                                         |
 | `Database:Cosmos:ContainerName`  | No                              | `Domain`                              | Likewise                                         |
+| `Stores:Patience`                | No                              | `5`                                   | How long every store is given to answer, in whole seconds, before a page says it could not be read — see [Caching](#caching) |
 | `Extensions:Directory`           | No                              | `<content root>/App_Data/extensions`  | Where uploaded archives and assemblies are kept  |
 | `Branding:Directory`             | No                              | `<content root>/App_Data/branding`    | Where the header's name and logo are kept — see [Branding](#branding) |
 | `Settings:Directory`             | No                              | `<content root>/App_Data/settings`    | Where the tool's own settings are kept — see [Caching](#caching) |
@@ -496,6 +497,21 @@ and its count is the two added up. Home and a service's own pages keep one count
 they never disagree. Each page is sent before any store is asked; the lines follow once the store
 has answered, and a store is given 5 seconds before its lines say it could not be read. A store
 that is not configured says so instead, and is not asked.
+
+How long that is, is `Stores:Patience`, in whole seconds — a deployment setting rather than one of
+these, because it is a fact about how far away the store is and not a preference. **Five seconds is
+a number for a store on the same machine.** One reached over a network, counting a table worth
+counting, is routinely slower than that and is not broken for being so: a deployment whose tiles
+keep saying a healthy store could not be read is a deployment that should raise this. It stays the
+default because raising it costs every deployment and not only the slow ones — a read still running
+is a scope, a context and a pooled connection still held, and a store that has stopped answering
+holds one per tile for as long as this allows.
+
+A store that runs out of it says it did not answer in that many seconds, whatever its driver made of
+being abandoned mid-read. PostgreSQL in particular does not report the abandoning as a cancellation:
+Npgsql tears the connection down, the socket read fails on its own account, and EF Core wraps that as
+a failure likely to be transient. Reading that sentence off a tile would send whoever is looking
+after a fault the store does not have.
 
 The settings are kept in a file, not in any store, for the reason the branding is:
 

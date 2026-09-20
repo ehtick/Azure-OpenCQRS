@@ -12,6 +12,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 AuthenticationSettings authentication;
 AuthorizationSettings roles;
+StorePatience patience;
 
 try
 {
@@ -27,6 +28,10 @@ try
 
     // Which of the provider's claim values make an operator more than a Reader. Silence maps nobody.
     roles = AuthorizationSettings.Of(builder.Configuration);
+
+    // How long a store is given to answer, which is a fact about how far away it is: read here so
+    // that a number nobody can read is found now rather than by the first page that reads a store.
+    patience = StorePatience.Of(builder.Configuration);
 }
 catch (InvalidOperationException refusal)
 {
@@ -76,7 +81,8 @@ builder.Services.AddSingleton(new CachingSettingsStore(
     ?? Path.Combine(builder.Environment.ContentRootPath, "App_Data", "settings")));
 
 // What each service's store is doing, as Home says it: one for the process, so a count is kept
-// across visits.
+// across visits, and each read given as long as the configuration allows a store to answer.
+builder.Services.AddSingleton(patience);
 builder.Services.AddSingleton<ServiceActivity>();
 
 // Whether each row on a snapshots data page is behind its history: one for the process, so a
