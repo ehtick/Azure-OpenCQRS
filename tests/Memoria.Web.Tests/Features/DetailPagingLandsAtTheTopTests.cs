@@ -36,29 +36,14 @@ namespace Memoria.Web.Tests.Features;
 [Collection(nameof(TypeBindingsCollection))]
 public class DetailPagingLandsAtTheTopTests
 {
-    [Fact]
-    public async Task Lands_a_streamed_models_page_links_at_the_beginning_of_the_page()
+    [Theory]
+    [MemberData(nameof(DetailEventsTab.Pages), MemberType = typeof(DetailEventsTab))]
+    public async Task Lands_every_page_link_at_the_beginning_of_the_page(string model)
     {
-        using var web = MemoriaWeb.Open().WithSampleTypes().WithReads(DetailEventsTab.PagedHistory());
+        var (web, address) = await DetailEventsTab.Paged(model);
+        using var open = web;
 
-        var page = Markup.Plain(await web.Client.GetStringAsync(MemoriaWeb.SampleAggregateDetail("events")));
-
-        using var scope = new AssertionScope();
-
-        DetailEventsTab.PageLinks(page).Should().NotBeEmpty("a history of several pages is paged").And
-            .OnlyContain(link => link.EndsWith(DetailEventsTab.Landing, StringComparison.Ordinal));
-
-        DetailEventsTab.SizeAction(page).Should()
-            .EndWith(DetailEventsTab.Landing, "a change of size re-pages from the same line");
-    }
-
-    [Fact]
-    public async Task Lands_a_dcb_models_page_links_at_the_beginning_of_the_page()
-    {
-        using var web = MemoriaWeb.Open().WithSampleTypes();
-        await DetailEventsTab.FillTheBoundary(web);
-
-        var page = Markup.Plain(await web.Client.GetStringAsync(DetailEventsTab.Dcb));
+        var page = Markup.Plain(await web.Client.GetStringAsync(address));
 
         using var scope = new AssertionScope();
 
@@ -73,12 +58,14 @@ public class DetailPagingLandsAtTheTopTests
     /// Ordering the table is not paging it: it re-reads the rows the reader is already looking at,
     /// so it stays at the panel rather than taking them to the top of the page.
     /// </summary>
-    [Fact]
-    public async Task Leaves_what_acts_on_the_table_in_place_landing_at_the_panel()
+    [Theory]
+    [MemberData(nameof(DetailEventsTab.Pages), MemberType = typeof(DetailEventsTab))]
+    public async Task Leaves_what_acts_on_the_table_in_place_landing_at_the_panel(string model)
     {
-        using var web = MemoriaWeb.Open().WithSampleTypes().WithReads(DetailEventsTab.PagedHistory());
+        var (web, address) = await DetailEventsTab.Paged(model);
+        using var open = web;
 
-        var page = Markup.Plain(await web.Client.GetStringAsync(MemoriaWeb.SampleAggregateDetail("events")));
+        var page = Markup.Plain(await web.Client.GetStringAsync(address));
 
         DetailEventsTab.FoldAll(page).Should().EndWith("#events");
     }
@@ -94,34 +81,19 @@ public class DetailPagingLandsAtTheTopTests
 [Collection(nameof(TypeBindingsCollection))]
 public class DetailBackToTopTests
 {
-    [Fact]
-    public async Task Offers_a_way_back_to_the_top_of_a_streamed_models_history()
+    [Theory]
+    [MemberData(nameof(DetailEventsTab.Pages), MemberType = typeof(DetailEventsTab))]
+    public async Task Offers_a_way_back_to_the_top_of_a_models_history(string model)
     {
-        using var web = MemoriaWeb.Open().WithSampleTypes().WithReads(DetailEventsTab.PagedHistory());
+        var (web, address) = await DetailEventsTab.Paged(model);
+        using var open = web;
 
-        var page = Markup.Plain(await web.Client.GetStringAsync(MemoriaWeb.SampleAggregateDetail("events")));
+        var page = Markup.Plain(await web.Client.GetStringAsync(address));
 
         using var scope = new AssertionScope();
 
         DetailEventsTab.BackToTop(page).Should()
-            .StartWith("samples/streamed/aggregates/detail?", "it comes back to the page being read").And
-            .EndWith(DetailEventsTab.Landing, "at its very beginning");
-
-        DetailEventsTab.UnderTheCard(page).Should().BeTrue("the reader meets it after the last thing in the card");
-    }
-
-    [Fact]
-    public async Task Offers_a_way_back_to_the_top_of_a_dcb_models_history()
-    {
-        using var web = MemoriaWeb.Open().WithSampleTypes();
-        await DetailEventsTab.FillTheBoundary(web);
-
-        var page = Markup.Plain(await web.Client.GetStringAsync(DetailEventsTab.Dcb));
-
-        using var scope = new AssertionScope();
-
-        DetailEventsTab.BackToTop(page).Should()
-            .StartWith("samples/dcb/aggregates/detail?", "it comes back to the page being read").And
+            .StartWith($"samples/{model}/detail?", "it comes back to the page being read").And
             .EndWith(DetailEventsTab.Landing, "at its very beginning");
 
         DetailEventsTab.UnderTheCard(page).Should().BeTrue("the reader meets it after the last thing in the card");
@@ -131,37 +103,93 @@ public class DetailBackToTopTests
     /// A boundary with nothing inside it draws no table, so there is nothing to have scrolled past
     /// and no way back to offer.
     /// </summary>
-    [Fact]
-    public async Task Draws_no_way_back_where_there_is_no_history()
+    [Theory]
+    [InlineData(DetailEventsTab.DcbAggregate)]
+    [InlineData(DetailEventsTab.DcbProjection)]
+    public async Task Draws_no_way_back_where_there_is_no_history(string model)
     {
         using var web = MemoriaWeb.Open().WithSampleTypes();
         await DetailEventsTab.CreateTheStore(web);
 
-        var page = Markup.Plain(await web.Client.GetStringAsync(DetailEventsTab.Dcb));
+        var page = Markup.Plain(await web.Client.GetStringAsync(DetailEventsTab.Address(model)));
 
         using var scope = new AssertionScope();
 
         page.Should().NotContain("class=\"back-to-top\"");
-        page.Should().Contain("applies no events inside the boundary", "the premise is an empty tab");
+        page.Should().Contain("no events inside the boundary", "the premise is an empty tab");
     }
 }
 
 /// <summary>
-/// What the two classes above read: a detail page's events tab with a history long enough to page,
-/// and the parts of the rendered panel each asks about.
+/// What the two classes above read: each detail page's events tab, with a history long enough to
+/// page, and the parts of the rendered panel they ask about.
 /// </summary>
+/// <remarks>
+/// The two stores are filled differently on purpose. A DCB boundary is a query over tags, so real
+/// rows carrying the right tag are the only way to fill one; a streamed history is read through a
+/// port, which is cheaper to hand a page count than to seed one into. Either way what is being
+/// asked about is the shape of the links the panel draws around what it was given.
+/// </remarks>
 internal static class DetailEventsTab
 {
+    public const string StreamedAggregate = "streamed/aggregates";
+
+    public const string StreamedProjection = "streamed/projections";
+
+    public const string DcbAggregate = "dcb/aggregates";
+
+    public const string DcbProjection = "dcb/projections";
+
+    /// <summary>The four pages that read one stored model and list the history behind it.</summary>
+    public static TheoryData<string> Pages =>
+        [StreamedAggregate, StreamedProjection, DcbAggregate, DcbProjection];
+
     /// <summary>Where both ways off the foot of the table land. See PageTop.</summary>
     public const string Landing = "#top";
 
     /// <summary>Enough events in the boundary for there to be a second page at the default size.</summary>
     private const int Events = 11;
 
-    /// <summary>The DCB aggregate whose boundary the seeded events fall inside, on its events tab.</summary>
-    public static string Dcb =>
-        $"/samples/dcb/aggregates/detail?type={typeof(SampleCarryingDcbAggregate).FullName}" +
-        $"&id={typeof(SampleCarryingId).FullName}&sampleId=abc&tab=events";
+    /// <summary>The tag key each DCB pair is bounded by, which is one key per pair and no sharing.</summary>
+    private static string TagKey(string model) => model == DcbProjection ? "summarising" : "carrying";
+
+    /// <summary>
+    /// One model's events tab. A streamed model is addressed by where it is stored — the stream and
+    /// the key in it — and a DCB model by what bounds it: the identifier type, and the values it is
+    /// built from.
+    /// </summary>
+    public static string Address(string model) => model switch
+    {
+        StreamedAggregate => MemoriaWeb.SampleAggregateDetail("events"),
+        StreamedProjection =>
+            $"/samples/{StreamedProjection}/detail?type={typeof(SampleProjection).FullName}" +
+            "&stream=sample:1&id=sample-1:1&tab=events",
+        DcbAggregate =>
+            $"/samples/{DcbAggregate}/detail?type={typeof(SampleCarryingDcbAggregate).FullName}" +
+            $"&id={typeof(SampleCarryingId).FullName}&sampleId=abc&tab=events",
+        DcbProjection =>
+            $"/samples/{DcbProjection}/detail?type={typeof(SampleSummarisingDcbProjection).FullName}" +
+            $"&id={typeof(SampleSummarisingId).FullName}&sampleId=abc&tab=events",
+        _ => throw new ArgumentOutOfRangeException(nameof(model), model, "No detail page is named that.")
+    };
+
+    /// <summary>One model's events tab, with more history behind it than one page holds.</summary>
+    public static async Task<(MemoriaWeb Web, string Address)> Paged(string model)
+    {
+        var streamed = model is StreamedAggregate or StreamedProjection;
+        var web = MemoriaWeb.Open().WithSampleTypes();
+
+        if (streamed)
+        {
+            web = web.WithReads(PagedHistory(model));
+        }
+        else
+        {
+            await FillTheBoundary(web, TagKey(model));
+        }
+
+        return (web, Address(model));
+    }
 
     /// <summary>The addresses in the pager under the table, which are the pages to go to.</summary>
     public static string[] PageLinks(string page)
@@ -202,13 +230,14 @@ internal static class DetailEventsTab
         page.IndexOf("<div class=\"table-footer\">", StringComparison.Ordinal);
 
     /// <summary>
-    /// A streamed model whose history runs to more pages than one. Read through the substitute
-    /// rather than a seeded store because what is being asked about is the shape of the links the
-    /// panel draws, and the pager is drawn from the totals the read hands back.
+    /// A streamed model whose history runs to more pages than one, read through the port the page
+    /// asks rather than out of a seeded store: the pager is drawn from the totals that read hands
+    /// back, which is the thing being varied here.
     /// </summary>
-    public static IStreamedReads PagedHistory()
+    private static IStreamedReads PagedHistory(string model)
     {
         var written = new DateTimeOffset(2026, 5, 6, 11, 15, 0, TimeSpan.Zero);
+        var stored = model == StreamedProjection ? "SampleProjection:1" : "SampleAggregate:1";
         var reads = Substitute.For<IStreamedReads>();
 
         StoredStreamEvent Row(long sequence) =>
@@ -224,7 +253,7 @@ internal static class DetailEventsTab
         reads.Model(Arg.Any<StreamedModelAddress>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(new ReadStreamModel(
                 new StoredStreamModel(
-                    "sample:1", "sample-1:1", "SampleAggregate:1", Version: Events, Sequence: Events,
+                    "sample:1", "sample-1:1", stored, Version: Events, Sequence: Events,
                     Data: "{}", written, CreatedBy: null, written, UpdatedBy: null),
                 Error: null)));
 
@@ -236,11 +265,11 @@ internal static class DetailEventsTab
     }
 
     /// <summary>
-    /// Enough events carrying the boundary's tag for the tab to page. Appended as a named operator:
-    /// the audit interceptor stamps whoever the request's accessor names, and a scope opened by a
-    /// test has no request until one is put on it.
+    /// Enough events carrying one pair's tag for its tab to page. Appended as a named operator: the
+    /// audit interceptor stamps whoever the request's accessor names, and a scope opened by a test
+    /// has no request until one is put on it.
     /// </summary>
-    public static async Task FillTheBoundary(MemoriaWeb web)
+    private static async Task FillTheBoundary(MemoriaWeb web, string key)
     {
         using var scope = web.Scope();
         scope.ServiceProvider.GetRequiredService<IHttpContextAccessor>().HttpContext = new DefaultHttpContext
@@ -258,7 +287,7 @@ internal static class DetailEventsTab
                 Position = position,
                 EventType = "SampleCarried:1",
                 Data = $$"""{"Id":"carried-{{position}}"}""",
-                Tags = { new DcbEventTagEntity { Tag = "carrying:abc" } }
+                Tags = { new DcbEventTagEntity { Tag = $"{key}:abc" } }
             });
         }
 

@@ -277,15 +277,42 @@ public class SampleCarryingDcbAggregate : DcbAggregateRoot
 
 /// <summary>
 /// What addresses <see cref="SampleCarryingDcbAggregate"/>. Named by a value called something other
-/// than <c>id</c>, which the detail page's address already uses for the identifier type itself —
-/// so this is the one DCB identifier here whose detail page can actually be reached, and a tag key
-/// of its own, so no row another model's identifier is tested against is claimed by this one.
+/// than <c>id</c>, which the detail page's address already uses for the identifier type itself — so
+/// this is one of the two DCB identifiers here whose detail page can actually be reached — and a
+/// tag key of its own, so no row another model's identifier is tested against is claimed by this
+/// one. The read model's pair is <see cref="SampleSummarisingId"/>.
 /// </summary>
 public class SampleCarryingId(string sampleId) : IDcbAggregateId<SampleCarryingDcbAggregate>
 {
     public string Id { get; } = sampleId;
 
     public TagQuery Boundary { get; } = TagQuery.AnyOf(new Tag("carrying", sampleId));
+}
+
+/// <summary>
+/// A DCB read model addressed the way <see cref="SampleCarryingDcbAggregate"/> is, so a projection's
+/// detail page can be reached and read the way a write model's can: the two pages are all but the
+/// same page, and one of them being untestable left half of what they share unwatched.
+/// </summary>
+[ProjectionType("SampleSummarisingProjection", 1)]
+public class SampleSummarisingDcbProjection : DcbProjection
+{
+    public override Type[]? EventTypeFilter => [typeof(SampleCarriedEvent)];
+
+    protected override bool Apply<T>(T @event) => false;
+}
+
+/// <summary>
+/// What addresses <see cref="SampleSummarisingDcbProjection"/>, named and bounded on the same two
+/// rules <see cref="SampleCarryingId"/> is: a value called something other than <c>id</c>, so the
+/// detail page's address has room for it, and a tag key of its own, so the events written for this
+/// pair fall inside no other model's boundary.
+/// </summary>
+public class SampleSummarisingId(string sampleId) : IDcbProjectionId<SampleSummarisingDcbProjection>
+{
+    public string Id { get; } = sampleId;
+
+    public TagQuery Boundary { get; } = TagQuery.AnyOf(new Tag("summarising", sampleId));
 }
 
 /// <summary>
