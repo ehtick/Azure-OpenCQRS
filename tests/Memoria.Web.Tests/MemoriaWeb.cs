@@ -651,7 +651,16 @@ internal sealed class MemoriaWeb : WebApplicationFactory<Program>
             return;
         }
 
-        SqliteConnection.ClearAllPools();
+        // This instance's own stores and no others: see SqliteStore for what emptying every pool in
+        // the process was doing to the tests running beside this one.
+        try
+        {
+            SqliteStore.LetGo(Directory.EnumerateFiles(_scratch, "*.db", SearchOption.AllDirectories).ToArray());
+        }
+        catch (DirectoryNotFoundException)
+        {
+            // Nothing was opened, so there is nothing pooled to let go of.
+        }
 
         try
         {

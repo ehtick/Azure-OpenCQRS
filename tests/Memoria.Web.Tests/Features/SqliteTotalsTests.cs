@@ -94,7 +94,7 @@ public class SqliteTotalsTests : IAsyncLifetime
 
     public Task DisposeAsync()
     {
-        Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
+        SqliteStore.LetGo(_streamed, _dcb);
 
         foreach (var file in new[] { _streamed, _dcb })
         {

@@ -238,7 +238,7 @@ public class SqliteStreamedFiguresTests : IAsyncLifetime
 
     public Task DisposeAsync()
     {
-        Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
+        SqliteStore.LetGo(_file);
         File.Delete(_file);
         return Task.CompletedTask;
     }

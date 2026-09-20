@@ -43,6 +43,10 @@ public class ServiceStoresTests : IAsyncLifetime
 
     public Task DisposeAsync()
     {
+        // This test's own two stores. It used to be left to whichever instance emptied every pool
+        // in the process first — which is the thing that was breaking other tests.
+        SqliteStore.LetGo(FileA, FileB);
+
         if (Directory.Exists(_directory))
         {
             Directory.Delete(_directory, recursive: true);

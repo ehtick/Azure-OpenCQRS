@@ -137,7 +137,7 @@ public class SqliteBoundaryEventsTests : IAsyncLifetime
     public Task DisposeAsync()
     {
         TypeBindings.EventTypeBindings = _bindings;
-        Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
+        SqliteStore.LetGo(_file);
         try
         {
             File.Delete(_file);

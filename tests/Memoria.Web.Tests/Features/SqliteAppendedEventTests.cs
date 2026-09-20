@@ -92,7 +92,7 @@ public class SqliteAppendedEventTests : IAsyncLifetime
 
     public Task DisposeAsync()
     {
-        Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
+        SqliteStore.LetGo(_file);
 
         try
         {

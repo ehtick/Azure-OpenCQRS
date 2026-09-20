@@ -78,7 +78,7 @@ public class SqliteModelReaderTests : IAsyncLifetime
 
     public Task DisposeAsync()
     {
-        Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
+        SqliteStore.LetGo(_file);
         try
         {
             File.Delete(_file);
