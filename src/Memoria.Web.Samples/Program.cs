@@ -45,10 +45,11 @@ builder.Services.AddSampleStore(database, builder.Configuration);
 
 var host = builder.Build();
 
-using var scope = host.Services.CreateScope();
-var services = scope.ServiceProvider;
-
-var store = services.GetRequiredService<ISampleStore>();
+// The scope the store is installed from, which is over before the first operation runs: each of
+// those takes a scope of its own, so that a run doing one thing after another is not doing them
+// all through one context holding everything every operation before it touched.
+using var installation = host.Services.CreateScope();
+var store = installation.ServiceProvider.GetRequiredService<ISampleStore>();
 
 Console.WriteLine("Memoria.Web.Samples");
 Console.WriteLine($"  store    : {database.Provider}");
@@ -78,46 +79,81 @@ catch (Exception exception) when (exception is not OperationCanceledException)
     return 1;
 }
 
-var action = Menu.AskForAction();
+// One operation after another, until whoever is running it has had enough: an answer is rarely the
+// only thing somebody wants to do to a store, and a run that ended after one meant starting the tool
+// again to do the next. Any question left unanswered — Esc at the keyboard, the end of a pipe — is
+// the way out.
+var didSomething = false;
 
-if (action == SampleDataAction.None)
+while (true)
 {
-    Console.WriteLine("Nothing chosen. Nothing done.");
-    return 0;
-}
+    var action = Menu.AskForAction();
 
-// A deletion on its own clears everything the store holds; a deletion before a write clears what is
-// about to be written, so that the run leaves the store holding exactly what it just put there.
-// Either way the scope never reaches past what this store has in it — a Cosmos store has no dynamic
-// consistency boundary, so neither half of this offers one.
-var scopeOfRun = action == SampleDataAction.DeleteAll
-    ? store.Holds
-    : Menu.AskForScope(store.Holds);
-
-if (scopeOfRun == SampleDataScope.None)
-{
-    Console.WriteLine("Nothing chosen. Nothing done.");
-    return 0;
-}
-
-if (action is SampleDataAction.ReplaceAll or SampleDataAction.DeleteAll)
-{
-    Console.WriteLine();
-
-    foreach (var (table, rows) in await store.Erase(scopeOfRun))
+    if (action == SampleDataAction.None)
     {
-        Console.WriteLine($"deleted {rows,7} from {table}");
+        break;
     }
+
+    // A deletion on its own clears everything the store holds; a deletion before a write clears what
+    // is about to be written, so that the operation leaves the store holding exactly what it just put
+    // there. Either way the scope never reaches past what this store has in it — a Cosmos store has
+    // no dynamic consistency boundary, so neither half of this offers one.
+    var scopeOfRun = action == SampleDataAction.DeleteAll
+        ? store.Holds
+        : Menu.AskForScope(store.Holds);
+
+    if (scopeOfRun == SampleDataScope.None)
+    {
+        break;
+    }
+
+    int? items = null;
+
+    if (action is SampleDataAction.Add or SampleDataAction.ReplaceAll)
+    {
+        var count = Menu.AskForCount();
+
+        if (count is null)
+        {
+            break;
+        }
+
+        items = count == Menu.ARandomHandful ? null : count;
+    }
+
+    // Its own scope, so that what this operation reads and writes is not read through contexts
+    // still holding everything the one before it touched.
+    using (var work = host.Services.CreateScope())
+    {
+        var services = work.ServiceProvider;
+
+        if (action is SampleDataAction.ReplaceAll or SampleDataAction.DeleteAll)
+        {
+            Console.WriteLine();
+
+            foreach (var (table, rows) in await services.GetRequiredService<ISampleStore>().Erase(scopeOfRun))
+            {
+                Console.WriteLine($"deleted {rows,7} from {table}");
+            }
+        }
+
+        if (action is SampleDataAction.Add or SampleDataAction.ReplaceAll)
+        {
+            await Seed(services, scopeOfRun, items);
+        }
+    }
+
+    didSomething = true;
 }
 
-if (action is SampleDataAction.Add or SampleDataAction.ReplaceAll)
+if (!didSomething)
 {
-    await Seed(scopeOfRun);
+    Console.WriteLine("Nothing chosen. Nothing done.");
 }
 
 return 0;
 
-async Task Seed(SampleDataScope what)
+async Task Seed(IServiceProvider services, SampleDataScope what, int? items)
 {
     var random = new Random();
     var time = services.GetRequiredService<TimeProvider>();
@@ -125,12 +161,13 @@ async Task Seed(SampleDataScope what)
 
     if (what.HasFlag(SampleDataScope.Streamed))
     {
-        await StreamedSampleData.Add(services.GetRequiredService<IDomainService>(), random, time, report);
+        await StreamedSampleData.Add(
+            services.GetRequiredService<IDomainService>(), random, time, report, items);
     }
 
     if (what.HasFlag(SampleDataScope.Dcb))
     {
-        await DcbSampleData.Add(services.GetRequiredService<IDcbDomainService>(), random, report);
+        await DcbSampleData.Add(services.GetRequiredService<IDcbDomainService>(), random, report, items);
     }
 
     await report.Print();

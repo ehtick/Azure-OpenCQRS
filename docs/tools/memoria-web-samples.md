@@ -101,23 +101,31 @@ Memoria.Web.Samples
   schema   : installed
 ```
 
-It then asks two questions, answered by number on standard input:
+It then asks what to do, answered by number on standard input:
 
-| Answer | Action                                               |
-| ------ | ---------------------------------------------------- |
-| `1`    | Add — writes alongside whatever is already there     |
-| `2`    | Replace — empties the store, then writes             |
-| `3`    | Delete — empties the store and writes nothing        |
-| (none) | Nothing chosen; the run stops without touching a row |
+| Answer | Action                                            |
+| ------ | ------------------------------------------------- |
+| `1`    | Add — writes alongside whatever is already there  |
+| `2`    | Replace — empties the store, then writes          |
+| `3`    | Delete — empties the store and writes nothing     |
+| Esc    | Quit; the run ends without touching another row   |
 
 Then, **only when the store holds both models**, which data to write: `1` streamed, `2` DCB, `3`
 both. A Cosmos store holds the streamed model only, so it is never asked there.
 
-End of input counts as an answer — it means nobody is there to answer — so a piped run works and an
+Then, for anything that writes, how many of each item: a number, or enter for a random handful. One
+number covers every kind the run writes — customers and reviewed products on the streamed side,
+products, orders and suppliers on the DCB side. What hangs off each of them is still as many as the
+seeding feels like.
+
+The menu comes back when the operation has finished, so one run can add, look at the store, and
+replace or delete without being started again. Esc at any of the questions ends it.
+
+End of input counts as Esc — it means nobody is there to answer — so a piped run works and an
 unattended one stops rather than hanging:
 
 ```bash
-echo "2" | dotnet run --project src/Memoria.Web.Samples
+printf '1\n3\n25\n' | dotnet run --project src/Memoria.Web.Samples
 ```
 
 Exit code `0` means the run finished, including a run where nothing was chosen; `1` means the store
@@ -148,9 +156,9 @@ have an **Update** waiting for them in the tool:
 
 ```
 store    kind       model                 identifier            values     snapshot
-streamed aggregate  Order                 OrderId               o-5b0f     v4, up to date
-streamed aggregate  CustomerAccount       CustomerAccountId     c-37e7     v2 of 6 — 4 behind
-streamed projection OrderSummary          OrderSummaryId        o-a6f6     no snapshot — 2 events waiting
+streamed aggregate  Order                 OrderId               o-o5lwx2   v4, up to date
+streamed aggregate  CustomerAccount       CustomerAccountId     c-o5lwx1   v2 of 6 — 4 behind
+streamed projection OrderSummary          OrderSummaryId        o-o5lwxc   no snapshot — 2 events waiting
 ```
 
 ## 3. Package the sample assemblies

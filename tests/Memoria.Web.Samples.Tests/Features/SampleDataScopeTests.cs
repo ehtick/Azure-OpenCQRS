@@ -18,34 +18,27 @@ namespace Memoria.Web.Samples.Tests.Features;
 /// so offering the choice would be offering something that cannot be done. The store says what it
 /// holds and the question is narrowed to that.
 /// <para>
-/// The answer is read from standard input, so these redirect it. End of input means nobody answered,
-/// which the menu reports as <see cref="SampleDataScope.None"/> — that is what makes a question
-/// asked distinguishable here from one that was not.
+/// The answers are handed in rather than typed. Running out of them means nobody answered, which
+/// the menu reports as <see cref="SampleDataScope.None"/> — that is what makes a question asked
+/// distinguishable here from one that was not.
 /// </para>
 /// </remarks>
 public class SampleDataScopeTests : IDisposable
 {
-    private readonly TextReader _input = Console.In;
     private readonly TextWriter _output = Console.Out;
 
     public SampleDataScopeTests() => Console.SetOut(new StringWriter());
 
-    public void Dispose()
-    {
-        Console.SetIn(_input);
-        Console.SetOut(_output);
-    }
+    public void Dispose() => Console.SetOut(_output);
 
     /// <summary>
-    /// Nothing is asked when only one kind can be written. Proven by leaving standard input empty:
-    /// a question asked would find no answer there and come back as nothing chosen.
+    /// Nothing is asked when only one kind can be written. Proven by handing over no answers at
+    /// all: a question asked would find none and come back as nothing chosen.
     /// </summary>
     [Fact]
     public void Does_not_ask_which_data_when_the_store_holds_only_one_kind()
     {
-        Console.SetIn(new StringReader(string.Empty));
-
-        Menu.AskForScope(SampleDataScope.Streamed).Should().Be(SampleDataScope.Streamed);
+        Menu.AskForScope(SampleDataScope.Streamed, Answers.Of()).Should().Be(SampleDataScope.Streamed);
     }
 
     [Theory]
@@ -54,17 +47,23 @@ public class SampleDataScopeTests : IDisposable
     [InlineData("3", SampleDataScope.Both)]
     public void Offers_every_kind_and_both_when_the_store_holds_both(string answer, SampleDataScope expected)
     {
-        Console.SetIn(new StringReader(answer));
-
-        Menu.AskForScope(SampleDataScope.Both).Should().Be(expected);
+        Menu.AskForScope(SampleDataScope.Both, Answers.Of(answer)).Should().Be(expected);
     }
 
     [Fact]
     public void Reports_nothing_chosen_when_a_question_it_asked_goes_unanswered()
     {
-        Console.SetIn(new StringReader(string.Empty));
+        Menu.AskForScope(SampleDataScope.Both, Answers.Of()).Should().Be(SampleDataScope.None);
+    }
 
-        Menu.AskForScope(SampleDataScope.Both).Should().Be(SampleDataScope.None);
+    /// <summary>
+    /// The way out of the menu the run comes back to after every operation: Esc, which arrives as
+    /// no answer, and nothing chosen is what ends the run.
+    /// </summary>
+    [Fact]
+    public void Reports_nothing_chosen_when_the_run_is_asked_to_quit()
+    {
+        Menu.AskForAction(Answers.Of()).Should().Be(SampleDataAction.None);
     }
 
     /// <summary>

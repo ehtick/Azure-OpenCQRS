@@ -5,8 +5,8 @@ namespace Memoria.Web.Samples.Seeding;
 /// </summary>
 /// <remarks>
 /// Identifiers are readable and short on purpose. Someone reading a run's report has to type them
-/// back into the web tool by hand, and a GUID is a poor thing to copy off a terminal. The four-digit
-/// suffix is there so a second run adds to the store rather than colliding with the first.
+/// back into the web tool by hand, and a GUID is a poor thing to copy off a terminal. What keeps
+/// them apart is counted rather than drawn: see <see cref="Id"/>.
 /// </remarks>
 public static class SampleVocabulary
 {
@@ -107,20 +107,27 @@ public static class SampleVocabulary
     /// <summary>
     /// An identifier of the given kind, short enough to retype.
     /// </summary>
-    public static string Id(Random random, string prefix) => $"{prefix}-{Token(random)}";
+    /// <remarks>
+    /// Counted rather than drawn. An identifier is the key a model is stored under, so the second
+    /// one issued twice is not a coincidence the store shrugs off — it is a row rejected by a
+    /// primary key half way through a run. Four hexadecimal digits, which is what this used to
+    /// draw, are sixty thousand identifiers, and a run of five hundred customers has better than
+    /// an even chance of drawing one of them twice; a large run found it every time.
+    /// </remarks>
+    public static string Id(string prefix) => $"{prefix}-{Token()}";
 
     /// <summary>
     /// A stock keeping unit, made from the product's name so the two are recognisably the same
     /// thing in a listing.
     /// </summary>
-    public static string Sku(Random random, string productName)
+    public static string Sku(string productName)
     {
         var letters = new string(productName
             .Split(' ', StringSplitOptions.RemoveEmptyEntries)
             .Select(word => char.ToUpperInvariant(word[0]))
             .ToArray());
 
-        return $"{letters}-{Token(random)}";
+        return $"{letters}-{Token()}";
     }
 
     /// <summary>
@@ -161,7 +168,57 @@ public static class SampleVocabulary
     /// </summary>
     public static bool Chance(Random random, int percent) => random.Next(100) < percent;
 
-    private static string Token(Random random) => random.Next(0x1000, 0x10000).ToString("x4");
-
     private static string Pick(Random random, string[] from) => from[random.Next(from.Length)];
+
+    /// <summary>The digits identifiers are counted in: as many as a keyboard offers per stroke.</summary>
+    private const string Digits = "0123456789abcdefghijklmnopqrstuvwxyz";
+
+    /// <summary>
+    /// How many seconds a run's mark covers before it comes round again, which is a little under
+    /// three weeks. Long enough that a store is unlikely to still hold a run that old, and short
+    /// enough that the mark is four characters rather than seven.
+    /// </summary>
+    private const long Cycle = 36L * 36 * 36 * 36;
+
+    /// <summary>What this run's identifiers start with, so no earlier run's can be one of them.</summary>
+    private static readonly string ThisRun = Run(DateTimeOffset.UtcNow, new Random().Next(36));
+
+    /// <summary>How many identifiers this run has issued.</summary>
+    private static int _issued;
+
+    /// <summary>
+    /// What marks one run's identifiers apart from another's: the second it started in, and a
+    /// character drawn for the two runs that start in the same one.
+    /// </summary>
+    /// <remarks>
+    /// The moment does the work, because the runs that must not collide are runs against the same
+    /// store and those happen minutes apart, not microseconds. The drawn character is for the pair
+    /// that really does start together — two terminals, or a run restarted the instant it was
+    /// stopped — where a moment alone would hand both the same identifiers.
+    /// </remarks>
+    internal static string Run(DateTimeOffset moment, int drawn) =>
+        Counted(moment.ToUnixTimeSeconds() % Cycle).PadLeft(4, '0') + Digits[drawn % Digits.Length];
+
+    /// <summary>
+    /// The next identifier nobody has had, which is this run's mark and a count after it.
+    /// </summary>
+    /// <remarks>
+    /// Counted under a lock of its own, so that a run issuing identifiers from more than one place
+    /// at once still issues each of them once.
+    /// </remarks>
+    private static string Token() => ThisRun + Counted(Interlocked.Increment(ref _issued));
+
+    private static string Counted(long count)
+    {
+        var digits = new Stack<char>();
+
+        do
+        {
+            digits.Push(Digits[(int)(count % Digits.Length)]);
+            count /= Digits.Length;
+        }
+        while (count > 0);
+
+        return new string(digits.ToArray());
+    }
 }

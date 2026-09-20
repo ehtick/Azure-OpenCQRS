@@ -9,6 +9,12 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <!-- So the menu's questions can be answered from a test, where there is no keyboard to read
+             a key from and no console to redirect. -->
+        <InternalsVisibleTo Include="Memoria.Web.Samples.Tests" />
+    </ItemGroup>
+
+    <ItemGroup>
         <!-- The sample domain, one project per consistency model, so that either can be zipped and
              uploaded on its own: the tool lays itself out for the models it finds types under. -->
         <ProjectReference Include="..\Memoria.Web.Samples.Streamed\Memoria.Web.Samples.Streamed.csproj" />

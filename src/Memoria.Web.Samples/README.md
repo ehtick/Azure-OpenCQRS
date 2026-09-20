@@ -25,15 +25,16 @@ see [Point it at a store](#point-it-at-a-store) for the others.
 
 ## What it asks
 
-Two questions, answered by number on standard input. End of input is an answer too:
-it means nobody is there to answer, so the run stops rather than looping.
+Up to three questions, answered by number on standard input. Esc ends the run, and
+end of input is the same answer: it means nobody is there to answer, so the run stops
+rather than looping.
 
-| Answer | Action                                               |
-| ------ | ---------------------------------------------------- |
-| `1`    | Add — writes alongside whatever is already there     |
-| `2`    | Replace — empties the store, then writes             |
-| `3`    | Delete — empties the store and writes nothing        |
-| (none) | Nothing chosen; the run stops without touching a row |
+| Answer | Action                                          |
+| ------ | ----------------------------------------------- |
+| `1`    | Add — writes alongside whatever is already there |
+| `2`    | Replace — empties the store, then writes        |
+| `3`    | Delete — empties the store and writes nothing   |
+| Esc    | Quit; the run ends without touching another row |
 
 Then, **only when the store holds both models**, which data:
 
@@ -45,6 +46,21 @@ Then, **only when the store holds both models**, which data:
 
 A Cosmos store holds the streamed model only, so this question is not asked there —
 see [Limits](#limits).
+
+Then, **only for an action that writes**, how many of each item:
+
+| Answer   | Items                                                            |
+| -------- | ---------------------------------------------------------------- |
+| a number | That many of every kind the run writes                           |
+| (enter)  | A random handful, which is what the run wrote before it was asked |
+
+One number covers every kind: customers and reviewed products on the streamed side,
+products, orders and suppliers on the DCB side. What hangs off each of them — an
+order's lines, a product's stock, a supplier's purchase orders — is still as many as
+the seeding feels like, because that variety is the point of the sample data.
+
+The menu comes back once the operation has finished, so one run can add, look at the
+store, and then replace or delete without being started again.
 
 | Exit code | Meaning                                                    |
 | --------- | ---------------------------------------------------------- |
@@ -88,9 +104,9 @@ waiting for them in the tool:
 
 ```
 store    kind       model                 identifier            values     snapshot
-streamed aggregate  Order                 OrderId               o-5b0f     v4, up to date
-streamed aggregate  CustomerAccount       CustomerAccountId     c-37e7     v2 of 6 — 4 behind
-streamed projection OrderSummary          OrderSummaryId        o-a6f6     no snapshot — 2 events waiting
+streamed aggregate  Order                 OrderId               o-o5lwx2   v4, up to date
+streamed aggregate  CustomerAccount       CustomerAccountId     c-o5lwx1   v2 of 6 — 4 behind
+streamed projection OrderSummary          OrderSummaryId        o-o5lwxc   no snapshot — 2 events waiting
 ```
 
 ## Point it at a store
@@ -137,7 +153,7 @@ Every setting can be overridden on the command line, which is how to point a run
 scratch store rather than the one in `appsettings.json`:
 
 ```bash
-echo "1" | dotnet run --project src/Memoria.Web.Samples -- \
+printf '1\n25\n' | dotnet run --project src/Memoria.Web.Samples -- \
   "--ConnectionStrings:Memoria=AccountEndpoint=https://localhost:8081/;AccountKey=<key>" \
   "--Database:Cosmos:DatabaseName=MemoriaScratch"
 ```

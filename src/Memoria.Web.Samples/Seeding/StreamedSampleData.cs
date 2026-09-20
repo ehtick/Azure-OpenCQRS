@@ -27,21 +27,26 @@ namespace Memoria.Web.Samples.Seeding;
 /// </remarks>
 public static class StreamedSampleData
 {
+    /// <param name="items">
+    /// How many customers to write, and how many products to collect reviews for. Null for however
+    /// many this feels like, which is what a run that was not asked for a number gets.
+    /// </param>
     public static async Task Add(
         IDomainService store,
         Random random,
         TimeProvider time,
         SeedReport report,
+        int? items = null,
         CancellationToken cancellationToken = default)
     {
-        var customers = random.Next(2, 5);
+        var customers = items ?? random.Next(2, 5);
 
         for (var customer = 0; customer < customers; customer++)
         {
             await AddCustomer(store, random, time, report, cancellationToken);
         }
 
-        var reviewedProducts = random.Next(1, 4);
+        var reviewedProducts = items ?? random.Next(1, 4);
 
         for (var product = 0; product < reviewedProducts; product++)
         {
@@ -56,7 +61,7 @@ public static class StreamedSampleData
         SeedReport report,
         CancellationToken cancellationToken)
     {
-        var customerId = Id(random, "c");
+        var customerId = Id("c");
         var stream = new CustomerStreamId(customerId);
         var orders = random.Next(1, 5);
 
@@ -108,7 +113,7 @@ public static class StreamedSampleData
         SeedReport report,
         CancellationToken cancellationToken)
     {
-        var orderId = Id(random, "o");
+        var orderId = Id("o");
         var steps = Script(orderId, customerId, random, time);
 
         // How much of the order's life the snapshot is written at. Half the time that is all of it;
@@ -256,7 +261,7 @@ public static class StreamedSampleData
         SeedReport report,
         CancellationToken cancellationToken)
     {
-        var productId = Id(random, "p");
+        var productId = Id("p");
         var stream = new ProductReviewStreamId(productId);
         var reviews = random.Next(1, 4);
 
@@ -298,8 +303,8 @@ public static class StreamedSampleData
         SeedReport report,
         CancellationToken cancellationToken)
     {
-        var reviewId = Id(random, "r");
-        var customerId = Id(random, "c");
+        var reviewId = Id("r");
+        var customerId = Id("c");
         var sequence = await LatestSequence(store, stream, cancellationToken);
 
         if (Chance(random, 30))
@@ -377,7 +382,7 @@ public static class StreamedSampleData
             .Select(_ =>
             {
                 var product = ProductName(random);
-                return (Sku: Sku(random, product), Quantity: random.Next(1, 4), Price: Price(random, 5, 250));
+                return (Sku: Sku(product), Quantity: random.Next(1, 4), Price: Price(random, 5, 250));
             })
             .DistinctBy(line => line.Sku)
             .ToList();
@@ -410,7 +415,7 @@ public static class StreamedSampleData
             return steps;
         }
 
-        steps.Add(order => order.Pay($"pay-{Id(random, "ref")}"));
+        steps.Add(order => order.Pay($"pay-{Id("ref")}"));
 
         if (!Chance(random, 75))
         {

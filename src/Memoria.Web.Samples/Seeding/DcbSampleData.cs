@@ -35,22 +35,34 @@ public static class DcbSampleData
         IReadOnlyList<string> Keywords,
         IReadOnlyList<ProductVariant> Variants);
 
+    /// <param name="items">
+    /// How many products to put in the catalogue, how many orders to hold stock for, and how many
+    /// suppliers to buy from. Null for however many this feels like, which is what a run that was
+    /// not asked for a number gets.
+    /// </param>
     public static async Task Add(
         IDcbDomainService dcb,
         Random random,
         SeedReport report,
+        int? items = null,
         CancellationToken cancellationToken = default)
     {
+        // Drawn once each rather than in the loop conditions, where a fresh number every turn would
+        // be a different question — how likely one more is — than the one being asked here.
+        var catalogued = items ?? random.Next(3, 7);
+        var placed = items ?? random.Next(2, 6);
+        var boughtFrom = items ?? random.Next(1, 3);
+
         var products = new List<SeededProduct>();
 
-        for (var index = 0; index < random.Next(3, 7); index++)
+        for (var index = 0; index < catalogued; index++)
         {
             products.Add(await AddProduct(dcb, random, report, cancellationToken));
         }
 
         var orders = new List<string>();
 
-        for (var index = 0; index < random.Next(2, 6); index++)
+        for (var index = 0; index < placed; index++)
         {
             orders.Add(await AddOrder(dcb, products, random, report, cancellationToken));
         }
@@ -58,9 +70,9 @@ public static class DcbSampleData
         var suppliers = new List<string>();
         var purchaseOrders = new List<string>();
 
-        for (var index = 0; index < random.Next(1, 3); index++)
+        for (var index = 0; index < boughtFrom; index++)
         {
-            var supplierId = Id(random, "s");
+            var supplierId = Id("s");
             suppliers.Add(supplierId);
             var raised = new List<string>();
 
@@ -110,7 +122,7 @@ public static class DcbSampleData
         var price = Price(random, 5, 250);
 
         var product = new SeededProduct(
-            Id(random, "p"), Sku(random, name), name, price,
+            Id("p"), Sku(name), name, price,
             Packaging(random), ProductKeywords(random, random.Next(2, 5)), Variants(random, price));
 
         var creationId = new ProductCreationId(product.ProductId, product.Sku);
@@ -125,7 +137,7 @@ public static class DcbSampleData
         {
             var quantity = random.Next(5, 40);
             await Decide(dcb, stockId, report, cancellationToken,
-                model => model.Replenish(quantity, $"gr-{Id(random, "n")}"));
+                model => model.Replenish(quantity, $"gr-{Id("n")}"));
         }
 
         return product;
@@ -146,7 +158,7 @@ public static class DcbSampleData
         SeedReport report,
         CancellationToken cancellationToken)
     {
-        var orderId = Id(random, "o");
+        var orderId = Id("o");
 
         foreach (var product in Sample(products, random.Next(1, 4), random))
         {
@@ -174,7 +186,7 @@ public static class DcbSampleData
         SeedReport report,
         CancellationToken cancellationToken)
     {
-        var purchaseOrderId = Id(random, "po");
+        var purchaseOrderId = Id("po");
         var id = new PurchaseOrderId(purchaseOrderId);
 
         await Decide(dcb, id, report, cancellationToken,
@@ -372,7 +384,7 @@ public static class DcbSampleData
             return null;
         }
 
-        var latest = Id(random, "o");
+        var latest = Id("o");
 
         foreach (var product in Sample(products, random.Next(1, 3), random))
         {
@@ -390,6 +402,14 @@ public static class DcbSampleData
     /// tool's refresh calls: read the latest snapshot, fold what arrived inside the boundary since,
     /// write it back. Called twice in a run, so which phase a model is picked in decides whether it
     /// ends up behind or current.
+    /// <para>
+    /// A line's reservation is refreshed only for the products an order actually holds, read from
+    /// the order's own holdings. Every other pairing of a product with an order folds a boundary
+    /// with nothing in it and snapshots a model of nothing — invisible in a run writing five
+    /// products and four orders, and every pair of a run writing five hundred of each: a quarter of
+    /// a million snapshots of nothing, which is both the slowest thing the run did and rows nobody
+    /// would want to open.
+    /// </para>
     /// </remarks>
     private static async Task Refresh(
         IDcbDomainService dcb,
@@ -426,10 +446,16 @@ public static class DcbSampleData
                 await dcb.UpdateProjection(new OrderHoldingsId(orderId), cancellationToken);
             }
 
-            foreach (var product in products.Where(_ => Chance(random, percent / 2)))
+            var holdings = (await dcb.GetInMemoryProjection(new OrderHoldingsId(orderId), cancellationToken)).Value!;
+
+            // What it holds and what it has had picked, because a line picked in full has left the
+            // first and is a line all the same: its reservation has a history to fold either way.
+            var lines = holdings.Reserved.Keys.Union(holdings.Picked.Keys);
+
+            foreach (var productId in lines.Where(_ => Chance(random, percent)))
             {
                 await dcb.UpdateProjection(
-                    new OrderLineReservationId(product.ProductId, orderId), cancellationToken);
+                    new OrderLineReservationId(productId, orderId), cancellationToken);
             }
         }
 
