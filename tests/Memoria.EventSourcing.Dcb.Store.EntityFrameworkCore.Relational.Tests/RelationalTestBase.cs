@@ -68,6 +68,24 @@ public abstract class RelationalTestBase : IAsyncLifetime
             TimeProvider,
             CreateHttpContextAccessor());
 
+    /// <summary>
+    /// Opens a context whose failures would be retried, as a deployment against a cloud database
+    /// configures one with <c>EnableRetryOnFailure</c>.
+    /// </summary>
+    /// <param name="interceptors">Optional interceptors, used to fail an attempt on purpose.</param>
+    /// <remarks>
+    /// See <see cref="RetryingExecutionStrategy"/> for why the strategy is supplied rather than the
+    /// provider's own being asked for.
+    /// </remarks>
+    protected TestDbContext CreateRetryingContext(params IInterceptor[] interceptors) =>
+        new(new DbContextOptionsBuilder<DcbDbContext>()
+                .UseSqlite(_connection,
+                    sqlite => sqlite.ExecutionStrategy(dependencies => new RetryingExecutionStrategy(dependencies)))
+                .AddInterceptors(interceptors)
+                .Options,
+            TimeProvider,
+            CreateHttpContextAccessor());
+
     public async Task InitializeAsync() => await Context.Database.EnsureCreatedAsync();
 
     public Task DisposeAsync()

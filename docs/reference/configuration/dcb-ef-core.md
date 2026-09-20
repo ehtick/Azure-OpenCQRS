@@ -50,6 +50,33 @@ services.AddMemoriaDcbEntityFrameworkCore<SchoolDbContext>(maxEventsPerAppend: 2
 
 Exceeding it fails with `memoria/batch-limit-exceeded` before anything is written.
 
+### Retrying transient failures
+
+A managed database drops connections for reasons neither side chose — a failover, a spell of
+maintenance, a pooled connection closed at the far end while it sat idle. Configure the provider to
+try those again as you would for any other context:
+
+```csharp
+services.AddDbContext<SchoolDbContext>(options =>
+    options.UseSqlServer(connectionString, sqlServer => sqlServer.EnableRetryOnFailure()));
+```
+
+An append runs as one retriable unit, so this needs nothing from you. The unit starts where the
+boundary is read and the tag heads are claimed, not where the transaction opens: the tokens read
+there are what the append is guarded on, so an attempt made again reads them afresh rather than
+reporting a conflict with an append nobody made.
+
+> **This did not used to work.** EF Core refuses to open a caller's own transaction under a strategy
+> that retries, and an append opens one — so every append against a retrying registration failed
+> with `memoria/storage-failure`, whatever was wrong. If you have been unable to enable retries,
+> this is why.
+
+What a retry cannot decide for you is whether an append that was already committed is safe to make
+again. A **conditioned** append answers that itself: if the first attempt committed and only its
+acknowledgement was lost, the boundary has moved and the attempt made again is refused with
+`memoria/concurrency-conflict` rather than writing twice. An **unconditional** append has nothing to
+be refused by, so if you care about exactly-once under retries, give it a condition.
+
 ## Schema
 
 Four tables, sharing nothing with the streamed store's three.

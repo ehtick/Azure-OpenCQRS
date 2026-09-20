@@ -59,37 +59,42 @@ public static partial class DcbDbContextExtensions
 
         try
         {
-            var heads = await dcbDbContext.ClaimTagHeads(affectedTags, condition, cancellationToken);
-
-            await using var transaction = await dcbDbContext.Database.BeginTransactionAsync(cancellationToken);
-
-            var lastPosition = AppendCondition.NoEvents;
-
-            if (events.Length > 0)
+            // Through the execution strategy, for the reasons on Appending: the events and the
+            // snapshot share one transaction, and a deployment that retries cannot open one this
+            // did not start.
+            return await dcbDbContext.Appending(async token =>
             {
-                var appendResult = await dcbDbContext.AppendCore(events, condition, affectedTags, heads,
-                    cancellationToken);
+                var heads = await dcbDbContext.ClaimTagHeads(affectedTags, condition, token);
 
-                if (appendResult.IsNotSuccess)
+                await using var transaction = await dcbDbContext.Database.BeginTransactionAsync(token);
+
+                var lastPosition = AppendCondition.NoEvents;
+
+                if (events.Length > 0)
                 {
-                    return appendResult.Failure!;
+                    var appendResult = await dcbDbContext.AppendCore(events, condition, affectedTags, heads, token);
+
+                    if (appendResult.IsNotSuccess)
+                    {
+                        return appendResult.Failure!;
+                    }
+
+                    lastPosition = appendResult.Value;
                 }
 
-                lastPosition = appendResult.Value;
-            }
+                if (aggregate.Version > 0)
+                {
+                    // The fold the caller started from may already be further along than this append,
+                    // when the aggregate handled nothing it just wrote.
+                    aggregate.LatestPosition = Math.Max(aggregate.LatestPosition, lastPosition);
 
-            if (aggregate.Version > 0)
-            {
-                // The fold the caller started from may already be further along than this append,
-                // when the aggregate handled nothing it just wrote.
-                aggregate.LatestPosition = Math.Max(aggregate.LatestPosition, lastPosition);
+                    await dcbDbContext.WriteSnapshot(aggregate.ToSnapshotEntity(aggregateId), token);
+                }
 
-                await dcbDbContext.WriteSnapshot(aggregate.ToSnapshotEntity(aggregateId), cancellationToken);
-            }
+                await transaction.CommitAsync(token);
 
-            await transaction.CommitAsync(cancellationToken);
-
-            return Result.Ok();
+                return Result.Ok();
+            }, cancellationToken);
         }
         catch (Exception exception)
         {

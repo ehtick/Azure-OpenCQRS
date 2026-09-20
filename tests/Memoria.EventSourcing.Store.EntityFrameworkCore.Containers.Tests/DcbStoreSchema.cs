@@ -18,6 +18,24 @@ internal static class DcbStoreSchema
     public static TestDbContext OnPostgreSql(string connectionString, params IInterceptor[] interceptors) =>
         Build(builder => builder.UseNpgsql(connectionString), interceptors);
 
+    /// <summary>
+    /// The same context, configured the way a deployment against a managed database is: the
+    /// provider's own retrying execution strategy, through <c>EnableRetryOnFailure</c>.
+    /// </summary>
+    /// <remarks>
+    /// The SQLite suite proves an append works under a strategy that retries, using one supplied for
+    /// the purpose. These prove it under the strategies that actually ship — which is the
+    /// configuration where every append failed before the append was run through the strategy.
+    /// </remarks>
+    public static TestDbContext OnSqlServerRetrying(string connectionString) =>
+        Build(builder => builder.UseSqlServer(connectionString,
+            sqlServer => sqlServer.EnableRetryOnFailure()), []);
+
+    /// <inheritdoc cref="OnSqlServerRetrying"/>
+    public static TestDbContext OnPostgreSqlRetrying(string connectionString) =>
+        Build(builder => builder.UseNpgsql(connectionString,
+            npgsql => npgsql.EnableRetryOnFailure()), []);
+
     private static TestDbContext Build(
         Func<DbContextOptionsBuilder<DcbDbContext>, DbContextOptionsBuilder> useProvider,
         IInterceptor[] interceptors)

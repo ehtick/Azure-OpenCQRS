@@ -72,26 +72,80 @@ public static partial class DcbDbContextExtensions
 
         try
         {
-            var heads = await dcbDbContext.ClaimTagHeads(affectedTags, condition, cancellationToken);
-
-            await using var transaction = await dcbDbContext.Database.BeginTransactionAsync(cancellationToken);
-
-            var appendResult = await dcbDbContext.AppendCore(events, condition, affectedTags, heads,
-                cancellationToken);
-            if (appendResult.IsNotSuccess)
+            // Outside the catch below, so the strategy is the one that decides what is worth trying
+            // again: a classifier inside it would turn every transient failure into a storage
+            // failure before the strategy ever saw it.
+            return await dcbDbContext.Appending(async token =>
             {
-                return appendResult.Failure!;
-            }
+                var heads = await dcbDbContext.ClaimTagHeads(affectedTags, condition, token);
 
-            await transaction.CommitAsync(cancellationToken);
+                await using var transaction = await dcbDbContext.Database.BeginTransactionAsync(token);
 
-            return Result.Ok();
+                var appendResult = await dcbDbContext.AppendCore(events, condition, affectedTags, heads, token);
+                if (appendResult.IsNotSuccess)
+                {
+                    return appendResult.Failure!;
+                }
+
+                await transaction.CommitAsync(token);
+
+                return Result.Ok();
+            }, cancellationToken);
         }
         catch (Exception exception)
         {
             return await dcbDbContext.AppendFailure(exception, operation, condition, affectedTags,
                 cancellationToken);
         }
+    }
+
+    /// <summary>
+    /// Runs one append through the store's execution strategy, so a deployment that retries
+    /// transient failures appends rather than failing.
+    /// </summary>
+    /// <param name="dcbDbContext">The context.</param>
+    /// <param name="append">The whole append, from reading the boundary to committing it.</param>
+    /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
+    /// <remarks>
+    /// <para>
+    /// EF Core refuses to open a caller's own transaction under a strategy that retries, unless the
+    /// whole unit is run through that strategy: a transaction it did not start is one it cannot
+    /// start again. An append opens one, so without this every append against a deployment
+    /// configured with <c>EnableRetryOnFailure</c> failed — and failed as
+    /// <c>memoria/storage-failure</c>, since the refusal is an <c>InvalidOperationException</c> like
+    /// any other the append did not expect.
+    /// </para>
+    /// <para>
+    /// The unit starts at the boundary read and the tag head claim, not at the transaction. The
+    /// tokens read there are what the append's update is guarded on, and an attempt made again on
+    /// tokens a rolled-back attempt read would be guarded on values the store no longer holds — it
+    /// would report a conflict with an append nobody made.
+    /// </para>
+    /// <para>
+    /// A boundary that moved leaves as a value rather than an exception, so it is answered once and
+    /// never tried again: the caller has to read the boundary and decide afresh, and asking the same
+    /// stale question three more times would only charge them for it.
+    /// </para>
+    /// </remarks>
+    private static Task<Result> Appending(this IDcbDbContext dcbDbContext,
+        Func<CancellationToken, Task<Result>> append, CancellationToken cancellationToken)
+    {
+        var attempt = 0;
+
+        return dcbDbContext.Database.CreateExecutionStrategy().ExecuteAsync(async token =>
+        {
+            // EF Core hands the same context to every attempt without resetting it, so what an
+            // attempt attached is still tracked when the next one starts and would collide with the
+            // rows it attaches. Only between attempts: clearing before the first would throw away
+            // whatever the caller had staged on the context, which has always been saved with the
+            // append.
+            if (attempt++ > 0)
+            {
+                dcbDbContext.ChangeTracker.Clear();
+            }
+
+            return await append(token);
+        }, cancellationToken);
     }
 
     /// <summary>

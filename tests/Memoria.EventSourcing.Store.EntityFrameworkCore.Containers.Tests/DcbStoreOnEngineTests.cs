@@ -38,6 +38,9 @@ public abstract partial class DcbStoreOnEngineTests
 
     protected abstract TestDbContext Connect(string connectionString, params IInterceptor[] interceptors);
 
+    /// <summary>Opens a context whose transient failures the provider would retry.</summary>
+    protected abstract TestDbContext ConnectRetrying(string connectionString);
+
     private static TaggedEvent Reserved(string seat, string student, params Tag[] tags) =>
         new(new SeatReservedEvent(seat, student), tags.Length > 0 ? tags : [new Tag("seat", seat)]);
 
@@ -267,6 +270,54 @@ public abstract partial class DcbStoreOnEngineTests
             result.IsSuccess.Should().BeTrue(
                 result.Failure is null ? "the append should succeed" : result.Failure.Description);
         });
+
+    /// <summary>
+    /// A deployment against a managed database configures its provider to retry transient failures,
+    /// and EF Core will not open a caller's own transaction under a strategy that retries unless the
+    /// whole unit runs through that strategy. An append opens one, so this is the configuration in
+    /// which every append used to fail — and fail as a storage failure, since the refusal arrives as
+    /// an <c>InvalidOperationException</c> like any other the append did not expect.
+    /// </summary>
+    [RequiresDockerFact]
+    public Task AnAppendSucceedsUnderTheProviderSRetryingStrategy() =>
+        WithRetryingDatabase(async dbContext =>
+        {
+            var result = await dbContext.SaveEvents([Reserved("a1", "s7")],
+                AppendCondition.NothingAppendedFor(TagQuery.AnyOf(SeatA1)));
+
+            result.IsSuccess.Should().BeTrue(
+                result.Failure is null ? "the append should succeed" : result.Failure.Description);
+        });
+
+    /// <summary>
+    /// The same for the path that writes a snapshot with the events, which is the one that actually
+    /// needs the two writes in one transaction.
+    /// </summary>
+    [RequiresDockerFact]
+    public Task AnAggregateIsSavedUnderTheProviderSRetryingStrategy() =>
+        WithRetryingDatabase(async dbContext =>
+        {
+            var aggregate = new SeatAggregate();
+            aggregate.Reserve("a1", "s7");
+
+            var result = await dbContext.SaveAggregate(new SeatId("a1"), aggregate, condition: null);
+
+            result.IsSuccess.Should().BeTrue(
+                result.Failure is null ? "the save should succeed" : result.Failure.Description);
+            (await dbContext.DcbSnapshots.CountAsync()).Should().Be(1);
+        });
+
+    /// <summary>
+    /// Runs the body against a fresh database, on a context configured the way a deployment against
+    /// a managed database is. The schema is made by the ordinary context, so this one finds it.
+    /// </summary>
+    private Task WithRetryingDatabase(Func<TestDbContext, Task> body) =>
+        WithDatabase(async (dbContext, _) =>
+        {
+            await using var retrying = ConnectRetrying(dbContext.Database.GetConnectionString()!);
+
+            await body(retrying);
+        });
 }
 
 [Trait("Category", "Container")]
@@ -277,6 +328,9 @@ public class SqlServerDcbStoreTests(SqlServerFixture fixture) : DcbStoreOnEngine
 
     protected override TestDbContext Connect(string connectionString, params IInterceptor[] interceptors) =>
         DcbStoreSchema.OnSqlServer(connectionString, interceptors);
+
+    protected override TestDbContext ConnectRetrying(string connectionString) =>
+        DcbStoreSchema.OnSqlServerRetrying(connectionString);
 }
 
 [Trait("Category", "Container")]
@@ -287,4 +341,7 @@ public class PostgreSqlDcbStoreTests(PostgreSqlFixture fixture) : DcbStoreOnEngi
 
     protected override TestDbContext Connect(string connectionString, params IInterceptor[] interceptors) =>
         DcbStoreSchema.OnPostgreSql(connectionString, interceptors);
+
+    protected override TestDbContext ConnectRetrying(string connectionString) =>
+        DcbStoreSchema.OnPostgreSqlRetrying(connectionString);
 }
