@@ -477,6 +477,12 @@ What is read is kept for one of two whiles, both set on the **Caching** tab of t
   visitor until it runs out: from 0, which counts on every visit, to 1440, a day. It is 5 until it
   is changed. Every count is kept for the same while, so none of them says when it was made. The
   newest date of the type being read comes out of the same read, so it is kept as long.
+
+  **Nobody waits for a count twice.** Each service's are read once as the tool starts, in the
+  background, before anyone visits. The visit that finds one has run out is handed the count there
+  is and the store is counted again behind it, so the new count is on the tile from the next visit.
+  A count that cannot be read is not handed out in place of a newer one: the next visitor waits and
+  is told what happened. A store the configuration does not open is not read at start-up at all.
 - **Recent figures kept for**, in seconds: a data page's total — how many rows its filter reaches —
   whether a row is behind its history, and when the newest was written where the store has to
   search for it: nothing orders a relational streamed log by date alone, and no store indexes the

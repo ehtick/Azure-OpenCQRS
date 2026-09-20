@@ -92,11 +92,12 @@ public class HomeActivityTests
 
     /// <summary>
     /// The last event is asked for on every visit, so an event written a moment ago is on the next
-    /// visit's tile; the count is kept, and handed back unchanged, until it has been kept for as long
-    /// as counts are kept.
+    /// visit's tile. The count is not: it is handed back unchanged while it is kept, and the visit
+    /// that finds it has run out is handed it all the same, while the store is counted again behind
+    /// that visit — so nobody waits for a count twice, and the new one is on the tile after it.
     /// </summary>
     [Fact]
-    public async Task Asks_for_the_last_event_every_visit_and_keeps_the_count_for_five_minutes()
+    public async Task Asks_for_the_last_event_every_visit_and_hands_back_the_count_while_it_is_counted_again()
     {
         var clock = new SetClock();
         using var web = MemoriaWeb.Open().WithSampleTypes().WithClock(clock);
@@ -108,13 +109,14 @@ public class HomeActivityTests
         await AppendStreamed(web, "sample:1", 1);
         var kept = Activity(await web.Client.GetStringAsync("/"));
         clock.Now = Start + TimeSpan.FromMinutes(5);
-        var counted = Activity(await web.Client.GetStringAsync("/"));
+        var runOut = Activity(await web.Client.GetStringAsync("/"));
 
         using var scope = new AssertionScope();
 
         kept.Should().Contain("Last event <time datetime=\"2026-01-01T12:02:00.0000000Z\"");
         kept.Should().Contain(">1 event</span>", "the count says how many and nothing more");
-        counted.Should().Contain(">2 events</span>");
+        runOut.Should().Contain(">1 event</span>", "the count it had, while the store is counted again");
+        (await Until(web, ">2 events</span>")).Should().Contain(">2 events</span>", "the count that came back");
     }
 
     /// <summary>How long a count is kept is the Administrator's to say, and a change to it is felt on the next visit.</summary>
@@ -130,9 +132,28 @@ public class HomeActivityTests
         await web.Client.GetStringAsync("/");
         clock.Now = Start + TimeSpan.FromMinutes(1);
         await AppendStreamed(web, "sample:1", 1);
-        var activity = Activity(await web.Client.GetStringAsync("/"));
 
-        activity.Should().Contain("2 events");
+        (await Until(web, ">2 events</span>")).Should().Contain(">2 events</span>");
+    }
+
+    /// <summary>Home's tile once what it says has come back with the words given, or the last one before giving up.</summary>
+    private static async Task<string> Until(MemoriaWeb web, string said)
+    {
+        var activity = string.Empty;
+
+        for (var waited = 0; waited < 50; waited++)
+        {
+            activity = Activity(await web.Client.GetStringAsync("/"));
+
+            if (activity.Contains(said, StringComparison.Ordinal))
+            {
+                return activity;
+            }
+
+            await Task.Delay(20);
+        }
+
+        return activity;
     }
 
     /// <summary>

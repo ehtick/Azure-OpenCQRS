@@ -93,7 +93,11 @@ public sealed class ServiceActivity(
     /// <summary>How long a store is given to answer before its tiles say it could not be read.</summary>
     public static readonly TimeSpan Patience = TimeSpan.FromSeconds(5);
 
-    private readonly FigureCache _counts = new(clock, () => settings.CountsKeptFor);
+    /// <summary>
+    /// Where the counts are kept. Handed back while they are read again: a count is a scan of a
+    /// whole table, and a page that waited for one would be waiting on what it could already say.
+    /// </summary>
+    private readonly FigureCache _counts = new(clock, () => settings.CountsKeptFor, handsBackWhileReading: true);
 
     /// <summary>
     /// Where a newest date the store cannot find at once is kept: for as long as recent figures
