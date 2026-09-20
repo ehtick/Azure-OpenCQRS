@@ -391,7 +391,8 @@ public sealed class ServiceActivity(
 
     /// <summary>
     /// Reads inside a scope put inside the service, with the patience a store is given, and turns a
-    /// store that failed or did not answer in time into the sentence its tiles say.
+    /// store that failed, did not answer in time, or would not close into the sentence its tiles
+    /// say.
     /// </summary>
     private async Task<Outcome<T>> Read<T>(
         Service service, Func<Inside, ShownModels, CancellationToken, Task<T>> read, CancellationToken cancellationToken)
@@ -412,15 +413,22 @@ public sealed class ServiceActivity(
         using var answering = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         answering.CancelAfter(patience.Waiting);
 
-        await using var scope = scopes.CreateAsyncScope();
-        scope.ServiceProvider.GetRequiredService<CurrentService>().Enter(service, catalogue);
-
-        var shown = ShownModels.Of(catalogue.For(service), store.Capabilities);
-        var inside = new Inside(scope.ServiceProvider, service, catalogue,
-            store.Database?.Provider is DatabaseProvider.Cosmos);
-
         try
         {
+            // The scope is opened and closed inside the guard rather than around it. Closing it is
+            // where a store is given the one instruction nobody waits for — close the connection —
+            // and a store can fail there as readily as it can fail a question: Npgsql says a
+            // command was still in flight as the connection closed, which arrives from the closing
+            // and not from the reading. Left outside, that failure walks past everything this
+            // method exists to do and is shown to whoever opened the page as a stack trace, in
+            // place of a page of tiles where one of them says what happened.
+            await using var scope = scopes.CreateAsyncScope();
+            scope.ServiceProvider.GetRequiredService<CurrentService>().Enter(service, catalogue);
+
+            var shown = ShownModels.Of(catalogue.For(service), store.Capabilities);
+            var inside = new Inside(scope.ServiceProvider, service, catalogue,
+                store.Database?.Provider is DatabaseProvider.Cosmos);
+
             return new Outcome<T>(await read(inside, shown, answering.Token), Problem: null);
         }
         // Whatever shape the failure arrives in, once the patience has run out. A driver that
