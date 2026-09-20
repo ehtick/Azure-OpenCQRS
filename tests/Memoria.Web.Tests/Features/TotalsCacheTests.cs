@@ -89,12 +89,12 @@ public class TotalsCacheTests
         store.Asked.Should().Be(2, "kept for two minutes the second ask is handed the first count, then ten seconds is past");
     }
 
-    /// <summary>The totals of a service's lists are kept for as long as the Caching tab says recent figures are.</summary>
+    /// <summary>The totals of a service's lists are kept for as long as the Caching tab says figures are.</summary>
     [Fact]
     public async Task Keeps_a_service_s_totals_for_as_long_as_the_setting_says()
     {
         using var web = MemoriaWeb.Open().WithSampleTypes();
-        web.Services.GetRequiredService<Memoria.Web.Data.CachingSettingsStore>().Save(5, recentKeptForSeconds: 0);
+        web.Services.GetRequiredService<Memoria.Web.Data.CachingSettingsStore>().Save(figuresKeptForSeconds: 0);
         var store = new Counting(42);
 
         await web.Totals().Total("events", store.Count);

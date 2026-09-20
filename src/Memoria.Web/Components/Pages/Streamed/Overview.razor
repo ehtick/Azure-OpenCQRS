@@ -1,9 +1,6 @@
 @page "/{service}/streamed"
-@attribute [StreamRendering]
-@using Memoria.Web.Data
 @using Memoria.Web.Extensibility
 @inject CurrentService Current
-@inject ServiceActivity Activity
 
 <PageTitle>Streamed @Heading</PageTitle>
 
@@ -19,8 +16,7 @@
 
 @* One tile a section, each the way into it and each the same shape — which is the shape the pages
    under it are entered by too, so a reader crossing from here to a section meets the same tile
-   twice rather than two arrangements of the same four words. What the section holds is counted on
-   it: the same fact whichever of the pages under it you go on to open. *@
+   twice rather than two arrangements of the same four words. *@
 <ul class="tiles">
     <li>
         <a href="@Service/streamed/events">
@@ -28,7 +24,6 @@
             <span class="body">
                 <span class="name">Events</span>
                 <span class="detail">@Count(Catalogue.StreamedEvents.Count, "event") the model can apply.</span>
-                <SectionLine Model="@StreamedActivity" Section="@(model => model.Events)" Latest="Last event" Empty="No events yet"/>
             </span>
         </a>
     </li>
@@ -41,7 +36,6 @@
                     @Count(Catalogue.StreamedAggregates.Count, "aggregate"), addressed by
                     @Count(Catalogue.StreamedAggregateIds.Count, "identifier").
                 </span>
-                <SectionLine Model="@StreamedActivity" Section="@(model => model.Aggregates)" Latest="Last written"/>
             </span>
         </a>
     </li>
@@ -54,7 +48,6 @@
                     @Count(Catalogue.StreamedProjections.Count, "projection"), addressed by
                     @Count(Catalogue.StreamedProjectionIds.Count, "identifier").
                 </span>
-                <SectionLine Model="@StreamedActivity" Section="@(model => model.Projections)" Latest="Last written"/>
             </span>
         </a>
     </li>
@@ -67,7 +60,6 @@
             <span class="body">
                 <span class="name">Streams</span>
                 <span class="detail">@Count(Catalogue.StreamedStreamIds.Count, "stream type") the events are held in.</span>
-                <SectionLine Model="@StreamedActivity" Section="@(model => model.Streams)" Noun="with events" Empty="No streams yet"/>
             </span>
         </a>
     </li>
@@ -86,18 +78,6 @@
     /// <summary>The service this page sits under: the first segment of its address.</summary>
     [Parameter]
     public string Service { get; set; } = string.Empty;
-
-    /// <summary>What the store holds of each section, or null while it is being read.</summary>
-    private ModelActivity? StreamedActivity { get; set; }
-
-    /// <summary>Asks the store what it holds of each section; the tiles have been sent by the time this waits.</summary>
-    protected override async Task OnInitializedAsync()
-    {
-        if (Current.Service is { } service)
-        {
-            StreamedActivity = await Activity.Streamed(service);
-        }
-    }
 
     /// <summary>
     /// What the page is, for the heading and the title. One value for both, so they cannot drift

@@ -5,6 +5,7 @@
 @using Microsoft.AspNetCore.WebUtilities
 @inject CurrentService Current
 @inject IDcbDbContext StoreContext
+@inject TotalsCache Totals
 @inject IDcbDomainService Folds
 @inject NavigationManager Navigation
 
@@ -1432,7 +1433,8 @@ else
                     Text,
                     Descending,
                     Page,
-                    PageSize);
+                    PageSize,
+                    Totals);
         }
     }
 

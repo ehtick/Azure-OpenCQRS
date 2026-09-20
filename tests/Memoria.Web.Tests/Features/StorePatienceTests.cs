@@ -15,13 +15,13 @@ namespace Memoria.Web.Tests.Features;
 
 /// <summary>
 /// How long a store is given to answer is the deployment's to say. Five seconds is a number for a
-/// store on the same machine; one reached over a network, counting a whole table, is routinely
-/// slower than that and is not broken for being so.
+/// store on the same machine; one reached over a network is routinely slower than that and is
+/// not broken for being so.
 /// <para>
 /// What a store that ran out of that time says is the same whatever shape its failure arrives in.
 /// A driver that cancels a read by tearing its connection down does not report a cancellation:
 /// Npgsql aborts the socket and what comes back is the aborted read's own exception, which EF Core
-/// then wraps as a transient failure. Reading that sentence off the tile tells whoever is looking
+/// then wraps as a transient failure. Reading that sentence off the sheet tells whoever is looking
 /// nothing they can act on, when what happened is simply that the store did not answer in time.
 /// </para>
 /// </summary>
@@ -62,7 +62,7 @@ public class StorePatienceTests
         refusal.Should().Throw<InvalidOperationException>().WithMessage($"*{StorePatience.Setting}*");
     }
 
-    /// <summary>The sentence a tile says, which carries the number and so is written beside it.</summary>
+    /// <summary>The sentence the sheet says, which carries the number and so is written beside it.</summary>
     [Theory]
     [InlineData("1", "It did not answer within 1 second.")]
     [InlineData("15", "It did not answer within 15 seconds.")]
@@ -82,18 +82,16 @@ public class StorePatienceTests
     {
         var reads = Substitute.For<IStreamedReads>();
         reads.At(Arg.Any<StreamedEventFilter>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
-            .Returns(new PlacedStreamEvent(null, null));
-        reads.Count(Arg.Any<StreamedEventFilter>(), Arg.Any<CancellationToken>())
             .Returns(call => AbandonedRead(call.Arg<CancellationToken>()));
         using var web = MemoriaWeb.Open().WithSampleTypes().WithReads(reads)
             .With(StorePatience.Setting, "1");
 
         // Built rather than resolved, so this is the only reader of the figure. The application's
-        // own keeps what it reads, and warms it at start-up: a test sharing it would be handed the
-        // warming's read to wait on and would prove that wait, not this one.
+        // own keeps what it reads: a test sharing it could be handed another reader's read to wait
+        // on and would prove that wait, not this one.
         var activity = ActivatorUtilities.CreateInstance<ServiceActivity>(web.Services);
 
-        var read = await activity.Streamed(Samples(web), ModelSection.Events);
+        var read = await activity.Of(Samples(web));
 
         read.Problem.Should().Be("It did not answer within 1 second.");
     }
@@ -107,7 +105,7 @@ public class StorePatienceTests
     /// A read that waits for the token it was given and then fails the way an aborted socket read
     /// does — wrapped as EF Core wraps anything its driver calls transient.
     /// </summary>
-    private static async Task<EventCount> AbandonedRead(CancellationToken cancellationToken)
+    private static async Task<PlacedStreamEvent> AbandonedRead(CancellationToken cancellationToken)
     {
         try
         {

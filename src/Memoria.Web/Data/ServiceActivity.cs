@@ -1,86 +1,43 @@
 using Memoria.EventSourcing.Dcb.Store.EntityFrameworkCore;
-using Memoria.EventSourcing.Dcb.Store.EntityFrameworkCore.Entities;
 using Memoria.Web.Components.Shared;
 using Memoria.Web.Extensibility;
 using Microsoft.EntityFrameworkCore;
 
 namespace Memoria.Web.Data;
 
-/// <summary>What a service's store is doing, as Home says it beside the service's name.</summary>
+/// <summary>What a service's store is doing, as its sheet in the settings says it.</summary>
 /// <param name="LastEvent">When the newest event was written, or null when none has been.</param>
-/// <param name="Events">How many events the store holds, and when they were counted.</param>
 /// <param name="Problem">Why the store could not be read, or null when it was.</param>
-public sealed record StoreActivity(DateTimeOffset? LastEvent, Kept<int>? Events, string? Problem);
-
-/// <summary>What the store holds of one section of a model, as its tile says it.</summary>
-/// <param name="Latest">
-/// When the newest was written — the newest event, or the snapshot last written — or null when
-/// none is stored, or when the section has no such date to say.
-/// </param>
-/// <param name="Stored">How many are stored, and when they were counted.</param>
-public sealed record SectionActivity(DateTimeOffset? Latest, Kept<int> Stored);
-
-/// <summary>A section of a model, as its overview lays them out.</summary>
-public enum ModelSection
-{
-    /// <summary>The events the model's log holds.</summary>
-    Events,
-
-    /// <summary>The aggregate snapshots.</summary>
-    Aggregates,
-
-    /// <summary>The projection snapshots.</summary>
-    Projections,
-
-    /// <summary>The streams the events are held in; the streamed model's alone.</summary>
-    Streams
-}
+public sealed record StoreActivity(DateTimeOffset? LastEvent, string? Problem);
 
 /// <summary>How long a round trip to a service's store took, or why there was none.</summary>
 /// <param name="Took">How long the store took to answer, when it did.</param>
 /// <param name="Problem">Why it could not be reached, or null when it was.</param>
 public sealed record StoreProbe(TimeSpan? Took, string? Problem);
 
-/// <summary>What the store holds of one type, or why it could not be read.</summary>
-/// <param name="Figures">How many of it are stored and when the newest was written, once read.</param>
-/// <param name="Problem">Why the store could not be read, or null when it was.</param>
-public sealed record TypeActivity(SectionActivity? Figures, string? Problem);
-
-/// <summary>What the store holds of each section of one model, or why it could not be read.</summary>
-/// <param name="Events">The events the model's log holds.</param>
-/// <param name="Aggregates">The aggregate snapshots.</param>
-/// <param name="Projections">The projection snapshots.</param>
-/// <param name="Streams">The streams the events are held in; null for the DCB model, which has none.</param>
-/// <param name="Problem">Why the store could not be read, or null when it was; nothing else is set when it is.</param>
-public sealed record ModelActivity(
-    SectionActivity? Events,
-    SectionActivity? Aggregates,
-    SectionActivity? Projections,
-    SectionActivity? Streams,
-    string? Problem);
-
 /// <summary>
-/// Reads what each service's store is doing, for Home and for the overview pages: when the newest
-/// of each thing was written, and how many are stored.
+/// Reads what a service's store is doing, for its sheet in the settings: whether it answers, how
+/// quickly, and when its newest event was written.
 /// </summary>
 /// <remarks>
-/// Three lifetimes, by what a figure costs. A count is a scan of a whole table, so it is kept for
-/// as long as an Administrator has said. The newest event is asked on every visit where the store
-/// finds it at once — the DCB log is ordered by its key, and a Cosmos container indexes the date
-/// its documents are created — because it is the figure a reader looks at to see a service is
-/// alive. Where the store cannot find it at once, it is kept for as long as recent figures are: nothing
-/// orders a relational streamed log by date alone, and nothing indexes the date a snapshot was last
-/// written in any store.
+/// Nothing here counts. The pages that say how many rows a store holds are the data pages and the
+/// events tab of a detail page, each of which counts what its own filter reaches and keeps that
+/// total in <see cref="Extensibility.TotalsCache"/>; a tile leads to a section rather than
+/// reporting on it, so no tile scans a table to be drawn.
 /// <para>
-/// Every key is the service's and the model's, so Home and the service's own pages keep one figure
-/// between them and never disagree about a log. A page asks inside a scope of its own that is put
-/// inside the service, the way a request under it would be, so the readers and contexts are the
-/// very ones that service's pages resolve — Home is under no service, and resolves nothing that
-/// reaches a store.
+/// The newest event is asked on every visit where the store finds it at once — the DCB log is
+/// ordered by its key, and a Cosmos container indexes the date its documents are created. Where the
+/// store cannot find it at once it is kept for as long as the Caching tab says figures are kept:
+/// nothing orders a relational streamed log by date alone.
 /// </para>
 /// <para>
-/// A store is given <see cref="StorePatience"/> to answer, so a slow one cannot hold a page up past
-/// it; the tiles then say it could not be read.
+/// Every key is the service's and the model's. A page asks inside a scope of its own that is put
+/// inside the service, the way a request under it would be, so the readers and contexts are the
+/// very ones that service's pages resolve.
+/// </para>
+/// <para>
+/// A store is given <see cref="StorePatience"/> to answer, so a slow one cannot hold the sheet up
+/// past it; it then says it could not be read.
 /// </para>
 /// </remarks>
 public sealed class ServiceActivity(
@@ -92,167 +49,37 @@ public sealed class ServiceActivity(
     TimeProvider clock)
 {
     /// <summary>
-    /// Where the counts are kept. Handed back while they are read again: a count is a scan of a
-    /// whole table, and a page that waited for one would be waiting on what it could already say.
+    /// Where a newest date the store cannot find at once is kept: for as long as the Caching tab
+    /// says, the list totals among them.
     /// </summary>
-    private readonly FigureCache _counts = new(clock, () => settings.CountsKeptFor, handsBackWhileReading: true);
-
-    /// <summary>
-    /// Where a newest date the store cannot find at once is kept: for as long as recent figures
-    /// are, the list totals among them.
-    /// </summary>
-    private readonly FigureCache _recent = new(clock, () => settings.RecentKeptFor);
+    private readonly FigureCache _kept = new(clock, () => settings.FiguresKeptFor);
 
     private readonly Lock _catalogue = new();
 
     private DomainTypeCatalogue? _readUnder;
 
-    /// <summary>What one service's store is doing, for Home, or why that could not be read.</summary>
+    /// <summary>What one service's store is doing, or why that could not be read.</summary>
     /// <remarks>Over the models the service's own page lays out: a service over both is both logs together.</remarks>
     public async Task<StoreActivity> Of(Service service, CancellationToken cancellationToken = default)
     {
         var read = await Read(service, async (inside, shown, token) =>
         {
-            var events = new List<SectionActivity>();
+            var written = new List<DateTimeOffset?>();
 
             if (shown.Streamed)
             {
-                events.Add(await StreamedEvents(inside, token));
+                written.Add(await StreamedLastEvent(inside, token));
             }
 
             if (shown.Dcb)
             {
-                events.Add(await DcbEvents(inside, token));
+                written.Add(await DcbLastEvent(inside, token));
             }
 
-            return new StoreActivity(
-                events.Max(section => section.Latest),
-                new Kept<int>(events.Sum(section => section.Stored.Value), events.Min(section => section.Stored.At)),
-                Problem: null);
+            return new StoreActivity(written.Max(), Problem: null);
         }, cancellationToken);
 
-        return read.Value ?? new StoreActivity(null, null, read.Problem);
-    }
-
-    /// <summary>What the service's store holds of each section of the streamed model, or of the one asked for.</summary>
-    /// <param name="service">The service.</param>
-    /// <param name="only">
-    /// The one section to read, for a section's own page, which has no business asking about the
-    /// others; null for every section. The sections not read are null.
-    /// </param>
-    /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
-    public async Task<ModelActivity> Streamed(
-        Service service, ModelSection? only = null, CancellationToken cancellationToken = default)
-    {
-        var read = await Read(service, async (inside, _, token) =>
-        {
-            var reads = inside.Provider.GetRequiredService<IStreamedReads>();
-
-            return new ModelActivity(
-                Wanted(only, ModelSection.Events) ? await StreamedEvents(inside, token) : null,
-                Wanted(only, ModelSection.Aggregates)
-                    ? await Snapshots(inside, "streamed/aggregates", StreamedModelKind.Aggregate, reads, token)
-                    : null,
-                Wanted(only, ModelSection.Projections)
-                    ? await Snapshots(inside, "streamed/projections", StreamedModelKind.Projection, reads, token)
-                    : null,
-                Wanted(only, ModelSection.Streams)
-                    ? new SectionActivity(null, await Counted(inside, "streamed/streams",
-                        (provider, ct) => ReadsOf(provider).CountStreams(cancellationToken: ct), token))
-                    : null,
-                Problem: null);
-        }, cancellationToken);
-
-        return read.Value ?? new ModelActivity(null, null, null, null, read.Problem);
-    }
-
-    /// <summary>What the service's store holds of each section of the DCB model, or of the one asked for.</summary>
-    /// <param name="service">The service.</param>
-    /// <param name="only">The one section to read, or null for every section. A DCB model has no streams.</param>
-    /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
-    public async Task<ModelActivity> Dcb(
-        Service service, ModelSection? only = null, CancellationToken cancellationToken = default)
-    {
-        var read = await Read(service, async (inside, _, token) =>
-        {
-            var context = inside.Provider.GetRequiredService<DcbStoreDbContext>();
-
-            return new ModelActivity(
-                Wanted(only, ModelSection.Events) ? await DcbEvents(inside, token) : null,
-                Wanted(only, ModelSection.Aggregates)
-                    ? await DcbSnapshots(inside, "dcb/aggregates", DcbSnapshotEntity.AggregateKind, context, token)
-                    : null,
-                Wanted(only, ModelSection.Projections)
-                    ? await DcbSnapshots(inside, "dcb/projections", DcbSnapshotEntity.ProjectionKind, context, token)
-                    : null,
-                Streams: null,
-                Problem: null);
-        }, cancellationToken);
-
-        return read.Value ?? new ModelActivity(null, null, null, null, read.Problem);
-    }
-
-    /// <summary>What the service's store holds of one type in a streamed section, for the Types page reading it.</summary>
-    /// <param name="service">The service.</param>
-    /// <param name="section">Events, aggregates or projections.</param>
-    /// <param name="type">The type being read.</param>
-    /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
-    /// <remarks>
-    /// The one type alone, found by the key its rows are written under, and kept as the counts are;
-    /// the newest date comes out of the same read, so it is as old as the count beside it.
-    /// </remarks>
-    public async Task<TypeActivity> StreamedType(
-        Service service, ModelSection section, Type type, CancellationToken cancellationToken = default)
-    {
-        var read = await Read(service, async (inside, _, token) =>
-            await Tallied(inside, $"streamed/{Segment(section)}", type, (provider, key, ct) => section switch
-            {
-                ModelSection.Aggregates => ReadsOf(provider).TallySnapshots(StreamedModelKind.Aggregate, key, ct),
-                ModelSection.Projections => ReadsOf(provider).TallySnapshots(StreamedModelKind.Projection, key, ct),
-                _ => ReadsOf(provider).TallyEvents(key, ct)
-            }, token), cancellationToken);
-
-        return read.Value ?? new TypeActivity(null, read.Problem);
-    }
-
-    /// <summary>What the service's store holds of one type in a DCB section, for the Types page reading it.</summary>
-    /// <param name="service">The service.</param>
-    /// <param name="section">Events, aggregates or projections.</param>
-    /// <param name="type">The type being read.</param>
-    /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
-    public async Task<TypeActivity> DcbType(
-        Service service, ModelSection section, Type type, CancellationToken cancellationToken = default)
-    {
-        var read = await Read(service, async (inside, _, token) =>
-            await Tallied(inside, $"dcb/{Segment(section)}", type, (provider, key, ct) => section switch
-            {
-                ModelSection.Aggregates => TallyDcbSnapshots(DcbOf(provider), DcbSnapshotEntity.AggregateKind, key, ct),
-                ModelSection.Projections => TallyDcbSnapshots(DcbOf(provider), DcbSnapshotEntity.ProjectionKind, key, ct),
-                _ => TallyDcbEvents(DcbOf(provider), key, ct)
-            }, token), cancellationToken);
-
-        return read.Value ?? new TypeActivity(null, read.Problem);
-    }
-
-    /// <summary>
-    /// One type's tally, kept under its section and key. A type carrying no attribute has no key to
-    /// be written under, so nothing of it can be stored, and the store is not asked.
-    /// </summary>
-    private async Task<TypeActivity> Tallied(
-        Inside inside, string section, Type type,
-        Func<IServiceProvider, string, CancellationToken, Task<TypeTally?>> tally,
-        CancellationToken cancellationToken)
-    {
-        if (DomainTypeDescriber.BindingOf(type)?.Key is not { } key)
-        {
-            return new TypeActivity(new SectionActivity(null, new Kept<int>(0, clock.GetUtcNow())), Problem: null);
-        }
-
-        var kept = await Counted(inside, $"{section}/types/{key}",
-            (provider, token) => tally(provider, key, token), cancellationToken);
-
-        return new TypeActivity(
-            new SectionActivity(kept.Value?.Latest, new Kept<int>(kept.Value?.Stored ?? 0, kept.At)), Problem: null);
+        return read.Value ?? new StoreActivity(null, read.Problem);
     }
 
     /// <summary>How long a round trip to the service's store takes now, for its sheet in the settings.</summary>
@@ -282,64 +109,6 @@ public sealed class ServiceActivity(
         return read.Value ?? new StoreProbe(null, read.Problem);
     }
 
-    /// <summary>What the service's store holds of one stream type, for the Streams page reading it.</summary>
-    /// <param name="service">The service.</param>
-    /// <param name="streamType">The stream type being read.</param>
-    /// <param name="pattern">The pattern the type's ids match, which is how its streams are found.</param>
-    /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
-    /// <remarks>
-    /// When the last event was written in any stream of the type, and how many of its streams hold
-    /// events. Both are a search of the events the pattern reaches, which neither store can answer
-    /// from an index: the newest is kept as recent figures are, the count as counts are.
-    /// </remarks>
-    public async Task<TypeActivity> StreamType(
-        Service service, Type streamType, string pattern, CancellationToken cancellationToken = default)
-    {
-        var read = await Read(service, async (inside, _, token) =>
-        {
-            var reads = inside.Provider.GetRequiredService<IStreamedReads>();
-            var figure = $"streamed/streams/types/{streamType.FullName}";
-
-            var latest = await _recent.Keep(inside.Key($"{figure}/latest"), async ct =>
-            {
-                var placed = await reads.At(Everything with { StreamPattern = pattern, Descending = true }, index: 0, ct);
-
-                return placed.Error is { } error ? throw new InvalidOperationException(error) : placed.Event?.Event.Written;
-            }, token);
-
-            var stored = await Counted(inside, figure,
-                (provider, ct) => ReadsOf(provider).CountStreams(pattern, ct), token);
-
-            return new TypeActivity(new SectionActivity(latest.Value, stored), Problem: null);
-        }, cancellationToken);
-
-        return read.Value ?? new TypeActivity(null, read.Problem);
-    }
-
-    /// <summary>A section as its address names it.</summary>
-    private static string Segment(ModelSection section) => section.ToString().ToLowerInvariant();
-
-    /// <summary>The events of one type in the DCB log, narrowed by the key they are written under.</summary>
-    private static Task<TypeTally?> TallyDcbEvents(
-        DcbStoreDbContext context, string eventType, CancellationToken cancellationToken) =>
-        context.DcbEvents
-            .Where(appended => appended.EventType == eventType)
-            .GroupBy(appended => appended.EventType)
-            .Select(group => new TypeTally(group.Count(), group.Max(appended => appended.CreatedDate)))
-            .FirstOrDefaultAsync(cancellationToken);
-
-    /// <summary>The snapshots of one kind and one model type, narrowed by both.</summary>
-    private static Task<TypeTally?> TallyDcbSnapshots(
-        DcbStoreDbContext context, string kind, string modelType, CancellationToken cancellationToken) =>
-        context.DcbSnapshots
-            .Where(snapshot => snapshot.SnapshotKind == kind && snapshot.ModelType == modelType)
-            .GroupBy(snapshot => snapshot.ModelType)
-            .Select(group => new TypeTally(group.Count(), group.Max(snapshot => snapshot.UpdatedDate)))
-            .FirstOrDefaultAsync(cancellationToken);
-
-    /// <summary>Whether a section is to be read: every one when none was singled out, else that one.</summary>
-    private static bool Wanted(ModelSection? only, ModelSection section) => only is null || only == section;
-
     /// <summary>A service being read: its scope, its store, and where its figures are kept.</summary>
     private sealed record Inside(
         IServiceProvider Provider, Service Service, DomainTypeCatalogue Catalogue, bool Cosmos)
@@ -348,51 +117,13 @@ public sealed class ServiceActivity(
         public string Key(string figure) => $"{Service.Slug}/{figure}";
     }
 
-    /// <summary>
-    /// A count, kept as counts are, and read in a scope of its own whoever is waiting for it.
-    /// </summary>
-    /// <param name="inside">The service being read.</param>
-    /// <param name="figure">What is being counted, as its key names it.</param>
-    /// <param name="count">Counts it, over the store that scope resolves.</param>
-    /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
-    /// <remarks>
-    /// A count is the one figure that may be read behind the reader rather than for them, and that
-    /// read outlives both their turn and the scope they were served from. Made over their own store
-    /// it would be a second operation on a context the next section is about to ask its own question
-    /// of, which Entity Framework Core refuses outright — and then be cut off when their scope
-    /// closed, so the figure it went to fetch would never arrive.
-    /// <para>
-    /// Its own scope every time rather than only when it is read behind someone. A scope costs
-    /// nothing beside a scan of a whole table, and the alternative is a rule every future count has
-    /// to remember: the store handed to this one is resolved from the scope it will run in, so there
-    /// is no reader's context in reach to use by mistake.
-    /// </para>
-    /// </remarks>
-    private Task<Kept<T>> Counted<T>(Inside inside, string figure,
-        Func<IServiceProvider, CancellationToken, Task<T>> count, CancellationToken cancellationToken) =>
-        _counts.Keep(inside.Key(figure), async token =>
-        {
-            await using var scope = scopes.CreateAsyncScope();
-            scope.ServiceProvider.GetRequiredService<CurrentService>().Enter(inside.Service, inside.Catalogue);
-
-            return await count(scope.ServiceProvider, token);
-        }, cancellationToken);
-
-    /// <summary>The streamed store of the scope given.</summary>
-    private static IStreamedReads ReadsOf(IServiceProvider provider) =>
-        provider.GetRequiredService<IStreamedReads>();
-
-    /// <summary>The DCB store of the scope given.</summary>
-    private static DcbStoreDbContext DcbOf(IServiceProvider provider) =>
-        provider.GetRequiredService<DcbStoreDbContext>();
-
     /// <summary>What a read came back with, or why it came back with nothing.</summary>
     private sealed record Outcome<T>(T? Value, string? Problem) where T : class;
 
     /// <summary>
     /// Reads inside a scope put inside the service, with the patience a store is given, and turns a
-    /// store that failed, did not answer in time, or would not close into the sentence its tiles
-    /// say.
+    /// store that failed, did not answer in time, or would not close into the sentence the sheet
+    /// says.
     /// </summary>
     private async Task<Outcome<T>> Read<T>(
         Service service, Func<Inside, ShownModels, CancellationToken, Task<T>> read, CancellationToken cancellationToken)
@@ -402,7 +133,7 @@ public sealed class ServiceActivity(
         ForgetWhenChanged(catalogue);
 
         // A store the configuration does not open is not asked at all: why it is not is the
-        // sentence the tiles say.
+        // sentence the sheet says.
         var store = stores.For(service);
 
         if (store.Problem is { } unreachable)
@@ -421,7 +152,7 @@ public sealed class ServiceActivity(
             // command was still in flight as the connection closed, which arrives from the closing
             // and not from the reading. Left outside, that failure walks past everything this
             // method exists to do and is shown to whoever opened the page as a stack trace, in
-            // place of a page of tiles where one of them says what happened.
+            // place of a sheet with a row on it saying what happened.
             await using var scope = scopes.CreateAsyncScope();
             scope.ServiceProvider.GetRequiredService<CurrentService>().Enter(service, catalogue);
 
@@ -434,9 +165,9 @@ public sealed class ServiceActivity(
         // Whatever shape the failure arrives in, once the patience has run out. A driver that
         // cancels a read by tearing its connection down does not report a cancellation: Npgsql
         // aborts the socket, and what comes back is the aborted read's own exception, which EF Core
-        // then wraps as a failure likely to be transient. Reading that off a tile sends whoever is
-        // looking after a fault in the store, when what happened is that this gave up waiting for
-        // it. It is the patience that says which happened, not the exception.
+        // then wraps as a failure likely to be transient. Reading that off the sheet sends whoever
+        // is looking after a fault in the store, when what happened is that this gave up waiting
+        // for it. It is the patience that says which happened, not the exception.
         catch (Exception) when (answering.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
         {
             return new Outcome<T>(null, patience.DidNotAnswer);
@@ -460,17 +191,16 @@ public sealed class ServiceActivity(
                 return;
             }
 
-            _counts.Forget();
-            _recent.Forget();
+            _kept.Forget();
             _readUnder = catalogue;
         }
     }
 
     /// <summary>
-    /// The streamed log: its newest event — asked every visit of a Cosmos container, which indexes
-    /// the date, and kept a while of a relational log, which is scanned for it — and its count.
+    /// The newest event in the streamed log: asked every visit of a Cosmos container, which indexes
+    /// the date, and kept a while of a relational log, which is scanned for it.
     /// </summary>
-    private async Task<SectionActivity> StreamedEvents(Inside inside, CancellationToken cancellationToken)
+    private async Task<DateTimeOffset?> StreamedLastEvent(Inside inside, CancellationToken cancellationToken)
     {
         var reads = inside.Provider.GetRequiredService<IStreamedReads>();
 
@@ -481,66 +211,22 @@ public sealed class ServiceActivity(
             return placed.Error is { } error ? throw new InvalidOperationException(error) : placed.Event?.Event.Written;
         }
 
-        var latest = inside.Cosmos
+        return inside.Cosmos
             ? await Newest(cancellationToken)
-            : (await _recent.Keep(inside.Key("streamed/events/latest"), Newest, cancellationToken)).Value;
-
-        var stored = await Counted(inside, "streamed/events", async (provider, token) =>
-        {
-            var counted = await ReadsOf(provider).Count(Everything, token);
-
-            return counted.Total ?? throw new InvalidOperationException(counted.Error);
-        }, cancellationToken);
-
-        return new SectionActivity(latest, stored);
+            : (await _kept.Keep(inside.Key("streamed/events/latest"), Newest, cancellationToken)).Value;
     }
 
     /// <summary>
-    /// The DCB log: its newest event, found along the log's key — a position is given at the moment
-    /// the date is stamped, so the last position is the last event — and its count.
+    /// The newest event in the DCB log, found along the log's key — a position is given at the
+    /// moment the date is stamped, so the last position is the last event.
     /// </summary>
-    private async Task<SectionActivity> DcbEvents(Inside inside, CancellationToken cancellationToken)
-    {
-        var context = inside.Provider.GetRequiredService<DcbStoreDbContext>();
-
-        var latest = await context.DcbEvents.AsNoTracking()
+    private static Task<DateTimeOffset?> DcbLastEvent(Inside inside, CancellationToken cancellationToken) =>
+        inside.Provider.GetRequiredService<DcbStoreDbContext>().DcbEvents.AsNoTracking()
             .OrderByDescending(appended => appended.Position)
             .Select(appended => (DateTimeOffset?)appended.CreatedDate)
             .FirstOrDefaultAsync(cancellationToken);
 
-        var stored = await Counted(inside, "dcb/events",
-            (provider, token) => DcbOf(provider).DcbEvents.CountAsync(token), cancellationToken);
-
-        return new SectionActivity(latest, stored);
-    }
-
-    /// <summary>One kind of streamed snapshot: when the newest was last written, kept a while, and its count.</summary>
-    private async Task<SectionActivity> Snapshots(
-        Inside inside, string section, StreamedModelKind kind, IStreamedReads reads, CancellationToken cancellationToken) =>
-        new((await _recent.Keep(inside.Key($"{section}/latest"), token => reads.LastWritten(kind, token), cancellationToken)).Value,
-            await Counted(inside, section,
-                (provider, token) => ReadsOf(provider).CountSnapshots(kind, token), cancellationToken));
-
-    /// <summary>One kind of DCB snapshot, the same way.</summary>
-    private async Task<SectionActivity> DcbSnapshots(
-        Inside inside, string section, string kind, DcbStoreDbContext context, CancellationToken cancellationToken)
-    {
-        var ofKind = context.DcbSnapshots.AsNoTracking().Where(snapshot => snapshot.SnapshotKind == kind);
-
-        var latest = await _recent.Keep(inside.Key($"{section}/latest"), token => ofKind
-            .OrderByDescending(snapshot => snapshot.UpdatedDate)
-            .Select(snapshot => (DateTimeOffset?)snapshot.UpdatedDate)
-            .FirstOrDefaultAsync(token), cancellationToken);
-
-        return new SectionActivity(
-            latest.Value,
-            await Counted(inside, section, (provider, token) => DcbOf(provider).DcbSnapshots
-                .AsNoTracking()
-                .Where(snapshot => snapshot.SnapshotKind == kind)
-                .CountAsync(token), cancellationToken));
-    }
-
-    /// <summary>The whole streamed log, unnarrowed; the page and size are not read by the two questions asked of it.</summary>
+    /// <summary>The whole streamed log, unnarrowed; the page and size are not read by the question asked of it.</summary>
     private static readonly StreamedEventFilter Everything = new(
         StreamPattern: null, EventType: null, Text: null, Descending: false, Page: 1, Size: 1);
 }

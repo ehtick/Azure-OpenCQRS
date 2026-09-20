@@ -34,7 +34,7 @@ can be overridden without editing a file.
 | `Database:Cosmos:DatabaseName`   | No                              | `Memoria`                             | Likewise                                         |
 | `Database:Cosmos:ContainerName`  | No                              | `Domain`                              | Likewise                                         |
 | `Stores:Patience`                | No                              | `5`                                   | How long every store is given to answer, in whole seconds, before a page says it could not be read — see [Caching](#caching) |
-| `Stores:WarmAtStartUp`           | No                              | `true`                                | Whether each service's counts are read as the tool starts — see [Caching](#caching) |
+| `Stores:WarmAtStartUp`           | No                              | `true`                                | Whether each service's store is read as the tool starts — see [Caching](#caching) |
 | `Extensions:Directory`           | No                              | `<content root>/App_Data/extensions`  | Where uploaded archives and assemblies are kept  |
 | `Branding:Directory`             | No                              | `<content root>/App_Data/branding`    | Where the header's name and logo are kept — see [Branding](#branding) |
 | `Settings:Directory`             | No                              | `<content root>/App_Data/settings`    | Where the tool's own settings are kept — see [Caching](#caching) |
@@ -490,14 +490,12 @@ directory sees a save when it is next restarted.
 
 ## Caching
 
-Home says, under each service it lists, what that service's store is doing. A service's own page and
-each model's overview say the same one level down, under each section's tile: events, aggregates,
-projections, and for the streamed model streams. Each section's own page says its own figures under
-its **Data** tile, and asks the store about that section alone. A **Types** page asks about the
-type being read and no other — its rows found by the key they are written under — and the list
-beside it counts nothing, since that would be every type counted on every visit. The **Streams**
-page does the same for the stream type being read: its streams are the ones whose ids the type's
-pattern matches, so a type whose ids no pattern can match says nothing.
+The tool counts in two places, and both count what one page's own filter reaches: a **Data**
+page's total, over the rows it lists, and the total over the events tab of a detail page. Nothing
+else scans a store to be drawn. Home, a service's own page, the model overviews, the section pages,
+the **Types** pages and the **Streams** page are all tiles and lists over what the uploaded
+assemblies declare: they lead to a section rather than reporting on it, so none of them asks a
+store anything and none of them can be held up by one.
 
 The aggregates and projections **Data** tables mark each row whose stored snapshot is behind its
 history with a clock, the rule the detail page's **Info** tab warns by: more events of the types
@@ -507,57 +505,47 @@ several models whose identifier cannot be recovered, a boundary that cannot be r
 marked, rather than marked wrongly. The table is drawn first and the marks follow; each is its own
 read of one stream or boundary, a few at a time.
 
-What is read is kept for one of two whiles, both set on the **Caching** tab of the Settings page:
+What is read is kept for one while, set on the **Caching** tab of the Settings page:
 
-- **Counts kept for**, in minutes: how many events, snapshots and streams are stored, and how many
-  of the type being read. A count is a scan of a whole table, so it is kept and handed to every
-  visitor until it runs out: from 0, which counts on every visit, to 1440, a day. It is 5 until it
-  is changed. Every count is kept for the same while, so none of them says when it was made. The
-  newest date of the type being read comes out of the same read, so it is kept as long.
+- **Figures kept for**, in seconds: a data page's total and a detail page's events tab total — how
+  many rows the filter reaches — whether a row is behind its history, and when the newest was
+  written where the store has to search for it: nothing orders a relational streamed log by date
+  alone. From 0, which reads them on every visit, to 3600, an hour. It is 30 until it is changed.
+  Where the store finds the newest at once — the DCB log, ordered by its key, and a Cosmos
+  container, which indexes the date an event is written — it is asked on every visit and never
+  kept: it is the figure that shows a service is alive.
 
-  **Nobody waits for a count twice.** Each service's counts are read once as the tool starts, in
-  the background, before anyone visits. The visit that finds one has run out is handed the count there
-  is and the store is counted again behind it, so the new count is on the tile from the next visit.
-  A count that cannot be read is not handed out in place of a newer one: the next visitor waits and
-  is told what happened. A store the configuration does not open is not read at start-up at all.
+A service's sheet under **Services** on the Settings page is the one page that asks a store how it
+is: whether it answers, how quickly, and when its last event was written. A service over both
+models is both logs together, and its last event is the newer of the two. The sheet is drawn before
+the store is asked; the two rows follow once it has answered, and a store is given 5 seconds before
+they say it could not be read. A store that is not configured says so instead, and is not asked.
 
-  That start-up read is a scan of a whole table per service, which a deployment over a very large
-  store would rather not pay for on every restart. `Stores:WarmAtStartUp` set to `false` leaves
-  it out; the figures are then read by whoever visits first, who waits for them once.
-- **Recent figures kept for**, in seconds: a data page's total — how many rows its filter reaches —
-  whether a row is behind its history, and when the newest was written where the store has to
-  search for it: nothing orders a relational streamed log by date alone, and no store indexes the
-  date a snapshot was last written. From 0, which reads them on every visit, to 3600, an hour. It
-  is 30 until it is changed. Where the store finds the newest at once — the DCB log, ordered by
-  its key, and a Cosmos container, which indexes the date an event is written — it is asked on
-  every visit and never kept: it is the figure that shows a service is alive.
-
-On Home, a service over both models is both logs together: its last event is the newer of the two,
-and its count is the two added up. Home and a service's own pages keep one count between them, so
-they never disagree. Each page is sent before any store is asked; the lines follow once the store
-has answered, and a store is given 5 seconds before its lines say it could not be read. A store
-that is not configured says so instead, and is not asked.
+`Stores:WarmAtStartUp` set to `false` leaves out the reads the tool makes of each store as it
+starts. They are there so that nobody's first data page pays for Entity Framework Core building its
+model and compiling the page's queries; without them, whoever opens the first page that reads a
+store waits for that once.
 
 How long that is, is `Stores:Patience`, in whole seconds — a deployment setting rather than one of
 these, because it is a fact about how far away the store is and not a preference. **Five seconds is
-a number for a store on the same machine.** One reached over a network, counting a table worth
-counting, is routinely slower than that and is not broken for being so: a deployment whose tiles
-keep saying a healthy store could not be read is a deployment that should raise this. It stays the
-default because raising it costs every deployment and not only the slow ones — a read still running
-is a scope, a context and a pooled connection still held, and a store that has stopped answering
-holds one per tile for as long as this allows.
+a number for a store on the same machine.** One reached over a network is routinely slower than
+that and is not broken for being so: a deployment whose sheets keep saying a healthy store could
+not be read is a deployment that should raise this. It stays the default because raising it costs
+every deployment and not only the slow ones — a read still running is a scope, a context and a
+pooled connection still held, and a store that has stopped answering holds one per read for as long
+as this allows.
 
 A store that runs out of it says it did not answer in that many seconds, whatever its driver made of
 being abandoned mid-read. PostgreSQL in particular does not report the abandoning as a cancellation:
 Npgsql tears the connection down, the socket read fails on its own account, and EF Core wraps that as
-a failure likely to be transient. Reading that sentence off a tile would send whoever is looking
-after a fault the store does not have.
+a failure likely to be transient. Reading that sentence off the sheet would send whoever is
+looking after a fault the store does not have.
 
 The settings are kept in a file, not in any store, for the reason the branding is:
 
 ```
 <Settings:Directory>/
-  caching.json   how long counts are kept, in minutes, and recent figures, in seconds
+  caching.json   how long figures are kept, in seconds
 ```
 
 The default is `App_Data/settings` under the content root. It is read once at start-up and held in
@@ -601,7 +589,7 @@ so it can be found by the name rather than by its wording:
 | `BrandingSaved`        | 1006 | Information | The header's name, and logo if one was sent, were saved      |
 | `BrandingNotSaved`     | 1007 | Warning     | A branding save was refused; carries why                     |
 | `BrandingReset`        | 1008 | Information | **Restore Memoria's own** was pressed on the Branding tab    |
-| `CachingSettingsSaved` | 1009 | Information | How long counts and recent figures are kept was saved        |
+| `CachingSettingsSaved` | 1009 | Information | How long figures are kept was saved                          |
 | `CachingSettingsNotSaved` | 1010 | Warning  | That save was refused; carries why                           |
 | `SnapshotRefreshed`    | 1011 | Information | **Update** wrote a snapshot                                  |
 | `SnapshotUpToDate`     | 1012 | Information | **Update** found no snapshot and no events to fold           |

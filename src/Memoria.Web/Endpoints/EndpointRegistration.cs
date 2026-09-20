@@ -218,8 +218,7 @@ public static class EndpointRegistration
             CachingSettingsStore caching,
             ILoggerFactory loggerFactory,
             ClaimsPrincipal user,
-            [FromForm] string? countsKeptForMinutes,
-            [FromForm] string? recentKeptForSeconds) =>
+            [FromForm] string? figuresKeptForSeconds) =>
         {
             var logger = loggerFactory.CreateLogger("Memoria.Web.Settings");
             var asked = Operator.Of(user);
@@ -228,7 +227,7 @@ public static class EndpointRegistration
             {
                 // Taken as text and read here, so a box left empty or holding a word is refused
                 // with the same sentence as a number out of range, rather than by the binder.
-                caching.Save(WholeOrRefused(countsKeptForMinutes), WholeOrRefused(recentKeptForSeconds));
+                caching.Save(WholeOrRefused(figuresKeptForSeconds));
             }
             catch (InvalidDataException refused)
             {
@@ -236,7 +235,7 @@ public static class EndpointRegistration
                 return Back(error: refused.Message, tab: CachingTab);
             }
 
-            logger.CachingSettingsSaved(caching.CountsKeptFor, caching.RecentKeptFor, asked);
+            logger.CachingSettingsSaved(caching.FiguresKeptFor, asked);
 
             return Back(message: "Caching settings saved.", tab: CachingTab);
         }).RequireAuthorization(Roles.Administrator);

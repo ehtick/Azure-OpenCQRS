@@ -17,9 +17,9 @@ public static class StoreWarmUp
 {
     /// <summary>The setting that says whether the stores are read at start-up at all.</summary>
     /// <remarks>
-    /// On unless it is turned off. Warming scans a whole table per service, which a deployment over
-    /// a very large store would rather not pay for on every restart — and a test that says what
-    /// a figure should be would rather nothing read that figure behind it.
+    /// On unless it is turned off. Warming reads a page of a store per service, which a deployment
+    /// would rather not pay for on every restart — and a test that says what a store was asked
+    /// would rather nothing ask it behind them.
     /// </remarks>
     public const string Setting = "Stores:WarmAtStartUp";
 
@@ -44,53 +44,24 @@ public static class StoreWarmUp
             return;
         }
 
-        var reachable = app.Services.GetRequiredService<ServiceStores>().All()
-            .Where(store => store.Reachable)
-            .ToList();
-
         // Each reachable relational store, one after the other: a Cosmos store has no boundary
         // tables to warm, and an unreachable one has nothing to open.
-        var stores = reachable
-            .Where(store => store.Database!.Provider is not DatabaseProvider.Cosmos)
+        var stores = app.Services.GetRequiredService<ServiceStores>().All()
+            .Where(store => store.Reachable && store.Database!.Provider is not DatabaseProvider.Cosmos)
             .ToList();
 
-        if (reachable.Count == 0)
+        if (stores.Count == 0)
         {
             return;
         }
 
         _ = Task.Run(async () =>
         {
-            // What Home says of each service first, and of every store whatever opens it: it is the
-            // page the tool is entered by, so its figures are the ones worth holding before anyone
-            // asks. Read here rather than on the first visit, which would otherwise pay for a scan
-            // of every service's log. Kept from then on as any figure is, and read again behind
-            // whoever visits once it has run out.
-            await Figures(app, reachable);
-
             foreach (var store in stores)
             {
                 await Warm(app, store);
             }
         });
-    }
-
-    /// <summary>
-    /// Home's figures for each service, read one service at a time.
-    /// </summary>
-    /// <remarks>
-    /// One at a time rather than together: nobody is waiting for these, and a tool starting up
-    /// should not open every store's connection at once. A store that cannot be read says so on
-    /// its own tile when someone visits; here the failure is the activity's own to swallow.
-    /// </remarks>
-    private static async Task Figures(WebApplication app, IReadOnlyList<ServiceStore> stores)
-    {
-        var activity = app.Services.GetRequiredService<ServiceActivity>();
-
-        foreach (var store in stores)
-        {
-            await activity.Of(store.Service);
-        }
     }
 
     /// <summary>

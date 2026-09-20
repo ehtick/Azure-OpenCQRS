@@ -92,75 +92,12 @@ public sealed class EfStreamedReads(StreamedStoreDbContext context, TotalsCache?
             cancellationToken);
 
     /// <inheritdoc />
-    public Task<int> CountSnapshots(StreamedModelKind kind, CancellationToken cancellationToken = default) =>
-        kind is StreamedModelKind.Projection
-            ? context.Projections.CountAsync(cancellationToken)
-            : context.Aggregates.CountAsync(cancellationToken);
-
-    /// <inheritdoc />
-    /// <remarks>
-    /// Newest first and the first taken, rather than a maximum, because that is the form every
-    /// provider orders a date by — SQLite included, which holds these dates as text.
-    /// </remarks>
-    public Task<DateTimeOffset?> LastWritten(StreamedModelKind kind, CancellationToken cancellationToken = default) =>
-        kind is StreamedModelKind.Projection
-            ? context.Projections.AsNoTracking()
-                .OrderByDescending(projection => projection.UpdatedDate)
-                .Select(projection => (DateTimeOffset?)projection.UpdatedDate)
-                .FirstOrDefaultAsync(cancellationToken)
-            : context.Aggregates.AsNoTracking()
-                .OrderByDescending(aggregate => aggregate.UpdatedDate)
-                .Select(aggregate => (DateTimeOffset?)aggregate.UpdatedDate)
-                .FirstOrDefaultAsync(cancellationToken);
-
-    /// <inheritdoc />
     /// <remarks>
     /// A statement rather than opening a connection: a pooled connection opens without the server
     /// hearing of it, and the time would be the pool's.
     /// </remarks>
     public Task Ping(CancellationToken cancellationToken = default) =>
         context.Database.ExecuteSqlRawAsync("SELECT 1", cancellationToken);
-
-    /// <inheritdoc />
-    /// <remarks>
-    /// Like rather than a prefix comparison, as the log's own narrowing is: a stream type's values
-    /// are not always at the end of its ids.
-    /// </remarks>
-    public Task<int> CountStreams(string? streamPattern = null, CancellationToken cancellationToken = default) =>
-        (string.IsNullOrWhiteSpace(streamPattern)
-            ? context.Events
-            : context.Events.Where(appended => EF.Functions.Like(appended.StreamId, streamPattern)))
-        .Select(appended => appended.StreamId)
-        .Distinct()
-        .CountAsync(cancellationToken);
-
-    /// <inheritdoc />
-    /// <remarks>
-    /// Narrowed by the type column, which the log indexes, so only the type's own rows are read; a
-    /// grouping of that narrowing gives the count and the newest date in one trip, and no group at
-    /// all when there are none.
-    /// </remarks>
-    public async Task<TypeTally?> TallyEvents(string eventType, CancellationToken cancellationToken = default) =>
-        await context.Events
-            .Where(appended => appended.EventType == eventType)
-            .GroupBy(appended => appended.EventType)
-            .Select(group => new TypeTally(group.Count(), group.Max(appended => appended.CreatedDate)))
-            .FirstOrDefaultAsync(cancellationToken);
-
-    /// <inheritdoc />
-    public async Task<TypeTally?> TallySnapshots(
-        StreamedModelKind kind, string modelType, CancellationToken cancellationToken = default) =>
-        kind is StreamedModelKind.Projection
-            ? await context.Projections
-                .Where(projection => projection.ProjectionType == modelType)
-                .GroupBy(projection => projection.ProjectionType)
-                .Select(group => new TypeTally(group.Count(), group.Max(projection => projection.UpdatedDate)))
-                .FirstOrDefaultAsync(cancellationToken)
-            : await context.Aggregates
-                .Where(aggregate => aggregate.AggregateType == modelType)
-                .GroupBy(aggregate => aggregate.AggregateType)
-                .Select(group => new TypeTally(group.Count(), group.Max(aggregate => aggregate.UpdatedDate)))
-                .FirstOrDefaultAsync(cancellationToken);
 
     /// <inheritdoc />
     public Task<ReadStreamModel> Model(

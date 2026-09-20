@@ -1,9 +1,6 @@
 @page "/{service}/dcb/aggregates/types"
-@attribute [StreamRendering]
-@using Memoria.Web.Data
 @using Memoria.Web.Extensibility
 @inject CurrentService Current
-@inject ServiceActivity Activity
 
 <PageTitle>DCB @Heading</PageTitle>
 
@@ -53,7 +50,6 @@ else
                    two rows there. The class it is bound from is the first fact on the info tab. *@
                 <h2>@BoundAs(selected.Type)</h2>
                 <ObsoleteNote Type="selected.Type"/>
-                <TypeLine Activity="@Figures" Latest="Last written"/>
 
                 @* The four views of it, drawn by the component the detail page opens over a stored
                    row as well: what is true of a declared type is the same wherever it is read, and
@@ -74,22 +70,6 @@ else
     /// <summary>The service this page sits under: the first segment of its address.</summary>
     [Parameter]
     public string Service { get; set; } = string.Empty;
-
-    /// <summary>What the store holds of the type being read, or null while it is being read.</summary>
-    private TypeActivity? Figures { get; set; }
-
-    /// <summary>
-    /// Asks the store about the type being read and no other: the list counts nothing, since a
-    /// count on every row would be every type counted on every visit. The list and the panel have
-    /// been sent by the time this waits.
-    /// </summary>
-    protected override async Task OnInitializedAsync()
-    {
-        if (Current.Service is { } service && Selected?.Type is { } type)
-        {
-            Figures = await Activity.DcbType(service, ModelSection.Aggregates, type);
-        }
-    }
 
     /// <summary>
     /// What the page is, for the heading and the title. One value for both, so they cannot drift

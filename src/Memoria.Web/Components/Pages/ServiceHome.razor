@@ -1,10 +1,8 @@
 @page "/{service}"
-@attribute [StreamRendering]
 @using Memoria.Web.Data
 @using Memoria.Web.Extensibility
 @inject CurrentService Current
 @inject StoreCapabilities Store
-@inject ServiceActivity Activity
 
 <PageTitle>@Current.Name</PageTitle>
 
@@ -58,30 +56,6 @@ else
     public string Service { get; set; } = string.Empty;
 
     private ShownModels Shown => ShownModels.Of(Current.Catalogue, Store);
-
-    /// <summary>What the store holds of each streamed section, or null while it is being read or the model is not laid out.</summary>
-    private ModelActivity? StreamedActivity { get; set; }
-
-    /// <summary>The same of each DCB section.</summary>
-    private ModelActivity? DcbActivity { get; set; }
-
-    /// <summary>
-    /// Asks the store what it holds of each model laid out, both at once: the tiles have been sent
-    /// by the time this waits, and each model is read in a scope of its own.
-    /// </summary>
-    protected override async Task OnInitializedAsync()
-    {
-        if (Current.Service is not { } service)
-        {
-            return;
-        }
-
-        var streamed = Shown.Streamed ? Activity.Streamed(service) : null;
-        var dcb = Shown.Dcb ? Activity.Dcb(service) : null;
-
-        StreamedActivity = streamed is null ? null : await streamed;
-        DcbActivity = dcb is null ? null : await dcb;
-    }
 
     private DomainTypeCatalogue Catalogue => Current.Catalogue;
 
@@ -141,7 +115,6 @@ else
                     <span class="body">
                         <span class="name">Events</span>
                         <span class="detail">@Count(Catalogue.StreamedEvents.Count, "event") the model can apply.</span>
-                        <SectionLine Model="@StreamedActivity" Section="@(model => model.Events)" Latest="Last event" Empty="No events yet"/>
                     </span>
                 </a>
             </li>
@@ -151,7 +124,6 @@ else
                     <span class="body">
                         <span class="name">Aggregates</span>
                         <span class="detail">@Count(Catalogue.StreamedAggregates.Count, "aggregate") the events are held in.</span>
-                        <SectionLine Model="@StreamedActivity" Section="@(model => model.Aggregates)" Latest="Last written"/>
                     </span>
                 </a>
             </li>
@@ -161,7 +133,6 @@ else
                     <span class="body">
                         <span class="name">Projections</span>
                         <span class="detail">@Count(Catalogue.StreamedProjections.Count, "projection") built from those events.</span>
-                        <SectionLine Model="@StreamedActivity" Section="@(model => model.Projections)" Latest="Last written"/>
                     </span>
                 </a>
             </li>
@@ -173,7 +144,6 @@ else
                     <span class="body">
                         <span class="name">Streams</span>
                         <span class="detail">@Count(Catalogue.StreamedStreamIds.Count, "stream type") the events are held in.</span>
-                        <SectionLine Model="@StreamedActivity" Section="@(model => model.Streams)" Noun="with events" Empty="No streams yet"/>
                     </span>
                 </a>
             </li>
@@ -199,7 +169,6 @@ else
                     <span class="body">
                         <span class="name">Events</span>
                         <span class="detail">@Count(Catalogue.DcbEvents.Count, "event") the model can apply.</span>
-                        <SectionLine Model="@DcbActivity" Section="@(model => model.Events)" Latest="Last event" Empty="No events yet"/>
                     </span>
                 </a>
             </li>
@@ -209,7 +178,6 @@ else
                     <span class="body">
                         <span class="name">Aggregates</span>
                         <span class="detail">@Count(Catalogue.DcbAggregates.Count, "aggregate") the events are addressed by.</span>
-                        <SectionLine Model="@DcbActivity" Section="@(model => model.Aggregates)" Latest="Last written"/>
                     </span>
                 </a>
             </li>
@@ -219,7 +187,6 @@ else
                     <span class="body">
                         <span class="name">Projections</span>
                         <span class="detail">@Count(Catalogue.DcbProjections.Count, "projection") the events are addressed by.</span>
-                        <SectionLine Model="@DcbActivity" Section="@(model => model.Projections)" Latest="Last written"/>
                     </span>
                 </a>
             </li>

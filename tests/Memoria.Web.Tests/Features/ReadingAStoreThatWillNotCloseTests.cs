@@ -23,8 +23,8 @@ namespace Memoria.Web.Tests.Features;
 /// ReadyForQueryMessage" — and it arrives from the closing, not from the reading.
 /// <para>
 /// What a store does on its way out is not something this tool can put right, and not a reason for
-/// a page listing several stores to show none of them. It says what happened where that store's
-/// figures would have been, as it does for a store that failed to answer at all.
+/// the sheet that asked to be a page of stack trace. It says what happened on the row that store's
+/// figures would have been on, as it does for a store that failed to answer at all.
 /// </para>
 /// </remarks>
 public class ReadingAStoreThatWillNotCloseTests
@@ -38,20 +38,6 @@ public class ReadingAStoreThatWillNotCloseTests
         var activity = ActivatorUtilities.CreateInstance<ServiceActivity>(web.Services);
 
         var read = await activity.Of(Samples(web));
-
-        read.Problem.Should().Contain(WouldNotClose);
-    }
-
-    /// <summary>
-    /// The same for a model's own page, which reads through the same scope and the same closing.
-    /// </summary>
-    [Fact]
-    public async Task Says_it_on_a_model_s_own_page_too()
-    {
-        using var web = Web(out _);
-        var activity = ActivatorUtilities.CreateInstance<ServiceActivity>(web.Services);
-
-        var read = await activity.Streamed(Samples(web), ModelSection.Events);
 
         read.Problem.Should().Contain(WouldNotClose);
     }
@@ -87,27 +73,15 @@ public class ReadingAStoreThatWillNotCloseTests
     }
 
     /// <summary>
-    /// A store answering the two questions a log is asked, which the scope disposes as it closes —
-    /// and which throws there when it is the one that will not close.
+    /// A store answering the question a log is asked, which the scope disposes as it closes — and
+    /// which throws there when it is the one that will not close.
     /// </summary>
     private static IStreamedReads Reads(bool closes)
     {
         var reads = Substitute.For<IStreamedReads, IDisposable>();
 
-        reads.Count(Arg.Any<StreamedEventFilter>(), Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult(new EventCount(1, null)));
-
         reads.At(Arg.Any<StreamedEventFilter>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(new PlacedStreamEvent(null, null)));
-
-        reads.CountSnapshots(Arg.Any<StreamedModelKind>(), Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult(1));
-
-        reads.LastWritten(Arg.Any<StreamedModelKind>(), Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult<DateTimeOffset?>(null));
-
-        reads.CountStreams(Arg.Any<string?>(), Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult(1));
 
         if (!closes)
         {

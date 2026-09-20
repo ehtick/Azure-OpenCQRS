@@ -113,8 +113,7 @@ Without a volume, every deployment starts with nothing installed and everyone ha
 The header's [branding](memoria-web-configuration.md#branding) is kept the same way, in its own
 directory; mount `Branding__Directory` too, or it goes back to Memoria's own name and mark on every
 deployment. So are the tool's own [settings](memoria-web-configuration.md#caching), under
-`Settings__Directory`; without a volume, how long figures are kept goes back to 5 minutes for
-counts and 30 seconds for recent figures.
+`Settings__Directory`; without a volume, how long figures are kept goes back to 30 seconds.
 
 ### Run one instance
 

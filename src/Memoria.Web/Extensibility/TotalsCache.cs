@@ -16,8 +16,8 @@ namespace Memoria.Web.Extensibility;
 /// <remarks>
 /// Every list page counts what it lists before it reads a page of it, and against a large store the
 /// count is the dearer of the two: a scan of everything the filter reaches, run again on every
-/// page, every sort and every reload. So a total is kept for as long as recent figures are, on the
-/// Caching tab of the settings page — thirty seconds unless an Administrator says otherwise: long enough
+/// page, every sort and every reload. So a total is kept for as long as the Caching tab of the
+/// settings page says figures are — thirty seconds unless an Administrator says otherwise: long enough
 /// that paging through a list costs one count, short enough that a store being written to is not
 /// misreported for long. Only totals: the rows themselves are always read, since the tool exists
 /// to show what the store holds now.
@@ -31,7 +31,7 @@ namespace Memoria.Web.Extensibility;
 public sealed class TotalsCache(TimeProvider clock, Func<TimeSpan>? lifetime = null)
 {
     /// <summary>How long a total is handed back before it is counted again, when nothing says otherwise.</summary>
-    public static readonly TimeSpan Lifetime = TimeSpan.FromSeconds(CachingSettingsStore.DefaultRecentKeptForSeconds);
+    public static readonly TimeSpan Lifetime = TimeSpan.FromSeconds(CachingSettingsStore.DefaultFiguresKeptForSeconds);
 
     private readonly ConcurrentDictionary<string, (int Total, DateTimeOffset CountedAt)> _totals = new();
 

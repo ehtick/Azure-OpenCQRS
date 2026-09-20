@@ -53,8 +53,8 @@ public static partial class WriteLog
     public static void BrandingReset(this ILogger logger, Operator asked) =>
         logger.BrandingReset(asked.ToString(), asked.Name, asked.Subject);
 
-    public static void CachingSettingsSaved(this ILogger logger, TimeSpan countsKeptFor, TimeSpan recentKeptFor, Operator asked) =>
-        logger.CachingSettingsSaved(countsKeptFor, recentKeptFor, asked.ToString(), asked.Name, asked.Subject);
+    public static void CachingSettingsSaved(this ILogger logger, TimeSpan figuresKeptFor, Operator asked) =>
+        logger.CachingSettingsSaved(figuresKeptFor, asked.ToString(), asked.Name, asked.Subject);
 
     public static void CachingSettingsNotSaved(this ILogger logger, string error, Operator asked) =>
         logger.CachingSettingsNotSaved(asked.ToString(), asked.Name, asked.Subject, error);
@@ -124,9 +124,9 @@ public static partial class WriteLog
         this ILogger logger, string Operator, string? OperatorName, string? OperatorSubject);
 
     [LoggerMessage(EventId = 1009, EventName = "CachingSettingsSaved", Level = LogLevel.Information,
-        Message = "Saved the caching settings, counts kept for {CountsKeptFor} and recent figures for {RecentKeptFor}, asked by {Operator}.")]
+        Message = "Saved the caching settings, figures kept for {FiguresKeptFor}, asked by {Operator}.")]
     private static partial void CachingSettingsSaved(
-        this ILogger logger, TimeSpan CountsKeptFor, TimeSpan RecentKeptFor, string Operator, string? OperatorName,
+        this ILogger logger, TimeSpan FiguresKeptFor, string Operator, string? OperatorName,
         string? OperatorSubject);
 
     /// <summary>A warning, as a refused branding is: what was refused was the save, and the settings are as they were.</summary>

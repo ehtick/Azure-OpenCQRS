@@ -9,10 +9,10 @@ using Xunit;
 namespace Memoria.Web.Tests.Features;
 
 /// <summary>
-/// Home counts what each service's store holds, and a count is a scan of a whole table — so it is
-/// remembered for as long as an Administrator has said, five minutes unless they said otherwise,
-/// and counted again after. Two readers arriving at once on a count that has run out share the
-/// one count rather than each starting their own, and a count that failed is not remembered.
+/// A figure that is dear to read of a store is remembered for as long as an Administrator has
+/// said — thirty seconds unless they said otherwise — and read again after. Two readers arriving at
+/// once on a figure that has run out share the one read rather than each starting their own, and a
+/// read that failed is not remembered.
 /// </summary>
 public class FigureCacheTests
 {
@@ -54,84 +54,6 @@ public class FigureCacheTests
         first.Should().Be(new Kept<int>(42, Start));
         again.Should().Be(new Kept<int>(42, Start), "the count handed back says when it was counted");
         store.Asked.Should().Be(1);
-    }
-
-    /// <summary>
-    /// Once it has been kept as long as it is kept for, the next reader is handed what there is —
-    /// saying when it was read — and the store is asked again behind them. Nobody waits for a count
-    /// twice: the first reader of all pays for it, and no reader after them does.
-    /// </summary>
-    [Fact]
-    public async Task Hands_back_what_it_has_and_reads_again_behind_the_reader()
-    {
-        var clock = new SetClock();
-        var cache = new FigureCache(clock, () => FiveMinutes, handsBackWhileReading: true);
-        var store = new Counting(42);
-        var gate = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
-        var asked = 0;
-
-        Task<int> Slow(CancellationToken cancellationToken)
-        {
-            Interlocked.Increment(ref asked);
-            return gate.Task;
-        }
-
-        await cache.Keep("orders", store.Count);
-        clock.Now = Start + FiveMinutes;
-        // Bounded: a cache that waits for the reading behind it would hang here, and a hanging test
-        // says less than a failing one.
-        var stale = await cache.Keep("orders", Slow).WaitAsync(TimeSpan.FromSeconds(10));
-        var again = await cache.Keep("orders", Slow).WaitAsync(TimeSpan.FromSeconds(10));
-
-        using var scope = new AssertionScope();
-
-        stale.Should().Be(new Kept<int>(42, Start), "the count it has, as of when it was read");
-        again.Should().Be(new Kept<int>(42, Start), "and the same to the next reader while it is being read again");
-        Volatile.Read(ref asked).Should().Be(1, "one read behind them both, not one each");
-
-        gate.SetResult(43);
-        var read = await Until(cache, "orders", 43);
-
-        read.Should().Be(new Kept<int>(43, Start + FiveMinutes), "what the reading came back with, as of when it started");
-    }
-
-    /// <summary>What the cache hands back once the reading behind it has landed.</summary>
-    private static async Task<Kept<int>> Until(FigureCache cache, string key, int value)
-    {
-        for (var waited = 0; waited < 100; waited++)
-        {
-            var kept = await cache.Keep<int>(
-                key, _ => throw new InvalidOperationException("nothing more should be read"));
-
-            if (kept.Value == value)
-            {
-                return kept;
-            }
-
-            await Task.Delay(20);
-        }
-
-        throw new InvalidOperationException($"{key} never came back with {value}.");
-    }
-
-    /// <summary>
-    /// A reading that failed leaves the next reader to ask for themselves, and to be told: a figure
-    /// handed out for good because nothing could replace it would say the store was answering.
-    /// </summary>
-    [Fact]
-    public async Task Lets_the_next_reader_ask_when_the_reading_behind_one_failed()
-    {
-        var clock = new SetClock();
-        var cache = new FigureCache(clock, () => FiveMinutes, handsBackWhileReading: true);
-        var store = new Counting(42);
-
-        await cache.Keep("orders", store.Count);
-        clock.Now = Start + FiveMinutes;
-        await cache.Keep("orders", _ => Task.FromException<int>(new InvalidOperationException("no connection")));
-
-        var asking = () => cache.Keep("orders", _ => Task.FromException<int>(new InvalidOperationException("no connection")));
-
-        await asking.Should().ThrowAsync<InvalidOperationException>().WithMessage("no connection");
     }
 
     /// <summary>How long a count is kept is asked on every count, so a change to it is felt at once.</summary>

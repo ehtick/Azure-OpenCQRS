@@ -64,12 +64,15 @@ public static class BoundaryEvents
     /// <param name="descending">Whether the newest come first.</param>
     /// <param name="page">The page asked for, from one.</param>
     /// <param name="size">The rows per page.</param>
+    /// <param name="totals">Where the total is remembered between pages, or null to count on every page.</param>
     /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
     /// <remarks>
     /// Narrowed, counted, ordered and cut to the page in the database, so the payloads read are the
     /// page's and no more — the payloads are what make a boundary heavy, and a page of ten was
     /// reading every one of them. Narrowed before it is counted, so the count and the pager answer
-    /// for what a reader asked for rather than for what the boundary holds.
+    /// for what a reader asked for rather than for what the boundary holds — and that count is kept
+    /// as a data page's total is, under the narrowing it answers for, so paging through a tab costs
+    /// one count rather than one a page.
     /// <para>
     /// The whole history is still asked for once, as positions alone: every row's version is its
     /// place in it, and narrowing or paging hides rows without renumbering the ones left. That is
@@ -92,6 +95,7 @@ public static class BoundaryEvents
         bool descending,
         int page,
         int size,
+        TotalsCache? totals = null,
         CancellationToken cancellationToken = default)
     {
         try
@@ -105,10 +109,15 @@ public static class BoundaryEvents
 
             var matching = Matching(applied, eventType, text);
 
-            // The positions already say how many there are when nothing narrowed them.
+            // The positions already say how many there are when nothing narrowed them, so there is
+            // nothing to keep: the read that places the rows has answered it.
             var total = ReferenceEquals(matching, applied)
                 ? positions.Count
-                : await matching.CountAsync(cancellationToken);
+                : totals is null
+                    ? await matching.CountAsync(cancellationToken)
+                    : await totals.Total(
+                        TotalsCache.KeyOf("boundary-events", boundary.ToString(), Applied(applies), eventType, text),
+                        () => matching.CountAsync(cancellationToken));
 
             var placed = InstanceQuery.Place(page, total, size);
 
@@ -251,6 +260,18 @@ public static class BoundaryEvents
     /// numeric with a row that merely sits at that number.
     /// </para>
     /// </remarks>
+    /// <summary>
+    /// The event types a model applies, as the part of a total's key that says which model's
+    /// history was counted: their binding keys, in a settled order, or null when it applies them
+    /// all. Ordered rather than taken as given, so one model's set keys the same way each time it
+    /// is worked out.
+    /// </summary>
+    private static IReadOnlyList<string>? Applied(Type[]? applies) =>
+        applies?
+            .Select(type => DomainTypeDescriber.BindingOf(type)?.Key ?? type.FullName ?? type.Name)
+            .Order(StringComparer.Ordinal)
+            .ToList();
+
     private static IQueryable<DcbEventEntity> Matching(
         IQueryable<DcbEventEntity> rows, string? eventType, string? text)
     {

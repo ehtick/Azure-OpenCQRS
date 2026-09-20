@@ -1,9 +1,6 @@
 @page "/{service}/streamed/projections"
-@attribute [StreamRendering]
-@using Memoria.Web.Data
 @using Memoria.Web.Extensibility
 @inject CurrentService Current
-@inject ServiceActivity Activity
 
 <PageTitle>Streamed @Heading</PageTitle>
 
@@ -24,9 +21,6 @@
         @Count(Catalogue.StreamedProjectionIds.Count, "identifier").
     </TypesDetail>
     <DataDetail>The projections that have been stored, read one identifier at a time.</DataDetail>
-    <DataActivity>
-        <SectionLine Model="@Stored" Section="@(model => model.Projections)" Latest="Last written"/>
-    </DataActivity>
 </SectionTiles>
 
 @code {
@@ -34,21 +28,6 @@
     /// <summary>The service this page sits under: the first segment of its address.</summary>
     [Parameter]
     public string Service { get; set; } = string.Empty;
-
-    /// <summary>What the store holds of this section, or null while it is being read.</summary>
-    private ModelActivity? Stored { get; set; }
-
-    /// <summary>
-    /// Asks the store what it holds of this section and no other; the tiles have been sent by the
-    /// time this waits.
-    /// </summary>
-    protected override async Task OnInitializedAsync()
-    {
-        if (Current.Service is { } service)
-        {
-            Stored = await Activity.Streamed(service, ModelSection.Projections);
-        }
-    }
 
     /// <summary>
     /// What the page is, for the heading and the title. One value for both, so they cannot drift

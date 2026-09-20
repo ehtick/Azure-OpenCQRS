@@ -302,108 +302,12 @@ public sealed class CosmosStreamedReads(
     }
 
     /// <inheritdoc />
-    public async Task<int> CountSnapshots(StreamedModelKind kind, CancellationToken cancellationToken = default) =>
-        await Count(client.GetContainer(databaseName, containerName), OfDocumentType(SnapshotKind.Of(kind).DocumentType),
-            cancellationToken);
-
-    /// <inheritdoc />
-    /// <remarks>
-    /// A maximum rather than an order: the store's own indexing policy leaves the date a document
-    /// was last written out of the index, so a container set up by it refuses to sort on it, but an
-    /// aggregate over the documents the narrowing reaches is worked out from the documents
-    /// themselves. The dates are written in one form and one offset, so the greatest is the latest.
-    /// </remarks>
-    public async Task<DateTimeOffset?> LastWritten(StreamedModelKind kind, CancellationToken cancellationToken = default)
-    {
-        var narrowing = OfDocumentType(SnapshotKind.Of(kind).DocumentType);
-        var latest = await Read<DateTimeOffset?>(client.GetContainer(databaseName, containerName),
-            narrowing.Apply(new QueryDefinition($"SELECT VALUE MAX(c.updatedDate) FROM c WHERE {narrowing.Where}")),
-            cancellationToken);
-
-        return latest.FirstOrDefault();
-    }
-
-    /// <inheritdoc />
     /// <remarks>
     /// The container's own record: one point read, costing the least a request can, and failing
     /// the way every other read would — no account, no database, no container, no key.
     /// </remarks>
     public Task Ping(CancellationToken cancellationToken = default) =>
         client.GetContainer(databaseName, containerName).ReadContainerAsync(cancellationToken: cancellationToken);
-
-    /// <inheritdoc />
-    /// <remarks>
-    /// The distinct stream ids of the event documents, counted: a stream is nothing but the events
-    /// held in it, so no document of its own says it is there.
-    /// </remarks>
-    public async Task<int> CountStreams(string? streamPattern = null, CancellationToken cancellationToken = default)
-    {
-        var narrowing = OfDocumentType(DocumentType.Event);
-
-        if (!string.IsNullOrWhiteSpace(streamPattern))
-        {
-            narrowing = new Narrowing(
-                $"{narrowing.Where} AND c.streamId LIKE @streamPattern",
-                [.. narrowing.Values, ("@streamPattern", streamPattern)]);
-        }
-
-        var counted = await Read<int>(client.GetContainer(databaseName, containerName),
-            narrowing.Apply(new QueryDefinition(
-                $"SELECT VALUE COUNT(1) FROM (SELECT DISTINCT VALUE c.streamId FROM c WHERE {narrowing.Where})")),
-            cancellationToken);
-
-        return counted.FirstOrDefault();
-    }
-
-    /// <inheritdoc />
-    public Task<TypeTally?> TallyEvents(string eventType, CancellationToken cancellationToken = default) =>
-        Tally(DocumentType.Event, "c.eventType", eventType, "c.createdDate", cancellationToken);
-
-    /// <inheritdoc />
-    /// <remarks>
-    /// The newest is the greatest date a snapshot was last written, worked out from the documents
-    /// the way <see cref="LastWritten"/> works it out: the store's own policy does not index it.
-    /// </remarks>
-    public Task<TypeTally?> TallySnapshots(
-        StreamedModelKind kind, string modelType, CancellationToken cancellationToken = default)
-    {
-        var snapshots = SnapshotKind.Of(kind);
-
-        return Tally(snapshots.DocumentType, snapshots.TypeProperty, modelType, "c.updatedDate", cancellationToken);
-    }
-
-    /// <summary>
-    /// How many documents of one type carry one type key, and the newest date among them. The
-    /// store's own policy indexes an event's type, so an event tally reads that type's events alone;
-    /// it does not index a snapshot's, so a snapshot tally reads the snapshots of its kind — far
-    /// fewer than the events, and never the log.
-    /// </summary>
-    private async Task<TypeTally?> Tally(
-        string documentType, string typeProperty, string typeKey, string dateProperty, CancellationToken cancellationToken)
-    {
-        var narrowing = OfDocumentType(documentType);
-        var rows = await Read<TallyRow>(client.GetContainer(databaseName, containerName),
-            narrowing.Apply(new QueryDefinition(
-                    $"SELECT COUNT(1) AS stored, MAX({dateProperty}) AS latest " +
-                    $"FROM c WHERE {narrowing.Where} AND {typeProperty} = @typeKey"))
-                .WithParameter("@typeKey", typeKey),
-            cancellationToken);
-
-        // A count over nothing is a row of its own, saying none, with no newest to go with it.
-        return rows.FirstOrDefault() is { Stored: > 0, Latest: { } latest } row ? new TypeTally(row.Stored, latest) : null;
-    }
-
-    /// <summary>What a tally reads back: the count, and the newest date when there was anything to take it from.</summary>
-    private sealed class TallyRow
-    {
-        [JsonProperty("stored")] public int Stored { get; set; }
-
-        [JsonProperty("latest")] public DateTimeOffset? Latest { get; set; }
-    }
-
-    /// <summary>Every document of one type, and nothing narrower.</summary>
-    private static Narrowing OfDocumentType(string documentType) =>
-        new("c.documentType = @documentType", [("@documentType", documentType)]);
 
     /// <inheritdoc />
     /// <remarks>

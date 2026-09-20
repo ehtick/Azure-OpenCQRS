@@ -8,11 +8,12 @@ namespace Memoria.Web.Data;
 /// </summary>
 /// <param name="root">The directory holding the file, created on the first save.</param>
 /// <remarks>
-/// Two lifetimes, for two kinds of figure. Counts — events, snapshots and streams on Home and the
-/// overview pages, and the type being read on a Types page — are scans of a whole table, kept for
-/// minutes. Recent figures — a list's total, the newest date where the store has to search for it,
-/// and whether a row on a data page is behind its history — are cheaper and say what is happening
-/// now, so they are kept for seconds.
+/// One lifetime, because there is one kind of figure left. The tool counts on the data pages and on
+/// the events tab of a detail page — how many rows that page's filter reaches — and reads two
+/// figures beside them: the newest date where the store has to search for it, and whether a row on
+/// a data page is behind its history. All three say what is happening now, so they are kept for
+/// seconds rather than minutes. Nothing else scans a store: a tile leads to a section rather than
+/// reporting on it.
 /// <para>
 /// A file rather than a table for the reason the branding is one: the tool reads over the stores it
 /// is pointed at and owns none of them. Held in memory because every page that reads a store asks.
@@ -22,17 +23,11 @@ namespace Memoria.Web.Data;
 /// </remarks>
 public sealed class CachingSettingsStore
 {
-    /// <summary>How long counts are kept until an Administrator says otherwise.</summary>
-    public const int DefaultCountsKeptForMinutes = 5;
+    /// <summary>How long a figure is kept until an Administrator says otherwise.</summary>
+    public const int DefaultFiguresKeptForSeconds = 30;
 
-    /// <summary>The longest counts are kept: a day, past which a count is history rather than a figure.</summary>
-    public const int MaxCountsKeptForMinutes = 24 * 60;
-
-    /// <summary>How long recent figures are kept until an Administrator says otherwise.</summary>
-    public const int DefaultRecentKeptForSeconds = 30;
-
-    /// <summary>The longest recent figures are kept: an hour, past which they are no longer recent.</summary>
-    public const int MaxRecentKeptForSeconds = 60 * 60;
+    /// <summary>The longest a figure is kept: an hour, past which it is no longer what is happening now.</summary>
+    public const int MaxFiguresKeptForSeconds = 60 * 60;
 
     private const string SettingsFileName = "caching.json";
 
@@ -48,33 +43,23 @@ public sealed class CachingSettingsStore
         _current = Read();
     }
 
-    /// <summary>How long a count is kept before it is counted again; no time at all keeps nothing.</summary>
-    public TimeSpan CountsKeptFor => TimeSpan.FromMinutes(_current.CountsKeptForMinutes);
+    /// <summary>How long a figure is kept before it is read again; no time at all keeps nothing.</summary>
+    public TimeSpan FiguresKeptFor => TimeSpan.FromSeconds(_current.FiguresKeptForSeconds);
 
-    /// <summary>How long a recent figure is kept before it is read again; no time at all keeps nothing.</summary>
-    public TimeSpan RecentKeptFor => TimeSpan.FromSeconds(_current.RecentKeptForSeconds);
-
-    /// <summary>Saves how long counts and recent figures are kept.</summary>
-    /// <param name="countsKeptForMinutes">From none, which counts on every visit, to <see cref="MaxCountsKeptForMinutes"/>.</param>
-    /// <param name="recentKeptForSeconds">From none, which reads on every visit, to <see cref="MaxRecentKeptForSeconds"/>.</param>
-    /// <exception cref="InvalidDataException">Either is outside what is kept; nothing is saved.</exception>
-    public void Save(int countsKeptForMinutes, int recentKeptForSeconds)
+    /// <summary>Saves how long figures are kept.</summary>
+    /// <param name="figuresKeptForSeconds">From none, which reads on every visit, to <see cref="MaxFiguresKeptForSeconds"/>.</param>
+    /// <exception cref="InvalidDataException">It is outside what is kept; nothing is saved.</exception>
+    public void Save(int figuresKeptForSeconds)
     {
-        if (!CountsAllowed(countsKeptForMinutes))
+        if (!Allowed(figuresKeptForSeconds))
         {
             throw new InvalidDataException(
-                $"Counts are kept for 0 to {MaxCountsKeptForMinutes} minutes; 0 counts on every visit.");
-        }
-
-        if (!RecentAllowed(recentKeptForSeconds))
-        {
-            throw new InvalidDataException(
-                $"Recent figures are kept for 0 to {MaxRecentKeptForSeconds} seconds; 0 reads them on every visit.");
+                $"Figures are kept for 0 to {MaxFiguresKeptForSeconds} seconds; 0 reads them on every visit.");
         }
 
         lock (_writing)
         {
-            var next = new Settings(countsKeptForMinutes, recentKeptForSeconds);
+            var next = new Settings(figuresKeptForSeconds);
             var target = Path.Combine(_root, SettingsFileName);
             var pending = target + ".pending";
 
@@ -87,27 +72,32 @@ public sealed class CachingSettingsStore
         }
     }
 
-    private static bool CountsAllowed(int minutes) => minutes is >= 0 and <= MaxCountsKeptForMinutes;
-
-    private static bool RecentAllowed(int seconds) => seconds is >= 0 and <= MaxRecentKeptForSeconds;
+    private static bool Allowed(int seconds) => seconds is >= 0 and <= MaxFiguresKeptForSeconds;
 
     /// <summary>
-    /// The settings as the file says, or the defaults when there is no file or it cannot be used:
-    /// a file broken by hand is no reason for the tool not to start. A file without the recent
-    /// setting — written before there was one — keeps its count and takes the recent default.
+    /// The setting as the file says, or the default when there is no file or it cannot be used: a
+    /// file broken by hand is no reason for the tool not to start.
     /// </summary>
+    /// <remarks>
+    /// A file written when there were two settings is read by the one that survived them: its
+    /// seconds were the lifetime of everything the tool still keeps, and its minutes were the
+    /// lifetime of the counts the tiles no longer ask for.
+    /// </remarks>
     private Settings Read()
     {
         var path = Path.Combine(_root, SettingsFileName);
 
         try
         {
-            return File.Exists(path) &&
-                   JsonSerializer.Deserialize<Settings>(File.ReadAllBytes(path), Json) is { } settings &&
-                   CountsAllowed(settings.CountsKeptForMinutes) &&
-                   RecentAllowed(settings.RecentKeptForSeconds)
-                ? settings
-                : Settings.Default;
+            if (File.Exists(path) &&
+                JsonSerializer.Deserialize<Saved>(File.ReadAllBytes(path), Json) is { } saved &&
+                (saved.FiguresKeptForSeconds ?? saved.RecentKeptForSeconds) is { } seconds &&
+                Allowed(seconds))
+            {
+                return new Settings(seconds);
+            }
+
+            return Settings.Default;
         }
         catch (JsonException)
         {
@@ -115,8 +105,12 @@ public sealed class CachingSettingsStore
         }
     }
 
-    private sealed record Settings(int CountsKeptForMinutes, int RecentKeptForSeconds = DefaultRecentKeptForSeconds)
+    /// <summary>What is written to the file, and what the tool asks of it.</summary>
+    private sealed record Settings(int FiguresKeptForSeconds)
     {
-        public static readonly Settings Default = new(DefaultCountsKeptForMinutes, DefaultRecentKeptForSeconds);
+        public static readonly Settings Default = new(DefaultFiguresKeptForSeconds);
     }
+
+    /// <summary>What is read back from it: the setting as it is written now, or as it once was.</summary>
+    private sealed record Saved(int? FiguresKeptForSeconds, int? RecentKeptForSeconds);
 }

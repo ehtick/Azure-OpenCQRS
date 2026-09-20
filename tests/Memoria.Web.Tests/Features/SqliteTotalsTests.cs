@@ -1,6 +1,7 @@
 using System.Data.Common;
 using AwesomeAssertions;
 using AwesomeAssertions.Execution;
+using Memoria.EventSourcing.Dcb;
 using Memoria.EventSourcing.Dcb.Store.EntityFrameworkCore;
 using Memoria.EventSourcing.Dcb.Store.EntityFrameworkCore.Entities;
 using Memoria.EventSourcing.Store.EntityFrameworkCore;
@@ -189,6 +190,47 @@ public class SqliteTotalsTests : IAsyncLifetime
 
         again.Total.Should().Be(1);
         Counts.Should().Be(1);
+    }
+
+    /// <summary>
+    /// The events tab of a DCB model's detail page, narrowed to one type: the total is the same
+    /// count the data pages keep, so it is kept the same way and for the same while. Unnarrowed the
+    /// tab counts nothing — the positions it reads to place the rows say how many there are — so
+    /// this narrows, which is where the count is.
+    /// </summary>
+    [Fact]
+    public async Task Counts_a_boundary_s_narrowed_events_once_for_two_pages_of_them()
+    {
+        await using var context = Dcb();
+        var boundary = TagQuery.AnyOf(new Tag("product", "alpha"));
+
+        var first = await BoundaryEvents.Load(context, boundary, applies: null, "ProductCreated:1",
+            text: null, descending: true, page: 1, size: 10, _totals);
+        var again = await BoundaryEvents.Load(context, boundary, applies: null, "ProductCreated:1",
+            text: null, descending: true, page: 2, size: 10, _totals);
+
+        using var scope = new AssertionScope();
+
+        first.Total.Should().Be(1);
+        again.Total.Should().Be(1);
+        Counts.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Counts_a_differently_narrowed_boundary_in_its_own_right()
+    {
+        await using var context = Dcb();
+        var boundary = TagQuery.AnyOf(new Tag("product", "alpha"));
+
+        await BoundaryEvents.Load(context, boundary, applies: null, "ProductCreated:1",
+            text: null, descending: true, page: 1, size: 10, _totals);
+        var narrowed = await BoundaryEvents.Load(context, boundary, applies: null, "ProductRenamed:1",
+            text: null, descending: true, page: 1, size: 10, _totals);
+
+        using var scope = new AssertionScope();
+
+        narrowed.Total.Should().Be(0);
+        Counts.Should().Be(2);
     }
 
     [Fact]

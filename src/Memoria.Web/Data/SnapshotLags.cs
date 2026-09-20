@@ -28,7 +28,7 @@ public sealed class SnapshotLags(
     /// <summary>How many of a page's rows are read at once.</summary>
     public const int AtOnce = 4;
 
-    private readonly FigureCache _kept = new(clock, () => settings.RecentKeptFor);
+    private readonly FigureCache _kept = new(clock, () => settings.FiguresKeptFor);
 
     /// <summary>The key a streamed row's check is found by on the page.</summary>
     public static string KeyOf(StoredStreamSnapshot row) => $"{row.StreamId}\n{row.StoreId}";

@@ -73,32 +73,6 @@ public interface IStreamedReads
         StreamedSnapshotFilter filter, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Counts every snapshot of one kind the store holds.
-    /// </summary>
-    /// <param name="kind">Aggregates or projections.</param>
-    /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
-    /// <remarks>
-    /// What the overview pages say beside a section, asked on its own rather than as a page of
-    /// one: a page would read a row nobody wanted and count through the list totals, and these
-    /// figures are kept by the overview for a while of their own. Throws when the store cannot be
-    /// read, since the overview says so in its own words.
-    /// </remarks>
-    Task<int> CountSnapshots(StreamedModelKind kind, CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// When the newest snapshot of one kind was last written, or null when none is stored.
-    /// </summary>
-    /// <param name="kind">Aggregates or projections.</param>
-    /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
-    /// <remarks>
-    /// Last written rather than first: a snapshot refreshed is a write, and the figure says whether
-    /// snapshots are still being written. Nothing indexes that date, so this reads every snapshot
-    /// of the kind, and the overview keeps it for a short while. Throws when the store cannot be
-    /// read.
-    /// </remarks>
-    Task<DateTimeOffset?> LastWritten(StreamedModelKind kind, CancellationToken cancellationToken = default);
-
-    /// <summary>
     /// Asks the store the smallest question it can answer, for how long a round trip to it takes.
     /// </summary>
     /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
@@ -108,42 +82,6 @@ public interface IStreamedReads
     /// the exception it throws.
     /// </remarks>
     Task Ping(CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Counts the streams the store's events are held in, or those of them one stream type's
-    /// pattern matches.
-    /// </summary>
-    /// <param name="streamPattern">The pattern the ids of one stream type match, or null for every stream.</param>
-    /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
-    /// <remarks>
-    /// A stream is stored as nothing but the events in it, so this counts the distinct stream ids
-    /// across the log, or across the events the pattern reaches: a scan, which the pages keep as
-    /// they keep their other counts. Throws when the store cannot be read.
-    /// </remarks>
-    Task<int> CountStreams(string? streamPattern = null, CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// How many events of one type the log holds, and when the newest of them was written; null
-    /// when none are.
-    /// </summary>
-    /// <param name="eventType">The key the type's events are written under.</param>
-    /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
-    /// <remarks>
-    /// What the events Types page says over the type being read. One type rather than every type:
-    /// its rows are found by the key they are written under, which the store indexes, where a count
-    /// of every type would read the whole log on every visit. Throws when the store cannot be read.
-    /// </remarks>
-    Task<TypeTally?> TallyEvents(string eventType, CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// How many snapshots of one type are stored, and when the newest of them was last written;
-    /// null when none are.
-    /// </summary>
-    /// <param name="kind">Aggregates or projections.</param>
-    /// <param name="modelType">The key the type's snapshots are written under.</param>
-    /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
-    Task<TypeTally?> TallySnapshots(
-        StreamedModelKind kind, string modelType, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Reads the one model stored under an exact address, payload and all.
@@ -220,11 +158,6 @@ public sealed record ReadStreamModel(StoredStreamModel? Snapshot, string? Error)
 /// <param name="Total">The count, or null when the log could not be read.</param>
 /// <param name="Error">Why it could not be, or null when it was.</param>
 public sealed record EventCount(int? Total, string? Error);
-
-/// <summary>How many of one type are stored, and when the newest of them was written.</summary>
-/// <param name="Stored">How many rows are written under the type's key.</param>
-/// <param name="Latest">When the newest was written — an event appended, a snapshot last written.</param>
-public sealed record TypeTally(int Stored, DateTimeOffset Latest);
 
 /// <summary>The one event at a place in the narrowed log, or why it could not be read.</summary>
 /// <param name="Event">The event, or null when there is none at that place or the log could not be read.</param>

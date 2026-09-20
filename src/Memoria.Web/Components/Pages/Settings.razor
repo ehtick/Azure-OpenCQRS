@@ -413,47 +413,30 @@ else if (Tab == CachingTab)
     <section class="tab-panel caching-panel" aria-labelledby="tab-@CachingTab">
         <p class="lede">
             How long the figures read from each service's store are kept before the store is asked
-            again. Counts are scans of a whole table, so they are kept for minutes. Recent figures
-            say what is happening now, so they are kept for seconds.
+            again. They say what is happening now, so they are kept for seconds.
         </p>
 
-        @* One card with two fields, each under a band drawn the way the Branding tab draws its
-           two, so the tabs read as one page. Each in the unit it is thought of in: a count kept for
-           seconds is hardly kept, and a recent figure kept for minutes is no longer recent. *@
+        @* One card, one field, under a band drawn the way the Branding tab draws its two, so the
+           tabs read as one page. In seconds, which is the unit these are thought of in: a figure
+           kept for minutes is no longer what is happening now. *@
         <form method="post" action="settings/caching" class="caching-settings">
             <AntiforgeryToken/>
 
             <div class="field-card">
-                <h2 class="field-card-head"><label for="counts-kept-for">Counts kept for</label></h2>
+                <h2 class="field-card-head"><label for="figures-kept-for">Figures kept for</label></h2>
                 <div class="field-card-body">
                     <span class="minutes">
-                        <input id="counts-kept-for" name="countsKeptForMinutes" type="number" required
-                               min="0" max="@CachingSettingsStore.MaxCountsKeptForMinutes" step="1"
-                               value="@((int)Caching.CountsKeptFor.TotalMinutes)"/>
-                        <span>minutes</span>
-                    </span>
-                    <p class="hint">
-                        How many events, snapshots and streams a store holds, on Home and the overview
-                        pages, and of the type being read on a Types page. 0 counts on every visit; up
-                        to @CachingSettingsStore.MaxCountsKeptForMinutes, a day;
-                        @CachingSettingsStore.DefaultCountsKeptForMinutes until it is changed.
-                    </p>
-                </div>
-
-                <h2 class="field-card-head"><label for="recent-kept-for">Recent figures kept for</label></h2>
-                <div class="field-card-body">
-                    <span class="minutes">
-                        <input id="recent-kept-for" name="recentKeptForSeconds" type="number" required
-                               min="0" max="@CachingSettingsStore.MaxRecentKeptForSeconds" step="1"
-                               value="@((int)Caching.RecentKeptFor.TotalSeconds)"/>
+                        <input id="figures-kept-for" name="figuresKeptForSeconds" type="number" required
+                               min="0" max="@CachingSettingsStore.MaxFiguresKeptForSeconds" step="1"
+                               value="@((int)Caching.FiguresKeptFor.TotalSeconds)"/>
                         <span>seconds</span>
                     </span>
                     <p class="hint">
-                        How many rows a data page's filter reaches, when the newest was written where
-                        the store has to search for it, and whether a stored snapshot is behind its
-                        history. 0 reads them on every visit; up to
-                        @CachingSettingsStore.MaxRecentKeptForSeconds, an hour;
-                        @CachingSettingsStore.DefaultRecentKeptForSeconds until it is changed.
+                        How many rows a data page's filter reaches and how many events a detail
+                        page's tab holds, when the newest was written where the store has to search
+                        for it, and whether a stored snapshot is behind its history. 0 reads them on
+                        every visit; up to @CachingSettingsStore.MaxFiguresKeptForSeconds, an hour;
+                        @CachingSettingsStore.DefaultFiguresKeptForSeconds until it is changed.
                     </p>
                 </div>
             </div>

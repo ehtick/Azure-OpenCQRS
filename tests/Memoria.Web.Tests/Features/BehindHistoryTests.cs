@@ -126,11 +126,11 @@ public class BehindHistoryTests
     }
 
     [Fact]
-    public async Task Checks_every_row_again_when_recent_figures_are_kept_for_no_time()
+    public async Task Checks_every_row_again_when_figures_are_kept_for_no_time()
     {
         var reads = Holding(rows: 1, count: _ => Task.FromResult(new EventCount(5, null)));
         using var web = MemoriaWeb.Open().WithSampleTypes().WithReads(reads);
-        web.Services.GetRequiredService<CachingSettingsStore>().Save(5, recentKeptForSeconds: 0);
+        web.Services.GetRequiredService<CachingSettingsStore>().Save(figuresKeptForSeconds: 0);
 
         await web.Client.GetStringAsync(Aggregates);
         await web.Client.GetStringAsync(Aggregates);

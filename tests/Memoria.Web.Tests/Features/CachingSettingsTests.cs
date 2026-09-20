@@ -15,9 +15,8 @@ namespace Memoria.Web.Tests.Features;
 
 /// <summary>
 /// How long the tool keeps what it reads of the stores is an Administrator's to say, on a Caching
-/// tab of the settings page: counts in whole minutes, five until they say otherwise, and recent
-/// figures in whole seconds, thirty until they say otherwise; none, for either, reads the store on
-/// every visit. It is kept in a file beside the branding's, and felt on the next visit.
+/// tab of the settings page: whole seconds, thirty until they say otherwise, and none reads the
+/// store on every visit. It is kept in a file beside the branding's, and felt on the next visit.
 /// </summary>
 public class CachingSettingsTests
 {
@@ -28,7 +27,7 @@ public class CachingSettingsTests
             .With("Authorization:Roles:Administrator", Admins);
 
     [Fact]
-    public async Task Offers_a_caching_tab_with_how_long_counts_are_kept_filled_in()
+    public async Task Offers_a_caching_tab_with_how_long_figures_are_kept_filled_in()
     {
         using var web = Administrator();
 
@@ -38,18 +37,28 @@ public class CachingSettingsTests
         {
             page.Should().MatchRegex("aria-current=\"page\"[^>]*>Caching<");
             page.Should().Contain("action=\"settings/caching\"");
-            page.Should().MatchRegex("<input[^>]*name=\"countsKeptForMinutes\"[^>]*value=\"5\"");
-            page.Should().MatchRegex("<input[^>]*name=\"recentKeptForSeconds\"[^>]*value=\"30\"");
+            page.Should().MatchRegex("<input[^>]*name=\"figuresKeptForSeconds\"[^>]*value=\"30\"");
         }
     }
 
+    /// <summary>The one field it has: the counts the tiles once kept are not asked for any more.</summary>
     [Fact]
-    public async Task Saves_how_long_counts_are_kept_and_shows_it_back()
+    public async Task Offers_no_second_field_for_counts()
+    {
+        using var web = Administrator();
+
+        var page = await web.Client.GetStringAsync("/settings?tab=caching");
+
+        page.Should().NotContain("countsKeptForMinutes");
+    }
+
+    [Fact]
+    public async Task Saves_how_long_figures_are_kept_and_shows_it_back()
     {
         using var web = Administrator();
         var client = web.Client;
 
-        var response = await client.PostAsync("/settings/caching", await Caching(client, "12", "45"));
+        var response = await client.PostAsync("/settings/caching", await Caching(client, "45"));
         var page = Markup.Plain(await client.GetStringAsync("/settings?tab=caching"));
 
         using (new AssertionScope())
@@ -57,30 +66,8 @@ public class CachingSettingsTests
             response.StatusCode.Should().Be(HttpStatusCode.Found);
             Query(response, "tab").Should().Be("caching");
             Query(response, "message").Should().NotBeEmpty();
-            web.Services.GetRequiredService<CachingSettingsStore>().CountsKeptFor.Should().Be(TimeSpan.FromMinutes(12));
-            page.Should().MatchRegex("<input[^>]*name=\"countsKeptForMinutes\"[^>]*value=\"12\"");
-            web.Services.GetRequiredService<CachingSettingsStore>().RecentKeptFor.Should().Be(TimeSpan.FromSeconds(45));
-            page.Should().MatchRegex("<input[^>]*name=\"recentKeptForSeconds\"[^>]*value=\"45\"");
-        }
-    }
-
-    [Theory]
-    [InlineData("-1")]
-    [InlineData("1441")]
-    [InlineData("soon")]
-    [InlineData("")]
-    public async Task Says_why_a_time_was_refused_and_keeps_what_was_there(string minutes)
-    {
-        using var web = Administrator();
-        var client = web.Client;
-
-        var response = await client.PostAsync("/settings/caching", await Caching(client, minutes));
-
-        using (new AssertionScope())
-        {
-            Query(response, "tab").Should().Be("caching");
-            Query(response, "error").Should().Contain("0").And.Contain("1440");
-            web.Services.GetRequiredService<CachingSettingsStore>().CountsKeptFor.Should().Be(TimeSpan.FromMinutes(5));
+            web.Services.GetRequiredService<CachingSettingsStore>().FiguresKeptFor.Should().Be(TimeSpan.FromSeconds(45));
+            page.Should().MatchRegex("<input[^>]*name=\"figuresKeptForSeconds\"[^>]*value=\"45\"");
         }
     }
 
@@ -89,20 +76,18 @@ public class CachingSettingsTests
     [InlineData("3601")]
     [InlineData("soon")]
     [InlineData("")]
-    public async Task Says_why_a_recent_time_was_refused_and_keeps_both_as_they_were(string seconds)
+    public async Task Says_why_a_time_was_refused_and_keeps_what_was_there(string seconds)
     {
         using var web = Administrator();
         var client = web.Client;
 
-        var response = await client.PostAsync("/settings/caching", await Caching(client, "12", seconds));
-        var settings = web.Services.GetRequiredService<CachingSettingsStore>();
+        var response = await client.PostAsync("/settings/caching", await Caching(client, seconds));
 
         using (new AssertionScope())
         {
             Query(response, "tab").Should().Be("caching");
             Query(response, "error").Should().Contain("0").And.Contain("3600");
-            settings.CountsKeptFor.Should().Be(TimeSpan.FromMinutes(5), "a save refused in part is refused whole");
-            settings.RecentKeptFor.Should().Be(TimeSpan.FromSeconds(30));
+            web.Services.GetRequiredService<CachingSettingsStore>().FiguresKeptFor.Should().Be(TimeSpan.FromSeconds(30));
         }
     }
 
@@ -113,22 +98,22 @@ public class CachingSettingsTests
             .With("Authorization:Roles:Administrator", Admins);
         var client = web.Client;
 
-        var response = await client.PostAsync("/settings/caching", await Caching(client, "12", tokenPage: "/"));
+        var response = await client.PostAsync("/settings/caching", await Caching(client, "45", tokenPage: "/"));
 
         using (new AssertionScope())
         {
             response.Headers.Location?.OriginalString.Should().StartWith("/forbidden");
-            web.Services.GetRequiredService<CachingSettingsStore>().CountsKeptFor.Should().Be(TimeSpan.FromMinutes(5));
+            web.Services.GetRequiredService<CachingSettingsStore>().FiguresKeptFor.Should().Be(TimeSpan.FromSeconds(30));
         }
     }
 
     [Fact]
-    public async Task Says_who_changed_how_long_counts_are_kept()
+    public async Task Says_who_changed_how_long_figures_are_kept()
     {
         using var web = Administrator();
         var client = web.Client;
 
-        await client.PostAsync("/settings/caching", await Caching(client, "12"));
+        await client.PostAsync("/settings/caching", await Caching(client, "45"));
         await client.PostAsync("/settings/caching", await Caching(client, "soon"));
 
         using (new AssertionScope())
@@ -145,22 +130,21 @@ public class CachingSettingsTests
         using var web = Administrator();
         var client = web.Client;
 
-        await client.PostAsync("/settings/caching", await Caching(client, "12"));
+        await client.PostAsync("/settings/caching", await Caching(client, "45"));
 
         System.IO.Directory.GetFiles(web.SettingsDirectory).Select(System.IO.Path.GetFileName)
             .Should().BeEquivalentTo("caching.json");
     }
 
     private static async Task<FormUrlEncodedContent> Caching(
-        HttpClient client, string minutes, string seconds = "30", string tokenPage = "/settings?tab=caching")
+        HttpClient client, string seconds, string tokenPage = "/settings?tab=caching")
     {
         var page = await client.GetStringAsync(tokenPage);
 
         return new FormUrlEncodedContent(new Dictionary<string, string>
         {
             [Forms.AntiforgeryField] = Forms.AntiforgeryToken(page),
-            ["countsKeptForMinutes"] = minutes,
-            ["recentKeptForSeconds"] = seconds
+            ["figuresKeptForSeconds"] = seconds
         });
     }
 

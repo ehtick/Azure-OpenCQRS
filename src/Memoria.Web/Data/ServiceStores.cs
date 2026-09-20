@@ -55,7 +55,7 @@ public sealed class ServiceStores(
             : null;
 
         var store = new ServiceStore(service, connection, catalogue.BindingsOf(service),
-            new TotalsCache(clock, () => caching.RecentKeptFor), client);
+            new TotalsCache(clock, () => caching.FiguresKeptFor), client);
         _stores[service.Slug] = (catalogue, store);
 
         return store;

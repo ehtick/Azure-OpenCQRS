@@ -98,15 +98,13 @@ the manifest in the zip that brought it — and each is browsed under its own na
 manifest declares is not found, and so is an address under no service at all. Inside a service the
 bar carries Home, the service's name, and the menus over its models; outside one, Home and Settings.
 
-Under each service, Home says what its store is doing: when the last event was written, and how
-many events the store holds, counted and then kept for five minutes unless an Administrator
-[says otherwise](memoria-web-configuration.md#caching). A service's own page and each model's overview
-say the same under every section: how many events, aggregates, projections and streams are stored,
-and when the newest was written. Each section's own page says it once more, under its **Data** tile,
-and its **Types** page says it for the type being read, over its tabs: how many of it are stored
-and when the newest was written. The **Streams** page says, for the stream type being read, when a stream
-of it was last written to and how many of its streams hold events. A streamed event's own page says,
-beside its sequence, whether it is the latest in its stream or how many events were appended after it.
+The way in is tiles all the way down — Home, a service's own page, each model's overview, each
+section — and a tile leads to a section rather than reporting on it: none of them asks a store
+anything, so none of them waits on one. What is counted is counted where the rows are read: a
+**Data** page's total, and the total over a detail page's **Events** tab, each kept for thirty
+seconds unless an Administrator [says otherwise](memoria-web-configuration.md#caching). A streamed
+event's own page says, beside its sequence, whether it is the latest in its stream or how many
+events were appended after it.
 
 A service's own page sets the two consistency models side by side when it registered types under
 both, and lays the one model out directly when it registered types under one alone. Each model is
