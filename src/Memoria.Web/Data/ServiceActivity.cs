@@ -157,7 +157,8 @@ public sealed class ServiceActivity(
                     ? await Snapshots(inside, "streamed/projections", StreamedModelKind.Projection, reads, token)
                     : null,
                 Wanted(only, ModelSection.Streams)
-                    ? new SectionActivity(null, await _counts.Keep(inside.Key("streamed/streams"), ct => reads.CountStreams(cancellationToken: ct), token))
+                    ? new SectionActivity(null, await Counted(inside, "streamed/streams",
+                        (provider, ct) => ReadsOf(provider).CountStreams(cancellationToken: ct), token))
                     : null,
                 Problem: null);
         }, cancellationToken);
@@ -204,16 +205,12 @@ public sealed class ServiceActivity(
         Service service, ModelSection section, Type type, CancellationToken cancellationToken = default)
     {
         var read = await Read(service, async (inside, _, token) =>
-        {
-            var reads = inside.Provider.GetRequiredService<IStreamedReads>();
-
-            return await Tallied(inside, $"streamed/{Segment(section)}", type, (key, ct) => section switch
+            await Tallied(inside, $"streamed/{Segment(section)}", type, (provider, key, ct) => section switch
             {
-                ModelSection.Aggregates => reads.TallySnapshots(StreamedModelKind.Aggregate, key, ct),
-                ModelSection.Projections => reads.TallySnapshots(StreamedModelKind.Projection, key, ct),
-                _ => reads.TallyEvents(key, ct)
-            }, token);
-        }, cancellationToken);
+                ModelSection.Aggregates => ReadsOf(provider).TallySnapshots(StreamedModelKind.Aggregate, key, ct),
+                ModelSection.Projections => ReadsOf(provider).TallySnapshots(StreamedModelKind.Projection, key, ct),
+                _ => ReadsOf(provider).TallyEvents(key, ct)
+            }, token), cancellationToken);
 
         return read.Value ?? new TypeActivity(null, read.Problem);
     }
@@ -227,16 +224,12 @@ public sealed class ServiceActivity(
         Service service, ModelSection section, Type type, CancellationToken cancellationToken = default)
     {
         var read = await Read(service, async (inside, _, token) =>
-        {
-            var context = inside.Provider.GetRequiredService<DcbStoreDbContext>();
-
-            return await Tallied(inside, $"dcb/{Segment(section)}", type, (key, ct) => section switch
+            await Tallied(inside, $"dcb/{Segment(section)}", type, (provider, key, ct) => section switch
             {
-                ModelSection.Aggregates => TallyDcbSnapshots(context, DcbSnapshotEntity.AggregateKind, key, ct),
-                ModelSection.Projections => TallyDcbSnapshots(context, DcbSnapshotEntity.ProjectionKind, key, ct),
-                _ => TallyDcbEvents(context, key, ct)
-            }, token);
-        }, cancellationToken);
+                ModelSection.Aggregates => TallyDcbSnapshots(DcbOf(provider), DcbSnapshotEntity.AggregateKind, key, ct),
+                ModelSection.Projections => TallyDcbSnapshots(DcbOf(provider), DcbSnapshotEntity.ProjectionKind, key, ct),
+                _ => TallyDcbEvents(DcbOf(provider), key, ct)
+            }, token), cancellationToken);
 
         return read.Value ?? new TypeActivity(null, read.Problem);
     }
@@ -246,7 +239,8 @@ public sealed class ServiceActivity(
     /// be written under, so nothing of it can be stored, and the store is not asked.
     /// </summary>
     private async Task<TypeActivity> Tallied(
-        Inside inside, string section, Type type, Func<string, CancellationToken, Task<TypeTally?>> tally,
+        Inside inside, string section, Type type,
+        Func<IServiceProvider, string, CancellationToken, Task<TypeTally?>> tally,
         CancellationToken cancellationToken)
     {
         if (DomainTypeDescriber.BindingOf(type)?.Key is not { } key)
@@ -254,7 +248,8 @@ public sealed class ServiceActivity(
             return new TypeActivity(new SectionActivity(null, new Kept<int>(0, clock.GetUtcNow())), Problem: null);
         }
 
-        var kept = await _counts.Keep(inside.Key($"{section}/types/{key}"), token => tally(key, token), cancellationToken);
+        var kept = await Counted(inside, $"{section}/types/{key}",
+            (provider, token) => tally(provider, key, token), cancellationToken);
 
         return new TypeActivity(
             new SectionActivity(kept.Value?.Latest, new Kept<int>(kept.Value?.Stored ?? 0, kept.At)), Problem: null);
@@ -312,7 +307,8 @@ public sealed class ServiceActivity(
                 return placed.Error is { } error ? throw new InvalidOperationException(error) : placed.Event?.Event.Written;
             }, token);
 
-            var stored = await _counts.Keep(inside.Key(figure), ct => reads.CountStreams(pattern, ct), token);
+            var stored = await Counted(inside, figure,
+                (provider, ct) => ReadsOf(provider).CountStreams(pattern, ct), token);
 
             return new TypeActivity(new SectionActivity(latest.Value, stored), Problem: null);
         }, cancellationToken);
@@ -345,11 +341,50 @@ public sealed class ServiceActivity(
     private static bool Wanted(ModelSection? only, ModelSection section) => only is null || only == section;
 
     /// <summary>A service being read: its scope, its store, and where its figures are kept.</summary>
-    private sealed record Inside(IServiceProvider Provider, Service Service, bool Cosmos)
+    private sealed record Inside(
+        IServiceProvider Provider, Service Service, DomainTypeCatalogue Catalogue, bool Cosmos)
     {
         /// <summary>The key a figure of this service is kept under.</summary>
         public string Key(string figure) => $"{Service.Slug}/{figure}";
     }
+
+    /// <summary>
+    /// A count, kept as counts are, and read in a scope of its own whoever is waiting for it.
+    /// </summary>
+    /// <param name="inside">The service being read.</param>
+    /// <param name="figure">What is being counted, as its key names it.</param>
+    /// <param name="count">Counts it, over the store that scope resolves.</param>
+    /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
+    /// <remarks>
+    /// A count is the one figure that may be read behind the reader rather than for them, and that
+    /// read outlives both their turn and the scope they were served from. Made over their own store
+    /// it would be a second operation on a context the next section is about to ask its own question
+    /// of, which Entity Framework Core refuses outright — and then be cut off when their scope
+    /// closed, so the figure it went to fetch would never arrive.
+    /// <para>
+    /// Its own scope every time rather than only when it is read behind someone. A scope costs
+    /// nothing beside a scan of a whole table, and the alternative is a rule every future count has
+    /// to remember: the store handed to this one is resolved from the scope it will run in, so there
+    /// is no reader's context in reach to use by mistake.
+    /// </para>
+    /// </remarks>
+    private Task<Kept<T>> Counted<T>(Inside inside, string figure,
+        Func<IServiceProvider, CancellationToken, Task<T>> count, CancellationToken cancellationToken) =>
+        _counts.Keep(inside.Key(figure), async token =>
+        {
+            await using var scope = scopes.CreateAsyncScope();
+            scope.ServiceProvider.GetRequiredService<CurrentService>().Enter(inside.Service, inside.Catalogue);
+
+            return await count(scope.ServiceProvider, token);
+        }, cancellationToken);
+
+    /// <summary>The streamed store of the scope given.</summary>
+    private static IStreamedReads ReadsOf(IServiceProvider provider) =>
+        provider.GetRequiredService<IStreamedReads>();
+
+    /// <summary>The DCB store of the scope given.</summary>
+    private static DcbStoreDbContext DcbOf(IServiceProvider provider) =>
+        provider.GetRequiredService<DcbStoreDbContext>();
 
     /// <summary>What a read came back with, or why it came back with nothing.</summary>
     private sealed record Outcome<T>(T? Value, string? Problem) where T : class;
@@ -381,7 +416,8 @@ public sealed class ServiceActivity(
         scope.ServiceProvider.GetRequiredService<CurrentService>().Enter(service, catalogue);
 
         var shown = ShownModels.Of(catalogue.For(service), store.Capabilities);
-        var inside = new Inside(scope.ServiceProvider, service, store.Database?.Provider is DatabaseProvider.Cosmos);
+        var inside = new Inside(scope.ServiceProvider, service, catalogue,
+            store.Database?.Provider is DatabaseProvider.Cosmos);
 
         try
         {
@@ -441,9 +477,9 @@ public sealed class ServiceActivity(
             ? await Newest(cancellationToken)
             : (await _recent.Keep(inside.Key("streamed/events/latest"), Newest, cancellationToken)).Value;
 
-        var stored = await _counts.Keep(inside.Key("streamed/events"), async token =>
+        var stored = await Counted(inside, "streamed/events", async (provider, token) =>
         {
-            var counted = await reads.Count(Everything, token);
+            var counted = await ReadsOf(provider).Count(Everything, token);
 
             return counted.Total ?? throw new InvalidOperationException(counted.Error);
         }, cancellationToken);
@@ -464,7 +500,8 @@ public sealed class ServiceActivity(
             .Select(appended => (DateTimeOffset?)appended.CreatedDate)
             .FirstOrDefaultAsync(cancellationToken);
 
-        var stored = await _counts.Keep(inside.Key("dcb/events"), token => context.DcbEvents.CountAsync(token), cancellationToken);
+        var stored = await Counted(inside, "dcb/events",
+            (provider, token) => DcbOf(provider).DcbEvents.CountAsync(token), cancellationToken);
 
         return new SectionActivity(latest, stored);
     }
@@ -473,7 +510,8 @@ public sealed class ServiceActivity(
     private async Task<SectionActivity> Snapshots(
         Inside inside, string section, StreamedModelKind kind, IStreamedReads reads, CancellationToken cancellationToken) =>
         new((await _recent.Keep(inside.Key($"{section}/latest"), token => reads.LastWritten(kind, token), cancellationToken)).Value,
-            await _counts.Keep(inside.Key(section), token => reads.CountSnapshots(kind, token), cancellationToken));
+            await Counted(inside, section,
+                (provider, token) => ReadsOf(provider).CountSnapshots(kind, token), cancellationToken));
 
     /// <summary>One kind of DCB snapshot, the same way.</summary>
     private async Task<SectionActivity> DcbSnapshots(
@@ -488,7 +526,10 @@ public sealed class ServiceActivity(
 
         return new SectionActivity(
             latest.Value,
-            await _counts.Keep(inside.Key(section), token => ofKind.CountAsync(token), cancellationToken));
+            await Counted(inside, section, (provider, token) => DcbOf(provider).DcbSnapshots
+                .AsNoTracking()
+                .Where(snapshot => snapshot.SnapshotKind == kind)
+                .CountAsync(token), cancellationToken));
     }
 
     /// <summary>The whole streamed log, unnarrowed; the page and size are not read by the two questions asked of it.</summary>

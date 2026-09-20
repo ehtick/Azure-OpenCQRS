@@ -180,6 +180,19 @@ internal sealed class MemoriaWeb : WebApplicationFactory<Program>
 
     private TimeProvider? _clock;
 
+    private Func<IStreamedReads>? _readsPerScope;
+
+    /// <summary>
+    /// The same instance building the streamed reads afresh for every scope, as the application
+    /// builds its own: one store per scope, the way a context is one per scope. For a test that
+    /// needs to tell one scope's store from another's, which a single shared instance cannot.
+    /// </summary>
+    public MemoriaWeb WithReadsPerScope(Func<IStreamedReads> reads)
+    {
+        _readsPerScope = reads;
+        return this;
+    }
+
     /// <summary>
     /// The same instance telling the time by the clock given: what the audit interceptor stamps a
     /// row with, and what Home measures how long ago a row was written, and a count made, against.
@@ -512,6 +525,11 @@ internal sealed class MemoriaWeb : WebApplicationFactory<Program>
             if (_clock is { } clock)
             {
                 services.AddSingleton(clock);
+            }
+
+            if (_readsPerScope is { } perScope)
+            {
+                services.AddScoped(_ => perScope());
             }
 
             if (_operator is null)
