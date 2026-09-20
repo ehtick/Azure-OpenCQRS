@@ -134,6 +134,29 @@ public sealed record DatabaseConnection(DatabaseProvider Provider, string Connec
     }
 
     /// <summary>
+    /// How many times over a failure the driver calls transient is tried again before it is shown
+    /// to whoever opened the page.
+    /// </summary>
+    /// <remarks>
+    /// The failure worth retrying is a connection that was already dead when it was taken out of
+    /// the pool — closed at the far end, or by something between, while it sat idle — and that one
+    /// fails at once and succeeds on the next attempt against a fresh connection. Three is room for
+    /// a pool holding more than one of them.
+    /// </remarks>
+    private const int Retries = 3;
+
+    /// <summary>The longest EF Core waits before trying again.</summary>
+    /// <remarks>
+    /// Short, because a page is waiting and a store is only given
+    /// <see cref="StorePatience"/> altogether: retries that ran past it would be cut off unmade,
+    /// and the reader would have waited the whole of it to be told the store did not answer. Long
+    /// enough for the dead-connection case, which needs no wait at all. A failover or a spell of
+    /// maintenance outlasts this and is meant to: it is reported, and the next visit finds the
+    /// store back.
+    /// </remarks>
+    private static readonly TimeSpan RetryingNoLongerThan = TimeSpan.FromSeconds(1);
+
+    /// <summary>
     /// Puts this connection's provider on a context's options.
     /// </summary>
     /// <param name="builder">The options being built.</param>
@@ -145,8 +168,12 @@ public sealed record DatabaseConnection(DatabaseProvider Provider, string Connec
     /// </remarks>
     public DbContextOptionsBuilder Apply(DbContextOptionsBuilder builder) => Provider switch
     {
-        DatabaseProvider.Npgsql => builder.UseNpgsql(ConnectionString),
-        DatabaseProvider.SqlServer => builder.UseSqlServer(ConnectionString),
+        DatabaseProvider.Npgsql => builder.UseNpgsql(ConnectionString,
+            npgsql => npgsql.EnableRetryOnFailure(Retries, RetryingNoLongerThan, null)),
+        DatabaseProvider.SqlServer => builder.UseSqlServer(ConnectionString,
+            sqlServer => sqlServer.EnableRetryOnFailure(Retries, RetryingNoLongerThan, null)),
+        // Nothing to enable, and nothing to lose: a SQLite store is a file on the same disk, with
+        // no connection between here and it that could be dropped while it sat idle.
         DatabaseProvider.Sqlite => builder.UseSqlite(ConnectionString),
         // Said here rather than left to fail further in. A Cosmos store is read through its own
         // SDK, so there is no context to open and nothing calls this — an unhandled enum would

@@ -152,6 +152,41 @@ is rejected at start-up rather than opening an empty store. Such a database live
 connection that opened it, and the tool opens a connection per unit of work, so it would find nothing
 whatever was seeded. Point it at a file.
 
+### A store reached over a network
+
+A PostgreSQL or SQL Server store fails in ways a store on the same disk does not, and most of them
+are over by the next attempt: a pooled connection the far end closed while it sat idle, a failover,
+a minute of maintenance. **The tool tries such a failure again** — three times, waiting no longer
+than a second — before it shows it to whoever opened the page. SQLite is not retried, having no
+connection to lose.
+
+A second of retrying does not ride out a failover, and is not meant to. It covers the failure that
+is over immediately, which is the common one; anything longer is reported, and the next visit finds
+the store back. Retries also sit inside [`Stores:Patience`](#caching), so a store that is simply
+slow is still given up on when the patience says, not later.
+
+What retrying cannot fix from here is a pool that keeps handing out connections already closed at
+the other end. That is settled in the connection string:
+
+```
+Host=…;Database=…;Username=…;Password=…;Ssl Mode=Require;Keepalive=30;Minimum Pool Size=1;Command Timeout=30
+```
+
+| Keyword | Why |
+| ------- | --- |
+| `Keepalive=30` | Npgsql exercises an idle connection every 30 seconds, so nothing between here and the store drops it for being quiet. Azure's load balancer cuts an idle TCP flow at four minutes by default, and Npgsql would not know until it tried to read one |
+| `Minimum Pool Size=1` | One connection is kept open rather than reconnecting for the first visit after a quiet spell. It is also the connection most likely to go stale, which is what the keepalive above is for — set one, set the other |
+| `Command Timeout` | The bound on a single statement, 30 seconds unless set. Reads are bounded by `Stores:Patience` first, so this is what bounds a **write** — the snapshot an **Update** button writes |
+
+`Connection Idle Lifetime` — 300 seconds unless set — prunes connections idle longer than it, but
+only those above `Minimum Pool Size`. The kept one is never pruned, which is why it needs the
+keepalive rather than a shorter lifetime.
+
+> **A cancelled read is not a broken store.** PostgreSQL does not report an abandoned read as a
+> cancellation: Npgsql tears the connection down, the socket read fails on its own account, and EF
+> Core wraps that as *"An exception has been raised that is likely due to a transient failure"*.
+> Seeing that sentence is a reason to look at `Stores:Patience` before looking at the store.
+
 ## Cosmos DB
 
 A Cosmos connection string names an account and nothing more, so where the documents are is asked for

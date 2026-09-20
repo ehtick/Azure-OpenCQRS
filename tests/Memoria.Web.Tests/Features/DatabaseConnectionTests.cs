@@ -162,6 +162,33 @@ public class DatabaseConnectionTests
     }
 
     /// <summary>
+    /// A store reached over a network fails in ways that are gone by the next attempt: a pooled
+    /// connection the far end closed while it sat idle, a failover, a moment of maintenance. Those
+    /// are tried again rather than shown to whoever opened the page.
+    /// </summary>
+    /// <remarks>
+    /// Not SQLite, which is a file on the same disk: it has no network to lose, and the provider
+    /// offers nothing to enable. Nothing is connected to here either — whether a failure would be
+    /// tried again is settled by the options, and the strategy EF Core built from them says so.
+    /// </remarks>
+    [Theory]
+    [InlineData("Host=localhost;Database=memoria;Username=postgres", true)]
+    [InlineData("Server=.;Database=memoria;Trusted_Connection=True", true)]
+    [InlineData("Data Source=memoria.db", false)]
+    public void Tries_a_transient_failure_again_on_a_store_it_reaches_over_a_network(
+        string connectionString, bool retries)
+    {
+        var options = new DbContextOptionsBuilder<DcbDbContext>();
+
+        DatabaseConnection.Of(connectionString, configured: null).Apply(options);
+
+        using var context = new DcbStoreDbContext(options.Options, TimeProvider.System,
+            Substitute.For<IHttpContextAccessor>());
+
+        context.Database.CreateExecutionStrategy().RetriesOnFailure.Should().Be(retries);
+    }
+
+    /// <summary>
     /// Two different problems, and telling a reader the wrong one sends them the wrong way. A string
     /// of shared keywords needs the setting to choose between providers that could all open it; a
     /// string of keywords none of them takes is not a string this tool can open at all, and saying
