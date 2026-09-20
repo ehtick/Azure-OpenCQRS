@@ -86,28 +86,6 @@
     // number of pages a store can hold has no ceiling — so how many of them are drawn at once is a
     // decision that has to be made in one place.
 
-    /// <summary>
-    /// What a table marks its top with, so that a page link has somewhere to land.
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// The pager is under the table, which means a reader who has reached it has the whole table
-    /// above them. A link that only swapped the rows would leave the view where it was — at the
-    /// foot of a page whose first row is off the top of the screen — so every page link ends at the
-    /// top of the table it pages.
-    /// </para>
-    /// <para>
-    /// Here rather than on each of the pages because the two halves of it have to be the same word:
-    /// the id on the table, and the fragment on the links to it. A page whose table already sits
-    /// inside somewhere worth landing on — the events panel of a detail page, which a reader also
-    /// arrives at from the tab strip — names that instead.
-    /// </para>
-    /// </remarks>
-    public const string Anchor = "rows";
-
-    /// <summary>The same name as the end of an address, which is what a page link carries.</summary>
-    public const string Landing = $"#{Anchor}";
-
     /// <summary>The page being read, from one.</summary>
     [Parameter]
     [EditorRequired]
@@ -124,7 +102,9 @@
     /// <remarks>
     /// Every table here is looked at through some narrowing, order, fold or tab that has to survive
     /// the move to another page, and no two pages carry the same set of them. The pager knows which
-    /// numbers to offer; only the page under it knows what a link to one has to say.
+    /// numbers to offer; only the page under it knows what a link to one has to say — including
+    /// where it lands, which is <see cref="PageTop"/> for the pages that list a store and the
+    /// events panel for a detail page's own pager.
     /// </remarks>
     [Parameter]
     [EditorRequired]

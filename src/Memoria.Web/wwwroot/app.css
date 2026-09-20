@@ -2471,13 +2471,6 @@ h2:focus {
     border-top: 0.28rem solid currentColor;
 }
 
-/* Given focus so a jump from the pager under it lands on the table rather than leaving the reader
-   at the footer, not because anyone tabbed to it — the ring would be drawn around a whole table the
-   reader did not choose. Every table that carries the mark is one a pager pages; see Pager.Anchor. */
-table[tabindex="-1"]:focus {
-    outline: none;
-}
-
 /* The line under the table, at the end the reader leaves from. No margin of its own: it sits inside
    the footer, which already holds itself off the table, and a second one would both double that gap
    and drop the pager below the picker it shares the line with. */
@@ -2779,6 +2772,47 @@ table[tabindex="-1"]:focus {
         box-shadow: 0 0 0 3px rgb(var(--accent-rgb) / 0.3);
         outline: none;
     }
+
+/* The way back from the foot of a long table, under the card rather than in it — the page speaking
+   about the table again, the way the count above it does.
+
+   Held to the far end, under the pager: the pager is what the reader has just come off, and this is
+   the next thing under where they were already looking. As wide as its own words rather than as
+   wide as the line, so the click target is the link and not the empty half of the row beside it —
+   which is what fit-content buys, and what the auto margin then pushes across.
+
+   No top margin: the last piece of the card carries the 1.5rem that holds this off it, and a second
+   one here would double that gap. Quiet, like every other control that acts on how the table is
+   read rather than on what is in it. */
+.back-to-top {
+    align-items: center;
+    color: var(--ink-soft);
+    display: flex;
+    font-size: var(--text-md);
+    gap: 0.35rem;
+    margin: 0 0 1.5rem auto;
+    text-decoration: none;
+    width: fit-content;
+}
+
+    .back-to-top:hover {
+        color: var(--accent);
+    }
+
+    .back-to-top:focus-visible {
+        border-radius: 2px;
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+    }
+
+        /* Sized in ems so the mark follows the words beside it, and to the same 1.2em the other
+           marks on these pages are drawn at — the refresh above the card, and the Json links in
+           the rows. */
+        .back-to-top .glyph {
+            flex: none;
+            height: 1.2em;
+            width: 1.2em;
+        }
 
 /* The table of stored instances a list page shows, and the filter box above it. Taken from the
    Ecommerce DCB example's products table so the two read as one system, and global rather than

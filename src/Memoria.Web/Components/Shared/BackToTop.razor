@@ -1,0 +1,37 @@
+@inject NavigationManager Navigation
+
+@* The way back from the foot of a long table. A table of stored rows is the one thing on this site
+   that can run several screens, and its foot is where a reader ends up: the pager, the rows-per-page
+   picker and the end of the data are all down there, while the heading, the count and the narrowing
+   that produced it are back at the top.
+
+   Under the card rather than in it, for the same reason the count above it is: both are the page
+   speaking about the table rather than part of it, and the card is the filter row, the table and
+   the footer closed into one shape that a fourth piece would open again.
+
+   It lands where a page link lands — see <see cref="PageTop"/> — because there is one beginning of
+   the page and not two: the bar, above the breadcrumb and the heading alike. The address is written
+   out rather than left as the fragment alone: the document carries a base href, and a bare "#top"
+   is resolved against that rather than against the page being read, which would send a reader to
+   the home page. Writing it out costs nothing else, since it is the address the page is already at,
+   the way the refresh link above the card is.
+
+   A link rather than a button with script behind it, like every other control on these pages: it
+   works with scripting off, it can be opened in a new tab, and the bar it lands on is focusable, so
+   a reader on the keyboard carries on from the top of the page rather than from the foot they
+   left. *@
+<a class="back-to-top" href="@Here#@PageTop.Anchor">
+    <TopMark/>
+    Back to top
+</a>
+
+@code {
+
+    /// <summary>
+    /// The address this page is being read at, relative to the base so it is written the way every
+    /// other link here is. The query string comes with it, which is what keeps the link a move
+    /// within this page rather than a move to the unnarrowed first page of it.
+    /// </summary>
+    private string Here => Navigation.ToBaseRelativePath(Navigation.Uri);
+
+}

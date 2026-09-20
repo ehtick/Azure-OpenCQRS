@@ -22,6 +22,12 @@ header {
     padding-inline: max(1.5rem, calc((100% - var(--page-width)) / 2 + 1.75rem));
 }
 
+/* Given focus so a jump back to the top of the page lands on it, not because anyone tabbed to it —
+   the ring would be drawn around the whole bar, which the reader did not choose. See PageTop. */
+header:focus {
+    outline: none;
+}
+
     header .brand {
         align-items: center;
         color: var(--ink);

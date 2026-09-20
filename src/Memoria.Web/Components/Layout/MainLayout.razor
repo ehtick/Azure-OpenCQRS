@@ -9,7 +9,11 @@
 @inject AuthenticationSettings SignIn
 @inject BrandingStore Branding
 
-<header>
+@* The beginning of every page, and so where a link back to the top of one lands: the bar is the
+   first thing on the page and does not stick, and a landing place any further down would leave it
+   and the breadcrumb under it off the top of the screen. Focusable so that landing here moves the
+   focus as well as the view — never tabbed to. See PageTop. *@
+<header id="@PageTop.Anchor" tabindex="-1">
     @* The project's own mark, the same artwork the tab icon is cut from. An <img> rather than the
        inline SVG that used to stand here: this is a painted illustration with gradients on every
        face, not a shape a token could recolour, so there is nothing for it to follow. It carries

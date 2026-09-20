@@ -538,9 +538,9 @@ else
                            the order and the fold — is already in the address, so a link to another page
                            carries all of it without a form having to hold a copy of each. *@
                         <Pager Page="Events.Page" TotalPages="Events.TotalPages"
-                               Href="@(page => EventsLink(Descending, page))"/>
+                               Href="@(page => PageLink(page))"/>
 
-                        <form class="page-size" method="get" action="@Service/dcb/projections/detail#@EventsAnchor">
+                        <form class="page-size" method="get" action="@Service/dcb/projections/detail#@PageTop.Anchor">
                             <label for="size">Rows per page</label>
                             <select id="size" name="size" onchange="this.form.submit()">
                                 @foreach (var option in InstanceQuery.PageSizes)
@@ -576,6 +576,8 @@ else
                             </noscript>
                         </form>
                     </div>
+
+                    <BackToTop/>
                 }
             }
         </section>
@@ -924,9 +926,14 @@ else
     private string? RefreshError { get; set; }
 
     /// <summary>
-    /// The anchor the events panel starts at, so paging and re-ordering land on the rows that
+    /// The anchor the events panel starts at, so what acts on the table in place — re-ordering it,
+    /// folding the payloads out, clearing the narrowing, closing a row — lands on the rows that
     /// changed rather than at the top of a page whose first screen did not.
     /// </summary>
+    /// <remarks>
+    /// Paging is the exception, and goes to the very beginning of the page: see
+    /// <see cref="PageLink"/>.
+    /// </remarks>
     private const string EventsAnchor = "events";
 
     /// <summary>
@@ -1085,6 +1092,19 @@ else
 
     private string EventsLink(bool descending, int page, bool toTable = true) =>
         DetailLink(EventsTab, descending, page, toTable);
+
+    /// <summary>
+    /// Another page of the history, landing at the very beginning of this one.
+    /// </summary>
+    /// <remarks>
+    /// Not at the panel, which is where everything else that acts on this table lands: paging is
+    /// the one of them that replaces the rows outright, and a reader who has reached the pager has
+    /// the whole panel above them. Landing back at the panel leaves the bar, the breadcrumb, the
+    /// heading and the tab strip off the top of the screen — a new page of rows with nothing above
+    /// it saying whose history they are. See <see cref="PageTop"/>.
+    /// </remarks>
+    private string PageLink(int page) =>
+        EventsLink(Descending, page, toTable: false) + PageTop.Landing;
 
     /// <summary>
     /// The table as it stands, with the payloads turned the other way. It stays on the page the
