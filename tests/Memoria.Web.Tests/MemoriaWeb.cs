@@ -439,6 +439,11 @@ internal sealed class MemoriaWeb : WebApplicationFactory<Program>
         var settings = new Dictionary<string, string?>
         {
             ["ConnectionStrings:Memoria"] = $"Data Source={Path.Combine(_scratch, "store.db")}",
+            // Off unless a test asks for it. A test seeds its store after the application has
+            // started, so counts read at start-up are counts of whatever was there before the
+            // seeding — kept, and handed quite correctly to the visit the test then makes. Every
+            // figure a test asserts is its own with this off; WarmUpTests turns it back on.
+            [Memoria.Web.Data.StoreWarmUp.Setting] = "false",
             ["Extensions:Directory"] = ExtensionsDirectory,
             ["Branding:Directory"] = BrandingDirectory,
             ["Settings:Directory"] = SettingsDirectory,

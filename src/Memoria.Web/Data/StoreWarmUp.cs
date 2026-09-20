@@ -15,6 +15,15 @@ namespace Memoria.Web.Data;
 /// </remarks>
 public static class StoreWarmUp
 {
+    /// <summary>The setting that says whether the stores are read at start-up at all.</summary>
+    /// <remarks>
+    /// On unless it is turned off. Warming scans a whole table per service, which a deployment over
+    /// a very large store would rather not pay for on every restart — and a test that says what
+    /// a figure should be would rather nothing read that figure behind it.
+    /// </remarks>
+    public const string Setting = "Stores:WarmAtStartUp";
+
+
     /// <summary>
     /// Warms the store behind the application, without holding up its start.
     /// </summary>
@@ -30,6 +39,11 @@ public static class StoreWarmUp
     /// </remarks>
     public static void WarmInBackground(this WebApplication app)
     {
+        if (app.Configuration.GetValue(Setting, defaultValue: true) is false)
+        {
+            return;
+        }
+
         var reachable = app.Services.GetRequiredService<ServiceStores>().All()
             .Where(store => store.Reachable)
             .ToList();

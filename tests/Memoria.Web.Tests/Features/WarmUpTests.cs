@@ -24,7 +24,8 @@ public class WarmUpTests
         reads.At(Arg.Any<StreamedEventFilter>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
             .Returns(new PlacedStreamEvent(null, null));
         reads.Count(Arg.Any<StreamedEventFilter>(), Arg.Any<CancellationToken>()).Returns(new EventCount(7, null));
-        using var web = MemoriaWeb.Open().WithStreamedTypesOnly().WithReads(reads);
+        using var web = MemoriaWeb.Open().WithStreamedTypesOnly().WithReads(reads)
+            .With(Memoria.Web.Data.StoreWarmUp.Setting, "true");
 
         // Starts the application, as a first request would; nothing is asked of it here.
         _ = web.Services;
@@ -40,7 +41,8 @@ public class WarmUpTests
         reads.At(Arg.Any<StreamedEventFilter>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
             .Returns(new PlacedStreamEvent(null, null));
         reads.Count(Arg.Any<StreamedEventFilter>(), Arg.Any<CancellationToken>()).Returns(new EventCount(7, null));
-        using var web = MemoriaWeb.Open().WithStreamedTypesOnly().WithReads(reads);
+        using var web = MemoriaWeb.Open().WithStreamedTypesOnly().WithReads(reads)
+            .With(Memoria.Web.Data.StoreWarmUp.Setting, "true");
         _ = web.Services;
         await Until(() => reads.ReceivedCalls().Any(call => call.GetMethodInfo().Name == nameof(IStreamedReads.Count)));
         var counted = reads.ReceivedCalls().Count(call => call.GetMethodInfo().Name == nameof(IStreamedReads.Count));

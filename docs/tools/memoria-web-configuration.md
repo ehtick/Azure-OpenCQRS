@@ -34,6 +34,7 @@ can be overridden without editing a file.
 | `Database:Cosmos:DatabaseName`   | No                              | `Memoria`                             | Likewise                                         |
 | `Database:Cosmos:ContainerName`  | No                              | `Domain`                              | Likewise                                         |
 | `Stores:Patience`                | No                              | `5`                                   | How long every store is given to answer, in whole seconds, before a page says it could not be read — see [Caching](#caching) |
+| `Stores:WarmAtStartUp`           | No                              | `true`                                | Whether each service's counts are read as the tool starts — see [Caching](#caching) |
 | `Extensions:Directory`           | No                              | `<content root>/App_Data/extensions`  | Where uploaded archives and assemblies are kept  |
 | `Branding:Directory`             | No                              | `<content root>/App_Data/branding`    | Where the header's name and logo are kept — see [Branding](#branding) |
 | `Settings:Directory`             | No                              | `<content root>/App_Data/settings`    | Where the tool's own settings are kept — see [Caching](#caching) |
@@ -519,6 +520,10 @@ What is read is kept for one of two whiles, both set on the **Caching** tab of t
   is and the store is counted again behind it, so the new count is on the tile from the next visit.
   A count that cannot be read is not handed out in place of a newer one: the next visitor waits and
   is told what happened. A store the configuration does not open is not read at start-up at all.
+
+  That start-up read is a scan of a whole table per service, which a deployment over a very large
+  store would rather not pay for on every restart. `Stores:WarmAtStartUp` set to `false` leaves
+  it out; the figures are then read by whoever visits first, who waits for them once.
 - **Recent figures kept for**, in seconds: a data page's total — how many rows its filter reaches —
   whether a row is behind its history, and when the newest was written where the store has to
   search for it: nothing orders a relational streamed log by date alone, and no store indexes the
