@@ -478,8 +478,8 @@ What is read is kept for one of two whiles, both set on the **Caching** tab of t
   is changed. Every count is kept for the same while, so none of them says when it was made. The
   newest date of the type being read comes out of the same read, so it is kept as long.
 
-  **Nobody waits for a count twice.** Each service's are read once as the tool starts, in the
-  background, before anyone visits. The visit that finds one has run out is handed the count there
+  **Nobody waits for a count twice.** Each service's counts are read once as the tool starts, in
+  the background, before anyone visits. The visit that finds one has run out is handed the count there
   is and the store is counted again behind it, so the new count is on the tile from the next visit.
   A count that cannot be read is not handed out in place of a newer one: the next visitor waits and
   is told what happened. A store the configuration does not open is not read at start-up at all.
