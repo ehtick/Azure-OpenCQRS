@@ -48,8 +48,11 @@
             }
         </dd>
 
+        @* The tool's own licence, not the framework's: this page is Memoria Web's. Linked to the
+           notice that travels with the source rather than to the root LICENSE.md, which is the
+           framework's Apache 2.0 and says nothing about what is running here. *@
         <dt>Licence</dt>
-        <dd><a href="@($"{Repository}/blob/main/LICENSE.md")" target="_blank" rel="noopener noreferrer">RPL 1.5 or the Memoria Commercial Licence</a></dd>
+        <dd><a href="@($"{Repository}/blob/main/src/Memoria.Web/LICENSE.md")" target="_blank" rel="noopener noreferrer">Memoria Web Licence</a></dd>
     </dl>
 </section>
 
@@ -118,15 +121,15 @@
 @* The two pages of the documentation the licence row in the build is decided by, drawn as the
    tiles above are and opened in a tab of their own for the same reason. Last on the page, where a
    reader looks for the terms, and after the documentation most come here for. The terms first,
-   because they say which licence applies; the prices second, because they matter only once the
-   commercial one does. *@
+   because they say what this tool is licensed under and what the framework is not; the prices
+   second, because they matter only once a second service does. *@
 <ul class="tiles" aria-labelledby="licensing">
     <li>
         <a href="@(Docs + "license.html")" target="_blank" rel="noopener noreferrer">
             <SectionMark Kind="SectionKind.Documentation"/>
             <span class="body">
                 <span class="name">Licence</span>
-                <span class="detail">RPL 1.5 or the commercial licence, and which one you need.</span>
+                <span class="detail">The tool's terms, and the framework's Apache 2.0.</span>
             </span>
         </a>
     </li>

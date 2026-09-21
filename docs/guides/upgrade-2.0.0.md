@@ -1,6 +1,6 @@
 ---
 title: Upgrade to 2.0.0
-description: "Choosing a licence for 2.x, where a RabbitMQ connection failure now surfaces, and the manifest an uploaded Memoria Web zip must carry."
+description: "The licence is unchanged, where a RabbitMQ connection failure now surfaces, and the manifest an uploaded Memoria Web zip must carry."
 parent: Upgrading
 nav_order: 1
 ---
@@ -14,45 +14,29 @@ nav_order: 1
 1. TOC
 {:toc}
 
-The major version steps to 2 for the licence, not for the API. Almost nothing in the code you have
-written against 1.9.x has to change, and no table, document or serialised payload changes, so there
-is no data migration.
-
-What does change is the terms you use Memoria under, and you have to choose. Two client libraries
-also step a major version, and one of them moves a behaviour you may be relying on.
+The major version steps to 2 for two breaking changes below, not for the licence and not for the
+shape of the API. No table, document or serialised payload changes, so there is no data migration.
 
 <a name="choose-a-licence"></a>
-## 1. Choose a licence
+## 1. The licence: nothing to do
 
-This is the one step that applies to everybody.
+**The framework is under the Apache License 2.0, as it was throughout 1.x.** There is no decision to
+make, nothing to assess and nothing to sign. Build what you like with it and licence that however
+you like.
 
-Memoria 1.x was released under the Apache License 2.0 and stays there. **A version is licensed under
-the terms it shipped with**, so nothing about any 1.x package you already use changes, ever. From
-2.0.0-beta onward, every 2.x version is offered under **either** of two licences, and you pick the
-one you use it under:
+If you read this page between 17 and 21 September 2026, it said something else. Version 2.0.0-beta
+was published offering the packages under either the Reciprocal Public License 1.5 or a commercial
+licence. That was withdrawn four days later at 2.0.0-beta.2, and the framework returned to Apache
+2.0 for good. A version is licensed under the terms it shipped with, so anyone who took 2.0.0-beta
+under the earlier terms keeps them — and Apache 2.0 grants strictly more than either of them did, so
+upgrading needs no action from anybody.
 
-| Your situation | Licence | Cost |
-|----------------|---------|------|
-| You release the source of what you build under the same licence | [Reciprocal Public License 1.5](https://opensource.org/license/rpl-1-5) | Free |
-| Closed source, under $5,000,000 USD annual revenue, or a non-profit under $5,000,000 USD annual budget | [Memoria Commercial Licence](../license.md), **Community** edition | Free, and always will be |
-| Closed source, above that threshold | Memoria Commercial Licence, Standard / Professional / Enterprise | From $299 USD a year |
+The packages went back with it: an SPDX `Apache-2.0` expression in place of the packed `LICENSE.md`,
+and no licence acceptance prompt on install.
 
-The RPL is stricter than the licences most .NET libraries carry, and the difference matters: unlike
-the GPL, its reciprocity is triggered by **deploying** software for others to use, not only by
-distributing it. A hosted service or an internal line-of-business application built on Memoria must
-publish its source under the RPL just as a shipped product must. If that is not what you want, the
-Commercial Licence is the alternative, and its Community edition covers most small companies at no
-charge.
-
-Read the [licence page](../license.md) before upgrading, including the Community eligibility terms —
-government and quasi-government agencies do not qualify, and neither does an organisation that has
-ever taken more than $10,000,000 USD in outside capital.
-
-The packages themselves changed with it: they now carry `LICENSE.md` in place of an SPDX expression,
-and they ask for the licence to be accepted on install.
-
-**If neither licence suits you, stay on 1.9.1.** It remains under Apache 2.0 and is not going
-anywhere.
+**[Memoria Web](../tools/memoria-web.md) is the exception**, and always was a separate question. The
+tool is a commercial product, free over a single service and [paid above that](../pricing.md). If
+you only use the packages, none of that reaches you.
 
 <a name="rabbitmq"></a>
 ## 2. If you publish to RabbitMQ, a connection failure now surfaces later
@@ -119,7 +103,7 @@ read more than one context's store.
 
 ## Related
 
-- [Licence](../license.md) — the full terms of both licences, and the Community eligibility rules
+- [Licence](../license.md) — Apache 2.0 for the framework, and the Memoria Web terms
 - [Release notes](../release-notes.md) — everything in 2.0.0-beta, not only what needs action
 - [Publish to RabbitMQ](publish-to-rabbitmq.md)
 - [Memoria Web](../tools/memoria-web.md)

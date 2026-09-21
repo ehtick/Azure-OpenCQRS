@@ -1,11 +1,15 @@
 # Memoria Contributor Licence Agreement
 
-This agreement is between you and Luca Cammarata Briguglia (the "Owner"), and it covers anything
-you contribute to Memoria. It exists for one reason: Memoria 2.x is
-[dual-licensed](https://lucabriguglia.github.io/Memoria/license.html), offered under either the
-Reciprocal Public License 1.5 or the Memoria Commercial Licence. Offering a contribution under both
-licences is something only its copyright holder can permit, so the Owner has to ask you for that
-permission before your work can be merged.
+This agreement is between you and Luca Cammarata Briguglia (the "Owner"), and it covers what you
+contribute to **Memoria Web** — everything under `src/Memoria.Web`. It exists for one reason:
+Memoria Web is a [commercial product](https://lucabriguglia.github.io/Memoria/license.html),
+licensed to the people who run it rather than given away. Offering your work to them on those terms
+is something only its copyright holder can permit, so the Owner has to ask you for that permission
+before it can be merged.
+
+**Contributing to the framework needs none of this.** Every package under the `Memoria` NuGet prefix
+is under the Apache License 2.0, and section 5 of that licence already says a contribution comes in
+under the same terms the project goes out under. Send the pull request; there is nothing to sign.
 
 **You keep the copyright in your work.** This agreement grants a licence. It does not transfer
 ownership, and it does not stop you using your own contribution anywhere else, for anything, on any
@@ -20,11 +24,13 @@ you make afterwards, unless you and the Owner agree otherwise in writing.
   For an entity, "you" includes that entity and anyone it controls, is controlled by, or shares
   common control with.
 - **"Contribution"** means any work of authorship you intentionally submit to the Owner for
-  inclusion in Memoria — code, tests, documentation, configuration, examples, translations or
+  inclusion in Memoria Web — code, tests, documentation, configuration, examples, translations or
   anything else — in any form and by any means, including a pull request, a patch, an issue comment
-  or a message. It does not include anything you clearly mark, in writing, as "Not a Contribution".
-- **"Memoria"** means the project at https://github.com/lucabriguglia/Memoria, its packages, its
-  documentation and anything else the Owner distributes under the Memoria name.
+  or a message. It does not include anything you clearly mark, in writing, as "Not a Contribution",
+  and it does not include work submitted to the framework, which this agreement does not cover.
+- **"Memoria Web"** means the tool whose source is at `src/Memoria.Web` in the project at
+  https://github.com/lucabriguglia/Memoria, its documentation, and anything else the Owner
+  distributes under the Memoria Web name. It does not mean the Memoria framework packages.
 
 ## 2. The copyright licence you grant
 
@@ -33,19 +39,19 @@ licence to reproduce, prepare derivative works of, publicly display, publicly pe
 and distribute your contribution and any derivative works of it.
 
 That licence includes the right to sublicense your contribution, and to distribute it and any
-derivative work of it, under the Reciprocal Public License 1.5, under the Memoria Commercial Licence
-in every one of its editions, and under any other licence the Owner later chooses for Memoria.
+derivative work of it, under the Memoria Web Licence in every one of its editions, and under any
+other licence the Owner later chooses for Memoria Web.
 
 ## 3. The patent licence you grant
 
-You grant the Owner and everyone who receives Memoria a perpetual, worldwide, non-exclusive,
+You grant the Owner and everyone who receives Memoria Web a perpetual, worldwide, non-exclusive,
 royalty-free, irrevocable patent licence to make, have made, use, offer to sell, sell, import and
-otherwise transfer your contribution and Memoria. That licence reaches only those patent claims you
-can license which your contribution infringes on its own, or which it infringes in combination with
-the part of Memoria it was submitted to.
+otherwise transfer your contribution and Memoria Web. That licence reaches only those patent claims
+you can license which your contribution infringes on its own, or which it infringes in combination
+with the part of Memoria Web it was submitted to.
 
-If you begin patent litigation against anyone alleging that Memoria, or a contribution within it,
-infringes a patent, every patent licence you granted under this section ends on the day that
+If you begin patent litigation against anyone alleging that Memoria Web, or a contribution within
+it, infringes a patent, every patent licence you granted under this section ends on the day that
 litigation is filed.
 
 ## 4. What you promise

@@ -5,23 +5,22 @@
     <Authors>Luca Cammarata Briguglia</Authors>
     <Copyright>Copyright Luca Cammarata Briguglia</Copyright>
     <Product>Memoria</Product>
-    <Description>DDD, CQRS and Event Sourcing framework for .NET. Use it as a plain mediator, or as an event store with classic event streams or dynamic consistency boundaries. The repository includes Memoria Web, a browser tool that reads a store through your own domain assemblies. Version 2.x is dual-licensed: the RPL-1.5 open-source licence, or a commercial licence whose Community edition is free.</Description>
+    <Description>DDD, CQRS and Event Sourcing framework for .NET. Use it as a plain mediator, or as an event store with classic event streams or dynamic consistency boundaries. Licensed under the Apache License 2.0.</Description>
     <PackageTags>CQRS EventSourcing DDD OpenCQRS Memoria</PackageTags>
     <PackageProjectUrl>https://github.com/lucabriguglia/Memoria</PackageProjectUrl>
     <RepositoryType>git</RepositoryType>
     <RepositoryUrl>https://github.com/lucabriguglia/Memoria</RepositoryUrl>
-    <PackageLicenseFile>LICENSE.md</PackageLicenseFile>
-    <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>logo.png</PackageIcon>
-    <Version>2.0.0-beta</Version>
+    <Version>2.0.0-beta.2</Version>
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)logo.png" Pack="true" PackagePath="" />
     <None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="" />
-    <None Include="$(MSBuildThisFileDirectory)LICENSE.md" Pack="true" PackagePath="" />
   </ItemGroup>
 
 </Project>

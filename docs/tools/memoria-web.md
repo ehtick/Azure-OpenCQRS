@@ -23,6 +23,14 @@ It is not a sample application and not a package. It lives in the repository at
 [`src/Memoria.Web`](https://github.com/lucabriguglia/Memoria/tree/main/src/Memoria.Web), and you
 build and run it yourself — see [Deployment](memoria-web-deployment.md).
 
+**It is also the one part of Memoria that is not open source.** The framework packages are Apache
+2.0 and always will be; the tool is a commercial product under the
+[Memoria Web Licence](../license.md#memoria-web-licence-agreement). Its source is published so you
+can read it, audit it and build it, and running it is free over a single service — one entry in the
+`services` list of an installed `memoria.json`. Reading more than one at a time needs a
+[paid edition](../pricing.md). There is no licence key and nothing to activate.
+{: .note }
+
 There is also a hosted instance at [demo.getmemoria.io](https://demo.getmemoria.io), if you would
 rather try it than build it. It is behind its sign-in, so access is by invitation: message me on
 [LinkedIn](https://www.linkedin.com/in/lucabriguglia) and I will send you one.

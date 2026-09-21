@@ -4,7 +4,7 @@
 [![NuGet](https://img.shields.io/nuget/v/Memoria?label=nuget%20stable)](https://www.nuget.org/packages/Memoria)
 [![NuGet pre-release](https://img.shields.io/nuget/vpre/Memoria?label=nuget%20pre-release)](https://www.nuget.org/packages/Memoria/absoluteLatest)
 [![Downloads](https://img.shields.io/nuget/dt/Memoria?label=downloads)](https://www.nuget.org/packages/Memoria)
-[![Licence](https://img.shields.io/badge/licence-RPL--1.5%20OR%20Commercial-blue)](https://lucabriguglia.github.io/Memoria/license.html)
+[![Licence](https://img.shields.io/badge/licence-Apache--2.0-blue)](https://www.apache.org/licenses/LICENSE-2.0)
 
 **Event sourcing for .NET with two consistency models in one framework.** Store state as classic
 event streams, or as dynamic consistency boundaries where the boundary is a tag query chosen per
@@ -26,23 +26,21 @@ From Latin _memoria_ (memory).
 
 ## 📄 Licence at a glance
 
-Memoria 2.x is dual-licensed. You choose which licence you use it under.
+**The framework is free and open source under the [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0)** —
+every package under the `Memoria` NuGet prefix, every version. Use it in anything, commercial or
+not, closed source or open, at any scale. No edition, no threshold, no key, nothing to sign.
 
-| Your situation | Licence | Cost |
-|----------------|---------|------|
-| You release the source of what you build under the same licence | [Reciprocal Public License 1.5](https://opensource.org/license/rpl-1-5) (OSI-approved) | Free |
-| Closed source, under $5,000,000 USD annual revenue, or a non-profit under $5,000,000 USD annual budget | [Memoria Commercial Licence](https://lucabriguglia.github.io/Memoria/license.html) — **Community** edition | Free, and always will be |
-| Closed source, above that threshold | Memoria Commercial Licence — Standard, Professional or Enterprise | [From $299 USD/year](https://lucabriguglia.github.io/Memoria/pricing.html) |
-
-Versions 1.x remain under the [Apache License 2.0](https://github.com/lucabriguglia/Memoria/blob/1.9.1/LICENSE).
-Exclusions and full terms are in [the licence section below](#-licence) and on the
-[licence page](https://lucabriguglia.github.io/Memoria/license.html); the editions, what each covers
-and how to buy one are on the [pricing page](https://lucabriguglia.github.io/Memoria/pricing.html).
+[Memoria Web](https://lucabriguglia.github.io/Memoria/tools/memoria-web.html), the browser tool that
+reads a store through your own domain assemblies, is the one part that is not: it is a commercial
+product, free for a single service and [paid above that](https://lucabriguglia.github.io/Memoria/pricing.html).
+Its source is published so you can read and build it, under
+[its own licence](https://lucabriguglia.github.io/Memoria/license.html). Installing the packages
+never requires it.
 
 **Already on 1.x?**
 [Upgrade to 2.0.0](https://lucabriguglia.github.io/Memoria/guides/upgrade-2.0.0.html) walks through
-the licence decision and the two behaviours that move with it. Nothing in the store changes, so
-there is no data migration.
+the two behaviours that move with the major version. Nothing in the store changes, so there is no
+data migration.
 
 ## 📥 Install
 
@@ -229,27 +227,20 @@ applying Memoria to an existing codebase? Get in touch via
 
 ## 📄 Licence
 
-Memoria is dual-licensed from version 2.0.0-beta onward. Every 2.x version — alpha, beta and release
-alike — is offered under **either** of:
+**The framework is under the [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0)** —
+every package published under the `Memoria` NuGet prefix, every version, 1.x and 2.x alike. Build
+whatever you like with it, licence that however you like, ship it to whomever you like. The full
+text is in [LICENSE.md](https://github.com/lucabriguglia/Memoria/blob/main/LICENSE.md).
 
-- the **[Reciprocal Public License 1.5](https://opensource.org/license/rpl-1-5)**, an OSI-approved
-  open-source licence, if you release the source of the software you build with Memoria under the
-  same licence. Unlike most copyleft licences, that condition also applies to software you deploy
-  for others to use without distributing it, such as a web application or a hosted service.
-- the **[Memoria Commercial Licence](https://lucabriguglia.github.io/Memoria/license.html)**, if you
-  do not.
+**Memoria Web is a commercial product**, licensed separately under the
+[Memoria Web Licence](https://lucabriguglia.github.io/Memoria/license.html). Its source lives in
+`src/Memoria.Web` and is published so that you can read it, audit it and build it; running it is
+what the licence governs, metered by *services* — a named set of domain assemblies read over one
+connection string. One service is free, and always will be. Above that it is $999, $2,499 or $4,999
+USD a year, by how many services one instance reads, with no limit on people, instances or
+environments. See [pricing](https://lucabriguglia.github.io/Memoria/pricing.html).
 
-The commercial licence's **Community** edition is free of charge, and always will be, for companies
-and individuals with less than $5,000,000 USD in annual gross revenue and for registered non-profits
-with less than $5,000,000 USD in annual total budget. Government and quasi-government agencies do
-not qualify, and neither does any organisation that has ever received more than $10,000,000 USD in
-outside capital such as private equity or venture capital.
-
-The **Standard**, **Professional** and **Enterprise** editions are subscriptions at $299, $999 and
-$2,999 USD a year, or $29.90, $99.90 and $299.90 USD a month — half price for anyone who subscribes
-while 2.0.0 is in beta.
-
-Versions 1.x remain under the
-[Apache License 2.0](https://github.com/lucabriguglia/Memoria/blob/1.9.1/LICENSE). The full terms
-are in [LICENSE.md](https://github.com/lucabriguglia/Memoria/blob/main/LICENSE.md) and on the
-[licence page](https://lucabriguglia.github.io/Memoria/license.html).
+Version 2.0.0-beta was briefly offered under the Reciprocal Public License 1.5 or a commercial
+licence covering the packages. That was withdrawn four days later at 2.0.0-beta.2 and the framework
+returned to Apache 2.0, where it had been throughout 1.x. Anyone who took 2.0.0-beta under the
+earlier terms keeps them; Apache 2.0 grants strictly more.

@@ -27,11 +27,16 @@ Documentation and typo fixes are the exception — send those directly.
 
 ## The contributor licence agreement
 
-Memoria 2.x is [dual-licensed](https://lucabriguglia.github.io/Memoria/license.html): every version
-is offered under either the Reciprocal Public License 1.5 or the Memoria Commercial Licence, and the
-person using it chooses which. Only a contribution's copyright holder can allow it to be offered
-under both, so before a code contribution can be merged you need to agree to the
-[Memoria Contributor Licence Agreement](CLA.md).
+**For the framework — every package under the `Memoria` NuGet prefix — there is nothing to sign.**
+It is under the Apache License 2.0, and section 5 of that licence already says your contribution
+comes in under the same terms the project goes out under. Send the pull request.
+
+The one exception is [Memoria Web](https://lucabriguglia.github.io/Memoria/tools/memoria-web.html),
+under `src/Memoria.Web`. It is a
+[commercial product](https://lucabriguglia.github.io/Memoria/license.html), licensed to the people
+who run it, and only a contribution's copyright holder can allow it to be offered on those terms —
+so a code contribution *there* needs you to agree to the
+[Memoria Contributor Licence Agreement](CLA.md) before it can be merged.
 
 It grants a licence. **You keep the copyright in your work**, and you stay free to use your own
 contribution anywhere else on any terms you like. Read it in full — it is short — and then comment
@@ -41,10 +46,10 @@ on your pull request with this line:
 I have read the Memoria Contributor Licence Agreement and I agree to it. Signed, <your full name>.
 ```
 
-You agree once and it covers everything you contribute afterwards. If you are contributing work your
-employer has rights in, please read [section 4](CLA.md#4-what-you-promise) before you agree.
+You agree once and it covers every later contribution to Memoria Web. If you are contributing work
+your employer has rights in, please read [section 4](CLA.md#4-what-you-promise) before you agree.
 
-Issues, discussions and bug reports need none of this.
+Issues, discussions, bug reports and framework contributions need none of this.
 
 ## Building and testing
 
