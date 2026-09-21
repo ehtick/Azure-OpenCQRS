@@ -68,8 +68,8 @@ Every edition grants the same rights to the software: run Memoria Web against yo
       <td>
         <button type="button" class="btn btn-primary buy"
                 data-edition="standard"
-                data-price-year="REPLACE_standard_year"
-                data-price-month="REPLACE_standard_month">Buy Standard</button>
+                data-price-year="pri_01m31zkmd5cbgr73v8zmdezavg"
+                data-price-month="pri_01m31zkmjvf348azmss5vxyvpv">Buy Standard</button>
       </td>
     </tr>
     <tr>
@@ -86,8 +86,8 @@ Every edition grants the same rights to the software: run Memoria Web against yo
       <td>
         <button type="button" class="btn btn-primary buy"
                 data-edition="professional"
-                data-price-year="REPLACE_professional_year"
-                data-price-month="REPLACE_professional_month">Buy Professional</button>
+                data-price-year="pri_01m31zkmx4bwypze9pzsfj8hmp"
+                data-price-month="pri_01m31zkn1jqtdz3bthgcg5xf31">Buy Professional</button>
       </td>
     </tr>
     <tr>
@@ -159,15 +159,17 @@ You then receive, by email, a licence certificate naming the licensee, the editi
 <script>
   // Paddle Billing configuration. What to create in Paddle, and where each of
   // these four values comes from, is in plans/paddle-setup.md.
-  // The catalogue below is the OLD one: products named and priced for framework licences by
-  // developer count, which are no longer sold. Memoria Web's products — metered by service, at
-  // $999 / $2,499 / $4,999 — have to be created before this page can take money, so the buy
-  // buttons carry REPLACE placeholders and the guard below turns them into a console warning
-  // rather than a checkout. Put the sandbox catalogue in first and test it, then the live one.
+  // Wired to the SANDBOX Memoria Web catalogue: three products metered by service, six prices at
+  // $999 / $2,499 / $4,999 a year and a tenth monthly, and a recurring half-price discount that
+  // expires 31/12/2026. The old framework products, priced by developer count, are archived in
+  // sandbox; in the live account they are still there and still active, along with their six
+  // prices and the old discount. Going live means archiving those, recreating this catalogue in
+  // the live account, and swapping the four price IDs, the discount ID, the token and the
+  // environment below — nothing else on the page changes.
   var MEMORIA_PADDLE = {
     environment: "sandbox",                        // "production" once the live Web catalogue exists
     token: "test_de21edefecb951c5cd1fd6eb729",     // Paddle > Developer tools > Authentication
-    discountId: "",                                // the recurring half-price launch discount, once recreated
+    discountId: "dsc_01m31zknpmymywpsnrkjbmk68y",  // the recurring half-price launch discount
     discountCode: "",                              // or its code, which needs enabled_for_checkout on the discount
     successUrl: "https://lucabriguglia.github.io/Memoria/thank-you.html"
   };
