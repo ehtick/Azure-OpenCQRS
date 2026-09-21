@@ -117,7 +117,9 @@ internal static class Markup
     /// <summary>
     /// Everything in the header's menus that can be chosen — each heading, each link and each
     /// button, on the bar and folded under a heading alike, in the order written. The brand is
-    /// not one of them: it is the mark of the tool, not a place in it.
+    /// not one of them: it is the mark of the tool, not a place in it. Neither is the control the
+    /// whole bar folds behind on a narrow window, for the same reason: it is a way of showing the
+    /// bar rather than somewhere on it.
     /// </summary>
     public static MenuItem[] MenuItems(string page)
     {
@@ -125,7 +127,7 @@ internal static class Markup
 
         foreach (Match item in Regex.Matches(
                      Header(page),
-                     "<(?<tag>summary|a|button)\\b(?![^>]*class=\"brand\")[^>]*>(?<inner>.*?)</\\k<tag>>",
+                     "<(?<tag>summary|a|button)\\b(?![^>]*class=\"(brand|bar-fold)\")[^>]*>(?<inner>.*?)</\\k<tag>>",
                      RegexOptions.Singleline))
         {
             var inner = item.Groups["inner"].Value;

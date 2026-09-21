@@ -8,7 +8,11 @@ using System.Net.Http;
 using System.Security.Claims;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
+using Memoria.EventSourcing.Dcb.Store.EntityFrameworkCore;
+using Memoria.EventSourcing.Store.EntityFrameworkCore;
+using Memoria.Web.Data;
 using Memoria.Web.Extensibility;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
@@ -182,6 +186,8 @@ internal sealed class MemoriaWeb : WebApplicationFactory<Program>
 
     private Func<IStreamedReads>? _readsPerScope;
 
+    private StoreGate? _gate;
+
     /// <summary>
     /// The same instance building the streamed reads afresh for every scope, as the application
     /// builds its own: one store per scope, the way a context is one per scope. For a test that
@@ -220,6 +226,16 @@ internal sealed class MemoriaWeb : WebApplicationFactory<Program>
     public MemoriaWeb WithReads(IStreamedReads reads)
     {
         _reads = reads;
+        return this;
+    }
+
+    /// <summary>
+    /// The same instance reading both models' stores through a gate the test opens, so a page can
+    /// be asked what it sends while its store is still being read.
+    /// </summary>
+    public MemoriaWeb WithStoreHeldBy(StoreGate gate)
+    {
+        _gate = gate;
         return this;
     }
 
@@ -535,6 +551,23 @@ internal sealed class MemoriaWeb : WebApplicationFactory<Program>
             if (_readsPerScope is { } perScope)
             {
                 services.AddScoped(_ => perScope());
+            }
+
+            if (_gate is { } gate)
+            {
+                // On the options the two store contexts take rather than in the container: an
+                // interceptor registered as a service reaches a context the application built with
+                // AddDbContext, and these are built by hand from options a scope resolves. Layered
+                // over the application's own options, registered after them so these are resolved.
+                services.AddScoped(provider =>
+                    new DbContextOptionsBuilder<DomainDbContext>(
+                            provider.GetRequiredService<ServiceStore>().StreamedOptions(provider))
+                        .AddInterceptors(new StoreGate.Holding(gate)).Options);
+
+                services.AddScoped(provider =>
+                    new DbContextOptionsBuilder<DcbDbContext>(
+                            provider.GetRequiredService<ServiceStore>().DcbOptions(provider))
+                        .AddInterceptors(new StoreGate.Holding(gate)).Options);
             }
 
             if (_operator is null)

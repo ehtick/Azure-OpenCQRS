@@ -1,4 +1,9 @@
 @page "/{service}/streamed/projections/data"
+@* The page is sent before its store has answered: everything above the table goes at once and the
+   rows follow in a patch. A reader gets here by clicking a tile, which Blazor's enhanced navigation
+   answers by fetching this page and swapping it in — so without this they would sit on the page
+   they clicked from, with nothing to say a slow store was being read. See Shared/Loading.razor. *@
+@attribute [StreamRendering]
 @using Memoria.Web.Data
 @using Memoria.Web.Extensibility
 @using Microsoft.AspNetCore.WebUtilities
@@ -131,8 +136,9 @@ else
 
     @* Beside the rows rather than instead of them, and ahead of the chain below because every one
        of those is a reason there is no table and this is not. See wwwroot/preferences.js for how a
-       reader takes it away. *@
-    @if (Projections.OrderingNotice is not null)
+       reader takes it away. Nothing is said of the ordering until the store has said what order it
+       could manage. *@
+    @if (!Reading && Projections.OrderingNotice is not null)
     {
         <div class="caution" role="status" data-notice="ordering">
             <p>@Projections.OrderingNotice</p>
@@ -143,7 +149,14 @@ else
         </div>
     }
 
-    @if (Choice.Unbound)
+    @* First of the chain, because every branch under it is something the store has already
+       answered and this is the page before it has. Anything added below that reads the store goes
+       after this, never before it. *@
+    @if (Reading)
+    {
+        <Loading/>
+    }
+    else if (Choice.Unbound)
     {
         @* Registered, listed, and impossible to have been stored: without a [ProjectionType] there
            is no key to write a snapshot under. An empty table would say the store holds none of
@@ -212,6 +225,11 @@ else
            after the type it names, because which identifiers there are to name is the type's answer.
            Last, what the store says about the fold: the version it reached and when it was
            written. *@
+        @* In a box it can be scrolled inside, so a row wider than the window moves the table and
+           not the whole page. Written at the table's own indentation, the way the authorize views
+           further down are: wrapping is all it does, and indenting the table under it would move
+           every line of it to say so. The scroller is what the card is drawn on — see app.css. *@
+        <div class="table-scroll">
         <table class="grid snapshots">
             <thead>
             <tr>
@@ -273,6 +291,7 @@ else
             }
             </tbody>
         </table>
+        </div>
 
         <div class="table-footer">
             @* The pages as links, ten at a time. Links rather than a control, like the order above
@@ -592,8 +611,16 @@ else
     /// with no rows on it.
     /// </summary>
     private bool HasRows =>
-        !Choice.Unbound && !Stream.Unshaped && !Identifier.Unshaped
+        !Reading && !Choice.Unbound && !Stream.Unshaped && !Identifier.Unshaped
         && Projections.Error is null && Projections.Total > 0;
+
+    /// <summary>
+    /// Whether the store has yet to answer, which is the state the shell is sent in — see the
+    /// <c>[StreamRendering]</c> attribute at the top. True until there is something to draw,
+    /// whether that is a page of rows, an error, or the nothing a choice that shows nothing is
+    /// answered with.
+    /// </summary>
+    private bool Reading { get; set; } = true;
 
     private string Summary => (Projections.Total, IsFiltered) switch
     {
@@ -705,6 +732,7 @@ else
         if (Choice.ShowsNothing || Stream.ShowsNothing || Identifier.ShowsNothing)
         {
             Projections = new StoredStreamSnapshots([], Total: 0, Page: 1, TotalPages: 1, Error: null);
+            Reading = false;
 
             return;
         }
@@ -719,6 +747,8 @@ else
             Descending,
             int.TryParse(Value("page"), out var asked) ? asked : 1,
             PageSize));
+
+        Reading = false;
 
         // Started, not awaited: each row's mark waits for its own check, so the table is sent first.
         Checks = Current.Service is { } service ? Lags.Streamed(service, Kind, Projections.Snapshots) : Checks;

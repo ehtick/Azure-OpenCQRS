@@ -263,7 +263,11 @@ public class BrandingTests
         {
             Query(response, "error").Should().BeEmpty();
             header.Should().NotContain("class=\"brand\"").And.NotContain("Contoso Ops");
-            header.Should().MatchRegex(@"^<header[^>]*>\s*<nav");
+
+            // Nothing stands between the start of the bar and its links but the fold that holds
+            // them on a narrow window — which is the bar itself rather than something on it.
+            header.Should().MatchRegex(@"^<header[^>]*>\s*<details class=""bar-menu""");
+            header.Should().MatchRegex(@"<div class=""bar-menu-content""[^>]*>\s*<nav");
         }
     }
 

@@ -244,6 +244,25 @@
     width: calc(100% - 2rem);
 }
 
+    /* Open because the address says so, with no script to have made it modal — the no-script path,
+       and where a reload, a bookmark or the back button lands after one of these links.
+
+       A dialog that is open but not modal is laid out where it stands in the page, and neither of
+       these stands anywhere useful: the upload form pushes the panel around from inside the
+       section, and the remove question is laid out inside the cell of the row it asks about, which
+       is a column a few characters wide — so it hung off the right of the window and the page grew
+       a sideways scrollbar to reach it.
+
+       Pinned to the window instead, which is where the browser itself puts a modal one: inset and
+       auto margins are what centre it, and they are the same three declarations the user agent
+       applies to dialog:modal. So the question lands in the same place whichever way it was
+       opened, and the only difference left between the two is the veil behind. */
+    dialog.dialog:not(:modal) {
+        inset: 0;
+        margin: auto;
+        position: fixed;
+    }
+
     .dialog::backdrop {
         background: rgb(var(--shadow-rgb) / 0.35);
     }
@@ -295,15 +314,14 @@
     margin: 0 0 1rem;
 }
 
-/* The row's own dialog sits in a cell; it must not be laid out as one. The width is measured against
-   the window rather than against whatever box the cell turns out to give it — the column is a
-   declared fraction of a fixed table now, and a percentage of that would be a dialog a few
-   characters wide on the no-script path, where the question is rendered open in the row. The 32rem
-   cap above still decides how wide it actually gets. */
+/* The row's own dialog sits in a cell; it must not read as one. Both of these undo something the
+   cell sets on its contents — the column of bins is set to the right and kept on one line — and
+   both are inherited down the page rather than taken from where the dialog is drawn, so they still
+   reach it once it is pinned to the window above. Its width is not among them any more: a fixed
+   box measures a percentage against the window, which is what that rule was reaching for. */
 .grid.archives td.actions .dialog {
     text-align: left;
     white-space: normal;
-    width: calc(100vw - 2rem);
 }
 
 /* The branding fields, in one card drawn the way the Types tab draws its two tables: the surface,

@@ -10,7 +10,17 @@ header {
     background: var(--sunk);
     border-bottom: 1px solid var(--rule);
     display: flex;
-    gap: 1.5rem;
+    /* Onto a second line rather than off the side of the window. A flex item will not shrink below
+       what its own words need, so on a narrow screen the three here — the brand, the bar's links
+       and what is the operator's own — simply ran past the right edge, taking the page's whole
+       width with them: every page grew a sideways scrollbar, and the settings link sat off-screen
+       behind it. Wrapping is what a bar of links can do about that without a script to fold them
+       behind a button, and without hiding anything from a reader on a phone that a reader on a
+       monitor is given. Nothing moves at the widths where it all fits on one line. */
+    flex-wrap: wrap;
+    /* The row gap is the one the wrapping asks for and is never seen otherwise; the column gap is
+       the bar's own, unchanged. */
+    gap: 0.5rem 1.5rem;
     /* The height the brand gives the bar, kept when there is no brand: its mark is 1.6em of the
        brand's size, and without it the bar would shrink to the links and every page would move
        up under it. */
@@ -26,6 +36,30 @@ header {
    the ring would be drawn around the whole bar, which the reader did not choose. See PageTop. */
 header:focus {
     outline: none;
+}
+
+/* The fold the whole bar is held in.
+   ----------------------------------------------------------------------------------------------
+   It takes whatever the brand leaves, and at the widths where the bar fits there is nothing here
+   to see: the control is taken away and what is inside lays out as the bar always has. The fold
+   only means anything under the width below, where the bar would otherwise be three rows deep
+   before a reader has read a word of the page. */
+.bar-menu {
+    flex: 1;
+    /* Without this the links inside refuse to let the box narrow, and the brand is pushed off. */
+    min-width: 0;
+}
+
+    .bar-fold {
+        display: none;
+    }
+
+/* What was the bar: the two navs, side by side, with the operator's own taking the far end. */
+.bar-menu-content {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.5rem;
 }
 
     header .brand {
@@ -58,8 +92,14 @@ header:focus {
     header nav {
         align-items: center;
         display: flex;
+        /* For the same reason the bar itself wraps, and needed as well as that: on a service page
+           this one holds Home, the services, and a heading for each model, which together want
+           more than a phone's whole width — so the bar wrapping would still leave this running
+           off the edge on its own line. Both navs are matched here, the bar's and the operator's:
+           each is a row of links that would rather be two rows than be half unreachable. */
+        flex-wrap: wrap;
         font-size: var(--text-md);
-        gap: 1rem;
+        gap: 0.5rem 1rem;
     }
 
         /* Flexed so the mark drawn in front of the words sits on their line rather than on the
@@ -335,6 +375,60 @@ footer {
     footer {
         padding-inline: 1rem;
     }
+
+    /* Narrow enough that the bar is worth folding. The control appears at the far end of the
+       brand's line, and what it holds is a column under it rather than a sheet laid over the page:
+       an overlay would have to be closed before the page could be read, and this one is rendered
+       open, so a reader with no script would arrive to find the page behind a menu. This way an
+       open fold is the bar it always was, a little taller, and the page is under it either way. */
+    .bar-fold {
+        cursor: pointer;
+        display: flex;
+        /* The browser's own marker is a triangle this application does not draw. The bar's section
+           headings take theirs off the same way. */
+        list-style: none;
+        margin-left: auto;
+        padding: 0.25rem;
+        width: fit-content;
+    }
+
+    .bar-fold::-webkit-details-marker {
+        display: none;
+    }
+
+    .bar-fold .glyph {
+        height: 1.25rem;
+        width: 1.25rem;
+    }
+
+    /* The brand rides the top line with the control rather than the middle of an opened fold,
+       which is where centring the bar's items put it once the fold was a column tall. */
+    header {
+        align-items: flex-start;
+    }
+
+    .bar-menu-content {
+        align-items: flex-end;
+        flex-direction: column;
+        gap: 0.5rem;
+        padding-top: 0.5rem;
+    }
+
+        /* The line between the places to go and the service being read is drawn across the column
+           rather than down it: a rule between two rows, which is what it now divides. */
+        .bar-menu-content nav .separator {
+            align-self: stretch;
+            border-left: 0;
+            border-top: 1px solid var(--rule);
+            height: 0;
+        }
+
+        /* Each nav is a column too, right-aligned under the control that opened it, so the whole
+           reads as one list rather than as rows of links at ragged lengths. */
+        .bar-menu-content nav {
+            align-items: flex-end;
+            flex-direction: column;
+        }
 }
 
 #blazor-error-ui {

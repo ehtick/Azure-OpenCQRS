@@ -57,5 +57,12 @@ public enum SectionKind
     Preferences,
 
     /// <summary>The way out of a session.</summary>
-    SignOut
+    SignOut,
+
+    /// <summary>
+    /// The bar itself, on a window with no room to lay it out: the control the whole of it folds
+    /// behind. Not a place, unlike every other kind here — it stands for the bar rather than for
+    /// somewhere on it.
+    /// </summary>
+    Menu
 }

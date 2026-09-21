@@ -44,6 +44,24 @@
             @Brand.Name
         </a>
     }
+    @* The whole of the bar, behind one control on a window with no room to lay it out across.
+
+       A details, like the headings on the bar itself, so it opens with no script behind it and is
+       announced as what it is rather than as a checkbox pretending. And sent open, always: the one
+       browser that cannot open it again is the one with no script, and that reader is given the
+       bar as it has always been — laid out across, or wrapped onto another line. Closing it on a
+       narrow window is the script's whole part in this, in wwwroot/preferences.js.
+
+       Both navs are inside it. On a phone there is no room for either, and the operator's own two
+       links are as much of the bar as Home is. *@
+    <details class="bar-menu" open>
+        @* A mark and nothing else — the bar's three rows, which is the one drawing a reader
+           arrives already knowing. Named and titled, like the refresh link over a table: a mark on
+           its own says nothing to a screen reader or to a pointer resting on it. *@
+        <summary class="bar-fold" aria-label="Menu" title="Menu">
+            <SectionMark Kind="SectionKind.Menu"/>
+        </summary>
+    <div class="bar-menu-content">
     <nav>
         @* Every item on the bar and under its headings is fronted by the mark its tile wears on
            the home page, so a menu is read at a glance the way the tiles are, and a place looks
@@ -218,6 +236,8 @@
             </Authorized>
         </AuthorizeView>
     }
+    </div>
+    </details>
 </header>
 
 <main>

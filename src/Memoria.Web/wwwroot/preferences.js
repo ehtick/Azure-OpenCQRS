@@ -470,6 +470,92 @@ document.addEventListener("click", async event => {
     }, 2000);
 });
 
+// The two buttons that make the reader wait.
+//
+// Refreshing a snapshot reads a whole stream and writes it back; uploading sends a zip over the
+// wire and registers what is in it. Both post and then navigate, so until the answer arrives the
+// page is the page it was — and a button that still says Update, on a page that has not moved,
+// reads as a button that was not pressed. It gets pressed again.
+//
+// So the button says what it is doing and stops taking presses. What it changes to is rendered
+// beside it, in data-busy, because it is one of this application's words and belongs with the rest
+// of them rather than in here. Nothing happens without scripting, which is the same bargain the
+// copy button on a payload makes: the form still posts, and the button is simply unchanged.
+document.addEventListener("submit", event => {
+    const form = event.target;
+
+    if (!(form instanceof HTMLFormElement) || event.defaultPrevented) {
+        return;
+    }
+
+    // Whichever button is doing the submitting, where the browser says — and the form's own
+    // otherwise, for a submit that came from the keyboard inside a field.
+    const button = event.submitter instanceof HTMLElement
+        ? event.submitter.closest("[data-busy]")
+        : form.querySelector("[data-busy]");
+
+    // A named button is part of what the form sends, and what a form sends is settled after this
+    // event rather than before it: disabling one here would quietly drop it from the post. None of
+    // the buttons this is written for carries a name, and one that did would rather say Update
+    // twice than post something else.
+    if (!button || button.disabled || button.name) {
+        return;
+    }
+
+    const said = button.dataset.busy;
+    button.textContent = "";
+    button.append(spinner(), said);
+    button.classList.add("busy");
+
+    // Last, and not before the label: the form is submitting either way, and a browser that
+    // refuses to post a form with a disabled submitter would leave the button saying Updating…
+    // forever. Disabled rather than aria-disabled because there is nothing here to press any more.
+    button.disabled = true;
+});
+
+// The bar, folded on a window with no room to lay it out.
+//
+// The fold is rendered open — see Layout/MainLayout.razor for why — so the bar is all there for a
+// reader whose browser cannot open it again. Closing it on a narrow window is the one part of this
+// that is the browser's, and it is done here rather than by the server because the server has
+// never been told how wide the window is.
+//
+// The width is the one the stylesheet folds at, written here a second time. Both have to say the
+// same thing: at any width where the control is not drawn, closing the fold would take the bar
+// away with nothing left to bring it back.
+const barFoldsBelow = "(max-width: 60rem)";
+
+function foldBar() {
+    const bar = document.querySelector("details.bar-menu");
+
+    if (!bar) {
+        return;
+    }
+
+    // Only ever closed on arrival, never opened: a reader who opened it on a narrow window and then
+    // turned their phone is left looking at what they opened, and one who never opened it does not
+    // have it opened for them.
+    if (window.matchMedia(barFoldsBelow).matches) {
+        bar.open = false;
+    } else {
+        bar.open = true;
+    }
+}
+
+// Watched rather than only set on arrival, because a window is resized and a phone is turned, and
+// at the moment the control stops being drawn the fold has to be open again or the bar is gone.
+window.matchMedia(barFoldsBelow).addEventListener("change", foldBar);
+
+// The same turning ring the loading line carries, built rather than written out: there is one
+// drawing of it, in app.css, and this is the second place it is put on the page.
+function spinner() {
+    const ring = document.createElement("span");
+    ring.className = "spinner";
+    ring.setAttribute("aria-hidden", "true");
+
+    return ring;
+}
+
 // Where a page link leaves the reader.
 //
 // Every page link under a table ends at the top of the table it pages — see Pager.Anchor — and after
@@ -510,8 +596,12 @@ function land() {
 }
 
 function apply() {
-    // First, and before the early return below: the theme is the whole application's, and a reader
-    // who never picked a rows-per-page size still has one.
+    // First of all, because it is the bar: a page swapped in brings a fold of its own, rendered
+    // open, and on a narrow window it has to be closed again before the reader sees it.
+    foldBar();
+
+    // Before the early return below: the theme is the whole application's, and a reader who never
+    // picked a rows-per-page size still has one.
     applyTheme();
 
     // Before the early return below, for the same reason: a reader who never picked a size can

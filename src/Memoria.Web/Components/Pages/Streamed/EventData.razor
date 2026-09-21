@@ -1,4 +1,9 @@
 @page "/{service}/streamed/events/data"
+@* The page is sent before its store has answered: everything above the table goes at once and the
+   rows follow in a patch. A reader gets here by clicking a tile, which Blazor's enhanced navigation
+   answers by fetching this page and swapping it in — so without this they would sit on the page
+   they clicked from, with nothing to say a slow store was being read. See Shared/Loading.razor. *@
+@attribute [StreamRendering]
 @using Memoria.Web.Data
 @using Memoria.Web.Extensibility
 @using Microsoft.AspNetCore.WebUtilities
@@ -132,8 +137,9 @@ else
        be ordered. Its own block ahead of the chain below, because every one of those is a reason
        there is no table and this is not — the rows are there and one property of them is weaker.
        Rendered for everyone and taken away afterwards by the browser that was told to: the server
-       cannot know what this reader has already read. See wwwroot/preferences.js. *@
-    @if (Events.OrderingNotice is not null)
+       cannot know what this reader has already read. See wwwroot/preferences.js. Nothing is said of
+       the ordering until the store has said what order it could manage. *@
+    @if (!Reading && Events.OrderingNotice is not null)
     {
         <div class="caution" role="status" data-notice="ordering">
             <p>@Events.OrderingNotice</p>
@@ -144,7 +150,14 @@ else
         </div>
     }
 
-    @if (Choice.Unbound)
+    @* First of the chain, because every branch under it is something the store has already
+       answered and this is the page before it has. Anything added below that reads the store goes
+       after this, never before it. *@
+    @if (Reading)
+    {
+        <Loading/>
+    }
+    else if (Choice.Unbound)
     {
         @* Registered, listed, and impossible to have stored: without an [EventType] there is no key
            to write it under. An empty table would say the log holds none of these, which is true
@@ -210,6 +223,11 @@ else
            The id is the two of them joined, which is what makes a row unique and what the store
            wrote it under. It says nothing the stream and the sequence beside it do not, and it is
            here because it is the key: this is a page about what the store holds. *@
+        @* In a box it can be scrolled inside, so a row wider than the window moves the table and
+           not the whole page. Written at the table's own indentation, the way the authorize views
+           further down are: wrapping is all it does, and indenting the table under it would move
+           every line of it to say so. The scroller is what the card is drawn on — see app.css. *@
+        <div class="table-scroll">
         <table class="grid events streamed">
             <thead>
             <tr>
@@ -321,6 +339,7 @@ else
             }
             </tbody>
         </table>
+        </div>
 
         <div class="table-footer">
             @* The pages as links, ten at a time. Links rather than a control, like the order and
@@ -503,7 +522,15 @@ else
     /// choice, an unshaped stream, an error, or nothing stored — is a page with no rows on it.
     /// </summary>
     private bool HasRows =>
-        !Choice.Unbound && !Stream.Unshaped && Events.Error is null && Events.Total > 0;
+        !Reading && !Choice.Unbound && !Stream.Unshaped && Events.Error is null && Events.Total > 0;
+
+    /// <summary>
+    /// Whether the store has yet to answer, which is the state the shell is sent in — see the
+    /// <c>[StreamRendering]</c> attribute at the top. True until there is something to draw,
+    /// whether that is a page of rows, an error, or the nothing a choice that shows nothing is
+    /// answered with.
+    /// </summary>
+    private bool Reading { get; set; } = true;
 
     private string Summary => (Events.Total, IsFiltered) switch
     {
@@ -628,6 +655,7 @@ else
         if (Choice.ShowsNothing || Stream.ShowsNothing)
         {
             Events = new StoredStreamEvents([], Total: 0, Page: 1, TotalPages: 1, Error: null);
+            Reading = false;
 
             return;
         }
@@ -639,6 +667,8 @@ else
             Descending,
             int.TryParse(Value("page"), out var asked) ? asked : 1,
             PageSize));
+
+        Reading = false;
     }
 
     /// <summary>

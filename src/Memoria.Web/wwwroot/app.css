@@ -1787,7 +1787,7 @@ h2:focus {
 
    No member of this run may need a :has() to identify it, either — a :has() inside a :has() is
    invalid and fails by silently matching nothing. */
-:is(.search, .grid, .instances, .table-footer) {
+:is(.search, .grid, .instances, .table-footer, .table-scroll) {
     background: var(--surface);
     border: 1px solid var(--rule);
     border-radius: 8px;
@@ -1797,23 +1797,23 @@ h2:focus {
 
     /* Not the first of the run, so the corners go. The top border goes with them for every piece
        except the pager, which keeps it as the line under the data. */
-    :is(.search, .grid, .instances, .table-footer) + :is(.search, .grid, .instances, .table-footer) {
+    :is(.search, .grid, .instances, .table-footer, .table-scroll) + :is(.search, .grid, .instances, .table-footer, .table-scroll) {
         border-top-left-radius: 0;
         border-top-right-radius: 0;
     }
 
-    :is(.search, .grid, .instances, .table-footer) + :is(.search, .grid, .instances) {
+    :is(.search, .grid, .instances, .table-footer, .table-scroll) + :is(.search, .grid, .instances, .table-scroll) {
         border-top: 0;
     }
 
     /* Not the last of the run, so those corners go. The bottom border goes with them for every
        piece except the filter row, which keeps it as the line above the data. */
-    :is(.search, .grid, .instances, .table-footer):has(+ :is(.search, .grid, .instances, .table-footer)) {
+    :is(.search, .grid, .instances, .table-footer, .table-scroll):has(+ :is(.search, .grid, .instances, .table-footer, .table-scroll)) {
         border-bottom-left-radius: 0;
         border-bottom-right-radius: 0;
     }
 
-    :is(.grid, .instances, .table-footer):has(+ :is(.search, .grid, .instances, .table-footer)) {
+    :is(.grid, .instances, .table-footer, .table-scroll):has(+ :is(.search, .grid, .instances, .table-footer, .table-scroll)) {
         border-bottom: 0;
     }
 
@@ -1831,11 +1831,47 @@ h2:focus {
     }
 
     /* Not the first of the run, so the table's own top corners are already square and the cells
-       follow them back. */
-    :is(.search, .grid, .instances, .table-footer) + :is(.grid, .instances) thead tr:first-child > * {
+       follow them back. Twice, because a table that scrolls is not the member of the run itself —
+       the scroller around it is, and the table is a step further in. */
+    :is(.search, .grid, .instances, .table-footer, .table-scroll) + :is(.grid, .instances) thead tr:first-child > *,
+    :is(.search, .grid, .instances, .table-footer, .table-scroll) + .table-scroll :is(.grid, .instances) thead tr:first-child > * {
         border-top-left-radius: 0;
         border-top-right-radius: 0;
     }
+
+/* The box a table is drawn in when it may be wider than the window.
+   ----------------------------------------------------------------------------------------------
+   A table cannot scroll itself: overflow does not apply to a table box, and setting it there does
+   nothing at all — measured. So a table wider than the window widened the whole page instead, and
+   every page carrying one could be dragged sideways, taking the bar, the breadcrumb and the filter
+   row along with it to look at a column of dates. Inside this it is the table that moves, in place,
+   and everything around it stays where it was put.
+
+   It is a member of the card run above, in the table's place: the scroller is what the run sees,
+   because the run is built from siblings and the table is no longer one. So the card is drawn on
+   this, and the table inside gives its own up — two borders around one table is what the run would
+   otherwise have given. */
+.table-scroll {
+    overflow-x: auto;
+}
+
+    .table-scroll > table {
+        background: none;
+        border: 0;
+        border-radius: 0;
+        box-shadow: none;
+    }
+
+    /* What this does not do: let the cells keep their words whole.
+       ------------------------------------------------------------------------------------------
+       A table with no width of its own — .instances — takes what it needs inside here and is moved
+       rather than squeezed, which is the whole gain. The two that lay their columns out in parts
+       of the width, .grid.events and .grid.snapshots, are a different bargain and are left alone:
+       their columns are declared so a payload can open without the table stepping sideways, and
+       the breaking told to happen anywhere (.grid td) is what pays for that. Taking the breaking
+       away was tried and is wrong twice over — a fixed layout does not widen to fit what it is
+       given, so the words simply run out of their cells and over the column beside them. Letting
+       those two grow instead is a change to what the columns are for, not to how they wrap. */
 
 /* The pieces that are not tables carry their own padding; a table's belongs to its cells, below. */
 :is(.search, .table-footer) {
@@ -1855,7 +1891,7 @@ h2:focus {
 }
 
 /* Space under the card, since the pieces themselves no longer carry margins. */
-:is(.search, .grid, .instances, .table-footer):not(:has(+ :is(.search, .grid, .instances, .table-footer))) {
+:is(.search, .grid, .instances, .table-footer, .table-scroll):not(:has(+ :is(.search, .grid, .instances, .table-footer, .table-scroll))) {
     margin-bottom: 1.5rem;
 }
 
@@ -2851,8 +2887,11 @@ h2:focus {
         text-align: right;
     }
 
-/* Nothing stored yet, said in the space the table would have filled. */
-.empty {
+/* Nothing stored yet, said in the space the table would have filled — and, until the store has
+   answered, that it is still being read. One box for the two, because they stand in the same place
+   for the same reason: the table is not there, and this says why. A reader watching one turn into
+   the other, or into the table itself, sees the space hold still rather than jump. */
+:is(.empty, .loading) {
     border: 1px dashed var(--rule);
     border-radius: 6px;
     color: var(--ink-soft);
@@ -2861,6 +2900,63 @@ h2:focus {
     text-align: center;
 }
 
+/* The loading line sets its own row out, because it carries a turning ring in front of its words
+   and centred text alone would leave the two on different baselines. */
+.loading {
+    align-items: center;
+    display: flex;
+    gap: 0.6rem;
+    justify-content: center;
+}
+
+/* The ring, drawn from a border with one side left out: three quarters of a circle turning is read
+   as waiting, where a whole one turning is read as nothing at all. Sized in em so it is the height
+   of whatever it stands in front of, and inked in currentColor so it belongs to that text — one
+   shape that works in the loading line and on a pressed button alike. */
+.spinner {
+    animation: spinner-turn 0.8s linear infinite;
+    border: 2px solid currentColor;
+    border-radius: 50%;
+    border-top-color: transparent;
+    box-sizing: border-box;
+    display: inline-block;
+    flex: none;
+    height: 1em;
+    width: 1em;
+}
+
+@keyframes spinner-turn {
+    to {
+        transform: rotate(1turn);
+    }
+}
+
+/* Slowed rather than stopped for a reader who has asked for less movement. The turning is the only
+   thing on the page saying the wait is still going somewhere, so taking it away would leave a
+   still ring that says nothing; at this speed it is a drift rather than a spin. */
+@media (prefers-reduced-motion: reduce) {
+    .spinner {
+        animation-duration: 3s;
+    }
+}
+
+/* A button that has been pressed and is waiting on the answer, put into this state by
+   wwwroot/preferences.js. Inline-flex so the ring and the word it is in front of are centred
+   against each other, the way .button-mark holds a glyph beside its word; unlike that one the size
+   is left alone, because this button is already on the page and must not resize under the pointer
+   that has just pressed it. */
+.busy {
+    align-items: center;
+    display: inline-flex;
+    gap: 0.5rem;
+}
+
+    /* Pressed, and saying so: it cannot be pressed again, and the page is still the page it was. */
+    .busy:disabled {
+        cursor: default;
+        opacity: 0.75;
+    }
+
 /* The filter field and the button that submits it. The button is the shared .quiet, so it is the
    size of every other button on a form rather than one this page invented; the field takes the
    button's padding and is stretched to its height, so the two are level. Padding alone left the
@@ -2868,6 +2964,13 @@ h2:focus {
 .search {
     align-items: center;
     display: flex;
+    /* Onto another line rather than off the side of the card, which is what the line above the
+       table and the line below it already do. It is the widest row on these pages — three lists to
+       choose from, a field to type in, the button and the way back to everything — and on a narrow
+       window it ran past the right edge and took the whole page's width with it, so every data
+       page could be scrolled sideways and the button was off-screen behind the edge. Nothing moves
+       at the widths where the row already fits on one line. */
+    flex-wrap: wrap;
     gap: 0.5rem;
 }
 
@@ -2880,6 +2983,10 @@ h2:focus {
         color: var(--ink);
         font: inherit;
         font-size: var(--text-md);
+        /* The width above is what the field asks for, not what it insists on: wrapped onto a line
+           of its own it is still 18rem, and on a window narrower than that it comes in to what
+           there is. Without this the field alone was wider than a small phone. */
+        max-width: 100%;
         padding: 0.5rem 0.625rem;
         width: 18rem;
     }
@@ -2924,6 +3031,46 @@ h2:focus {
         box-shadow: 0 0 0 3px rgb(var(--accent-rgb) / 0.18);
         outline: none;
     }
+
+/* Narrow enough that the row has to be read down rather than across.
+   ----------------------------------------------------------------------------------------------
+   Wrapping alone does not promise that each name stays with the control it names. The browser
+   fills each line greedily, so a short name that follows a wide list fits where its own list does
+   not, and Stream is left at the end of one line with its dropdown at the start of the next.
+   Measured, that starts at 640px and has happened on every one of these pages by 320px; at 768 and
+   above the row either fits or wraps between pairs, so nothing here applies up there.
+
+   So below that width the row is laid out as what it is — a small form of named controls: the
+   names in one column, the controls they name in the next, each pair on its own line because the
+   grid puts it there rather than because it happened to fit. */
+@media (max-width: 40rem) {
+    .search {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+    }
+
+        .search > label {
+            grid-column: 1;
+        }
+
+        /* Named one by one rather than as > *, so the width below outranks the 18rem the field
+           asks for across. Down here every control takes the column it is given, and the three
+           line up with each other instead of ending at three different places. */
+        .search > :is(select, input[type="search"], input[type="number"]) {
+            grid-column: 2;
+            width: auto;
+        }
+
+        /* What acts on the whole narrowing rather than naming one part of it — the button, the way
+           back to everything, the fold — under the pairs and along the left, where a form's own
+           controls sit. The auto margin that holds the fold at the far end of the row across has
+           nothing to push against down here, and would only misplace it. */
+        .search > :is(button, a) {
+            grid-column: 1 / -1;
+            justify-self: start;
+            margin-left: 0;
+        }
+}
 
 /* The whole row is the link. The anchor fills its cell so there is no dead space between the
    text and the cell edge, and the padding moves off the cell onto the anchor to make that so.

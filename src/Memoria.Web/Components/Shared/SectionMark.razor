@@ -114,6 +114,15 @@
             <circle cx="12.7" cy="13.8" r="1.7"/>
             break;
 
+        @* Three lines: the bar's own rows, stacked. The one mark here that stands for a thing on
+           the page rather than a place to go, which is why it is the one drawn without a word
+           beside it. *@
+        case SectionKind.Menu:
+            <path d="M3.6 6h12.8"/>
+            <path d="M3.6 10h12.8"/>
+            <path d="M3.6 14h12.8"/>
+            break;
+
         @* A door with the way through it: out. *@
         case SectionKind.SignOut:
             <path d="M8.4 3.4H4.6a1 1 0 0 0-1 1v11.2a1 1 0 0 0 1 1h3.8"/>

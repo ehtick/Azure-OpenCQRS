@@ -1,4 +1,9 @@
 ﻿@page "/{service}/dcb/events/data"
+@* The page is sent before its store has answered: everything above the table goes at once and the
+   rows follow in a patch. A reader gets here by clicking a tile, which Blazor's enhanced navigation
+   answers by fetching this page and swapping it in — so without this they would sit on the page
+   they clicked from, with nothing to say a slow store was being read. See Shared/Loading.razor. *@
+@attribute [StreamRendering]
 @using Memoria.EventSourcing.Dcb.Store.EntityFrameworkCore
 @using Memoria.Web.Extensibility
 @using Microsoft.AspNetCore.WebUtilities
@@ -104,7 +109,14 @@ else
         </a>
     </form>
 
-    @if (Choice.Unbound)
+    @* First of the chain, because every branch under it is something the store has already
+       answered and this is the page before it has. Anything added below that reads the store goes
+       after this, never before it. *@
+    @if (Reading)
+    {
+        <Loading/>
+    }
+    else if (Choice.Unbound)
     {
         @* Registered, listed, and impossible to have stored: without an [EventType] there is no key
            to write it under. An empty table would say the log holds none of these, which is true
@@ -146,6 +158,11 @@ else
            met inside the model that folds it are read the same way. The position is where the row
            sits and what makes it unique — a DCB event is written into one log rather than into a
            stream of its own, so it has one number and no id beside it. *@
+        @* In a box it can be scrolled inside, so a row wider than the window moves the table and
+           not the whole page. Written at the table's own indentation, the way the authorize views
+           further down are: wrapping is all it does, and indenting the table under it would move
+           every line of it to say so. The scroller is what the card is drawn on — see app.css. *@
+        <div class="table-scroll">
         <table class="grid events tagged">
             <thead>
             <tr>
@@ -281,6 +298,7 @@ else
             }
             </tbody>
         </table>
+        </div>
 
         <div class="table-footer">
             @* The pages as links, ten at a time. Links rather than a control, like the order and
@@ -439,7 +457,15 @@ else
     /// with no rows on it.
     /// </summary>
     private bool HasRows =>
-        !Choice.Unbound && Events.Error is null && Events.Total > 0;
+        !Reading && !Choice.Unbound && Events.Error is null && Events.Total > 0;
+
+    /// <summary>
+    /// Whether the store has yet to answer, which is the state the shell is sent in — see the
+    /// <c>[StreamRendering]</c> attribute at the top. True until there is something to draw,
+    /// whether that is a page of rows, an error, or the nothing a choice that shows nothing is
+    /// answered with.
+    /// </summary>
+    private bool Reading { get; set; } = true;
 
     private string Summary => (Events.Total, IsFiltered) switch
     {
@@ -549,6 +575,7 @@ else
         if (Choice.ShowsNothing)
         {
             Events = new StoredEvents([], Total: 0, Page: 1, TotalPages: 1, Error: null);
+            Reading = false;
 
             return;
         }
@@ -561,6 +588,8 @@ else
             int.TryParse(Value("page"), out var asked) ? asked : 1,
             PageSize,
             Totals);
+
+        Reading = false;
     }
 
     /// <summary>

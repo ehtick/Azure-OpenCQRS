@@ -1,4 +1,9 @@
 @page "/{service}/dcb/aggregates/data"
+@* The page is sent before its store has answered: everything above the table goes at once and the
+   rows follow in a patch. A reader gets here by clicking a tile, which Blazor's enhanced navigation
+   answers by fetching this page and swapping it in — so without this they would sit on the page
+   they clicked from, with nothing to say a slow store was being read. See Shared/Loading.razor. *@
+@attribute [StreamRendering]
 @using Memoria.EventSourcing.Dcb.Store.EntityFrameworkCore
 @using Memoria.Web.Extensibility
 @using Microsoft.AspNetCore.WebUtilities
@@ -37,7 +42,9 @@ else
        the store again, above the card: both are the page speaking about the table rather than part
        of it, and the filter row below has to sit against the table for those two to read as one
        object. *@
-    <TableHeader Summary="@Summary"/>
+    @* Nothing to count until the store has answered, which leaves the line holding the ways of
+       asking it again alone — the shape it already takes on a page with no rows. *@
+    <TableHeader Summary="@(Reading ? null : Summary)"/>
 
     @* One GET form for all three, because narrowing is a link to a narrower list and the whole
        narrowing belongs in the address bar together, where it can be bookmarked, shared and gone
@@ -93,7 +100,14 @@ else
             <a href="@Link(Sort, Descending, 1, clearText: true, clearModel: true)">Clear</a>
         }
     </form>
-    @if (Choice.Unbound)
+    @* First of the chain, because every branch under it is something the store has already
+       answered and this is the page before it has. Anything added below that reads the store goes
+       after this, never before it. *@
+    @if (Reading)
+    {
+        <Loading/>
+    }
+    else if (Choice.Unbound)
     {
         @* Registered, listed, and impossible to have been stored: without an [AggregateType] there
            is no key to write a snapshot under. An empty table would say the store holds none of
@@ -127,6 +141,11 @@ else
     {
         @* Everything here is read off the snapshot row. The aggregate itself is not folded to draw a
            row — that is what the details page is for, one at a time. *@
+        @* In a box it can be scrolled inside, so a row wider than the window moves the table and
+           not the whole page. Written at the table's own indentation, the way the authorize views
+           further down are: wrapping is all it does, and indenting the table under it would move
+           every line of it to say so. The scroller is what the card is drawn on — see app.css. *@
+        <div class="table-scroll">
         <table class="instances">
             <thead>
             <tr>
@@ -201,6 +220,7 @@ else
             }
             </tbody>
         </table>
+        </div>
 
         <div class="table-footer">
             @* The pages as links, ten at a time. Links rather than a control, like the order above
@@ -264,6 +284,14 @@ else
     private StoredModels Stored { get; set; } = new([], []);
 
     private IReadOnlyList<Instance> Rows { get; set; } = [];
+
+    /// <summary>
+    /// Whether the store has yet to answer, which is the state the shell is sent in — see the
+    /// <c>[StreamRendering]</c> attribute at the top. True until there is something to draw,
+    /// whether that is a page of rows, an error, or the nothing a choice that shows nothing is
+    /// answered with.
+    /// </summary>
+    private bool Reading { get; set; } = true;
 
     private int Total { get; set; }
 
@@ -588,6 +616,7 @@ else
             Total = 0;
             CurrentPage = 1;
             TotalPages = 1;
+            Reading = false;
 
             return;
         }
@@ -608,6 +637,7 @@ else
         Total = page.Total;
         CurrentPage = page.Page;
         TotalPages = page.TotalPages;
+        Reading = false;
 
         // Started, not awaited: each row's mark waits for its own check, so the table is sent first.
         Checks = Current.Service is { } service ? Lags.Dcb(service, Kind, Rows) : Checks;

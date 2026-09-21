@@ -1,0 +1,33 @@
+@* The line a page holds the table's place with while its store is being read.
+
+   It is the whole of what a reader sees of a slow store, so it says the same thing in the same
+   words wherever it stands: a turning ring, which says something is happening, and a sentence,
+   which says what. The ring is drawn by CSS rather than as one more SectionMark — the marks are a
+   set of still glyphs standing for places, and this is neither still nor a place.
+
+   The sentence is written here rather than handed in by each page, for the reason the tiles are one
+   component: six copies of one sentence are six chances for five of them to say it differently.
+   Written as markup rather than as a value, too, so the ellipsis reaches the page as an ellipsis —
+   a value is encoded on the way out, and "Loading data&#x2026;" is the same three dots to a browser
+   and a different string to everything else that reads this page.
+
+   Announced rather than silent: on these pages the reader has just followed a link and the page
+   they land on has no rows yet, so the one line saying why is the one line worth reading out. *@
+<p class="loading" role="status">
+    <span class="spinner" aria-hidden="true"></span>
+    <span>Loading data…</span>
+</p>
+@* The one reader this line would lie to.
+
+   The page is sent in two parts and the second is put in place by the browser, so with no
+   scripting the first part is the whole of it and the line above goes on saying the store is being
+   read for as long as the page is open. There is nothing to be done about that from here — it is
+   how a page is sent before its store has answered — so the reader is told, in the place they are
+   waiting, rather than left waiting. Everything else on these pages still works without a script:
+   the narrowing, the order, the pages and the fold are all in the address. *@
+<noscript>
+    <p class="missing">
+        The rows are sent after the page and put in place by the browser, which needs scripting
+        turned on. Everything else here is in the address and works without it.
+    </p>
+</noscript>

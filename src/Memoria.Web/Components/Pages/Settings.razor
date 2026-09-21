@@ -147,7 +147,7 @@
                                 <form method="post" action="settings/delete" class="dialog-actions">
                                     <AntiforgeryToken/>
                                     <input type="hidden" name="name" value="@archive.Name"/>
-                                    <button type="submit" class="danger">Remove</button>
+                                    <button type="submit" class="danger" data-busy="Removing…">Remove</button>
                                     <a class="quiet" href="settings"
                                        onclick="event.preventDefault(); document.getElementById('@dialog').close()">Cancel</a>
                                 </form>
@@ -184,7 +184,7 @@
                     assembly of the same name from an earlier upload is replaced.
                 </p>
                 <div class="dialog-actions">
-                    <button type="submit" class="button">Upload</button>
+                    <button type="submit" class="button" data-busy="Uploading…">Upload</button>
                     <a class="quiet" href="settings"
                        onclick="event.preventDefault(); document.getElementById('upload').close()">Cancel</a>
                 </div>
@@ -282,7 +282,7 @@ else if (Tab == TypesTab)
 
         <form method="post" action="settings/refresh" class="refresh">
             <AntiforgeryToken/>
-            <button type="submit" class="button">Refresh types</button>
+            <button type="submit" class="button" data-busy="Refreshing…">Refresh types</button>
             <span class="hint">Reads every uploaded assembly again and registers the types from scratch.</span>
         </form>
 
@@ -384,7 +384,7 @@ else if (Tab == BrandingTab)
             </div>
 
             <p class="actions-row">
-                <button type="submit" class="button">Save</button>
+                <button type="submit" class="button" data-busy="Saving…">Save</button>
             </p>
         </form>
 
@@ -395,7 +395,7 @@ else if (Tab == BrandingTab)
         {
             <form method="post" action="settings/branding/reset" class="refresh">
                 <AntiforgeryToken/>
-                <button type="submit" class="quiet">Restore Memoria's own</button>
+                <button type="submit" class="quiet" data-busy="Restoring…">Restore Memoria's own</button>
                 <span class="hint">Removes the logo and puts Memoria's name and mark back in the header.</span>
             </form>
         }
@@ -442,7 +442,7 @@ else if (Tab == CachingTab)
             </div>
 
             <p class="actions-row">
-                <button type="submit" class="button">Save</button>
+                <button type="submit" class="button" data-busy="Saving…">Save</button>
             </p>
         </form>
 
