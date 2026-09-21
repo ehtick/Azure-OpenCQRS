@@ -2,6 +2,11 @@
 title: Pricing
 description: "The Memoria framework is free under Apache 2.0. Memoria Web is free for one service and paid above it — what each edition costs, and how to buy one."
 nav_order: 10
+# Hidden from the nav and from search while the checkout is wired to the Paddle *sandbox*: the buy
+# buttons open a checkout that looks real and takes test cards only. Drop both lines the moment the
+# live catalogue exists and MEMORIA_PADDLE below is switched to production.
+nav_exclude: true
+search_exclude: true
 ---
 
 # Pricing
