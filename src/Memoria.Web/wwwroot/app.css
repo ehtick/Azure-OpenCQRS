@@ -2091,11 +2091,15 @@ h2:focus {
     /* The two versions' facts, side by side, each in the card the info tab lists the row's facts
        in: the earlier on the left and the later on the right, the way the table below sets their
        values. Two columns while there is room for two cards and one under the other when there is
-       not, at the width a card's label column plus a type name needs. */
+       not, at the width a card's label column plus a type name needs.
+
+       That width is a floor for choosing between one column and two, not for how narrow one may
+       be: on a window narrower than 20rem a single card was still held to it, and hung past the
+       edge of the panel. So it is never more than the panel has. */
     .compare-facts {
         display: grid;
         gap: 1rem;
-        grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(min(20rem, 100%), 1fr));
     }
 
         /* The warning beside a card's version, on a line of its own under the number rather than

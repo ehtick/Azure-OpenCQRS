@@ -91,7 +91,13 @@
             {
                 @* The state tab's rows, with its one value column made two and a column saying how
                    they differ. Every row is drawn, marked or not: a changed value reads by the
-                   unchanged shape around it. *@
+                   unchanged shape around it.
+
+                   In the box the data pages draw theirs in: two values side by side with their
+                   property and type beside them want more than a phone has, and the table widened
+                   the whole tab to get it. Inside this it is the table that moves. See .table-scroll
+                   in app.css. *@
+                <div class="table-scroll">
                 <table class="grid compare">
                     <thead>
                     <tr>
@@ -106,6 +112,7 @@
                     @Rows((Comparison.Rows, 0))
                     </tbody>
                 </table>
+                </div>
             }
         }
     }

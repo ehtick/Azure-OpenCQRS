@@ -410,6 +410,11 @@ else
                 }
                 else
                 {
+                    @* In the box the data pages draw theirs in, so a row wider than the window moves the
+                       table and not the page: on a phone the compare button at the end of each row did not
+                       fit its column and dragged the whole tab sideways. At the table's own indentation, as
+                       on those pages. See .table-scroll in app.css. *@
+                    <div class="table-scroll">
                     <table class="grid events compared">
                         <thead>
                         <tr>
@@ -532,6 +537,7 @@ else
                         }
                         </tbody>
                     </table>
+                    </div>
 
                     <div class="table-footer">
                         @* The pages as links, ten at a time. Links rather than a control, like the one
