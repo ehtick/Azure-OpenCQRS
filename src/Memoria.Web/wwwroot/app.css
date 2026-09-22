@@ -1403,6 +1403,12 @@ h2:focus {
         font-size: var(--text-xl);
         gap: 0.5rem;
         margin: 0;
+        /* Allowed to be narrower than its words, and to break inside one when it has to. A type's
+           name is a single word as often as not — PurchaseOrderReceived — and a flex item will not
+           go below the width of its longest word unless it is told it may: on a phone the name
+           held its full width and pushed the close out past the sheet's edge, onto the veil. */
+        min-width: 0;
+        overflow-wrap: anywhere;
     }
 
     /* Set in the softer ink: it says what kind of thing is open, and the name beside it says which
@@ -1419,6 +1425,8 @@ h2:focus {
 .dialog-close {
     border-radius: 4px;
     color: var(--ink-soft);
+    /* Its own size whatever the title beside it needs: the title is what gives way. */
+    flex: none;
     font-size: 1.5rem;
     line-height: 1;
     padding: 0.1rem 0.5rem 0.3rem;
