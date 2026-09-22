@@ -3128,11 +3128,25 @@ h2:focus {
             width: auto;
         }
 
+        /* The text field has no name on the page — its label is for a screen reader alone — so
+           it has nothing to stand beside in the first column, and left in the second it sat
+           indented under the lists as though its name had gone missing. It starts at the row's
+           left edge instead, with everything else that is not a pair, and takes the whole width. */
+        .search > input[type="search"] {
+            grid-column: 1 / -1;
+        }
+
         /* What acts on the whole narrowing rather than naming one part of it — the button, the way
-           back to everything, the fold — under the pairs and along the left, where a form's own
-           controls sit. The auto margin that holds the fold at the far end of the row across has
-           nothing to push against down here, and would only misplace it. */
-        .search > :is(button, a) {
+           back to everything, the fold, and on the compare tab the steps to the neighbouring pair —
+           under the pairs and along the left, where a form's own controls sit.
+
+           The fold and the steps are each held at the far end of the row across by an auto margin,
+           and down here that margin has nothing to push against but would still misplace them.
+           Named by class as well as by element, which brings this up to the weight of the
+           .search .fold-all that sets that margin, and it stands later in the file, so it wins.
+           Named by element alone it was the lighter of the two, and the fold stayed at the
+           right. */
+        .search > :is(button, a, nav, .fold-all, .compare-step) {
             grid-column: 1 / -1;
             justify-self: start;
             margin-left: 0;
