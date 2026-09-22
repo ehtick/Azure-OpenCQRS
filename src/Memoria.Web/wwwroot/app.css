@@ -745,10 +745,19 @@ h2:focus {
     max-width: 52rem;
 }
 
-/* One column below the width where two stop being readable. */
+/* One column below the width where two stop being readable.
+   ----------------------------------------------------------------------------------------------
+   Written the same way as the pair above it, and for the same reason. A bare 1fr is minmax(auto,
+   1fr), and the auto floor is the column's own smallest content — which here is not what it looks
+   like: the tiles inside are auto-fit against their 40rem measure, so asked how narrow they can be
+   they answer with two columns of 15rem rather than one. The column then refused to go below
+   492px inside a phone's 343, and the whole service's overview hung off the right of the window
+   while every overview under it, where the same tiles are laid out straight into the page and take
+   the width they are given, sat inside it. The 0 floor lets the column be as narrow as the window,
+   and the tiles fall to the single column they were always meant to be down here. */
 @media (max-width: 40rem) {
     .models {
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0, 1fr);
     }
 }
 
@@ -2549,6 +2558,12 @@ h2:focus {
    the words either side of them, so the strip reads as one thing rather than as ten. */
 .pages {
     display: flex;
+    /* Onto a second line rather than off the side of the card, which is what the strip around it
+       already did. Ten numbers and the way out of them want 277px, and the narrowest window worth
+       drawing for gives the pager 271 — six short, which was enough to make every data page
+       draggable sideways by five pixels. The row gap is the one the wrapping asks for and is
+       never seen otherwise; at any width where the ten fit on one line nothing here moves. */
+    flex-wrap: wrap;
     gap: 0.25rem;
     list-style: none;
     margin: 0;
