@@ -1369,6 +1369,13 @@ h2:focus {
     border: 1px solid var(--rule);
     border-radius: 8px;
     box-shadow: 0 10px 30px rgb(var(--shadow-rgb) / 0.25);
+    /* The width below is the whole sheet, its border included. Counted the default way it was the
+       inside alone, so the sheet came out two pixels wider than the veil it is centred in and hung
+       one over each side — enough for the veil to scroll sideways on a phone. It was hidden where
+       the sheet could shrink those two pixels back, and showed wherever it could not: always at
+       320px, and at 390px once a table inside it kept its own width. The same fix the settings
+       page's dialogs were given. */
+    box-sizing: border-box;
     max-width: 64rem;
     /* Over the dismissing layer behind it, which is the whole reason either carries a position. */
     position: relative;
@@ -1944,6 +1951,34 @@ h2:focus {
        spaced from what follows it, being the last piece of the run in the table's place. */
     .table-scroll > table:is(.grid, .instances) {
         margin: 0;
+    }
+
+    /* On a phone a table in here is as wide as its words.
+       ------------------------------------------------------------------------------------------
+       Across, a table fits its card: the event lists and the snapshots lay their columns out in
+       declared parts of the width, and a cell may break anywhere so a long id cannot push its
+       column out. At 300px both of those turn against the reader — a part of the width is a
+       column a few characters wide, the headings run into each other, and the cells are set down
+       it a letter or two at a time: 210 of 210 words on the event list broke mid-word.
+
+       In here the table no longer has to fit, so below this width the columns are sized by what
+       they hold and nothing breaks inside a word; the reader moves the table rather than
+       deciphering it. Opening a payload widens the payload's own column and leaves every column
+       before it where it was, which is what the declared parts were keeping for — measured, with
+       every payload open at once.
+
+       Named with the classes so it outweighs the .grid.events and .grid.snapshots that declare
+       the parts, and the .grid td that lets a cell break anywhere. The installed archives on the
+       settings page declare theirs in that page's own stylesheet, which outweighs this, and say
+       the same thing again there. */
+    @media (max-width: 40rem) {
+        .table-scroll > table:is(.grid, .instances) {
+            table-layout: auto;
+        }
+
+            .table-scroll > table:is(.grid, .instances) td {
+                overflow-wrap: normal;
+            }
     }
 
     /* What this does not do: let the cells keep their words whole.

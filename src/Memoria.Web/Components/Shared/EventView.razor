@@ -111,6 +111,10 @@ else if (Showing == StateTab)
         {
             @* The same rows the types page lists the event's shape in, with the column this view
                has something to put in. *@
+            @* In the box the tables on the data and detail pages are drawn in, so on a phone the three
+               columns can be as wide as their words and the table is moved rather than squeezed.
+               See .table-scroll in app.css. *@
+            <div class="table-scroll">
             <table class="grid">
                 <thead>
                 <tr>
@@ -123,6 +127,7 @@ else if (Showing == StateTab)
                 @StateRows((Event.State, 0))
                 </tbody>
             </table>
+            </div>
         }
     </section>
 }

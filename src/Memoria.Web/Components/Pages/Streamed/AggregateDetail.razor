@@ -243,6 +243,10 @@ else
             {
                 @* The same rows the types page lists the aggregate's shape in, with the column this
                    page has something to put in. *@
+                @* In the box every other table on a detail page is drawn in, so on a phone the three
+                   columns can be as wide as their words and the table is moved rather than squeezed.
+                   See .table-scroll in app.css. *@
+                <div class="table-scroll">
                 <table class="grid">
                     <thead>
                     <tr>
@@ -255,6 +259,7 @@ else
                     @StateRows((State, 0))
                     </tbody>
                 </table>
+                </div>
             }
         </section>
     }
