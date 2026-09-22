@@ -822,9 +822,19 @@ h2:focus {
 .refresh {
     align-items: center;
     display: flex;
+    /* Onto a line of its own under the button once the hint beside it would be too narrow to read,
+       rather than squeezed into a column a word or two wide. Where it fits beside the button, which
+       is every width but a phone's, nothing here moves. */
+    flex-wrap: wrap;
     gap: 0.75rem;
     margin: 1.5rem 0 1.5rem;
 }
+
+    /* How narrow the hint may be before it goes under the button: about the measure of a short
+       sentence. Below it, a hint was set a word or two to a line beside Restore Memoria's own. */
+    .refresh .hint {
+        min-width: 12rem;
+    }
 
 /* The page worked, but not quite as asked. Neither an alert nor a notice: nothing failed and
    nothing succeeded — the rows are real and one property of them is weaker than usual, which is
@@ -1910,6 +1920,12 @@ h2:focus {
    otherwise have given. */
 .table-scroll {
     overflow-x: auto;
+    /* The box that anything positioned inside the table is placed against — the words a screen
+       reader alone is given, for one. A scroller clips what it contains, but something absolutely
+       positioned belongs to its nearest positioned ancestor rather than to its parent, and with
+       none here that was the page: a hidden label in the table's last column escaped the scroll
+       and widened the whole page by as much as the table did. */
+    position: relative;
 }
 
     .table-scroll > table {
@@ -1917,6 +1933,17 @@ h2:focus {
         border: 0;
         border-radius: 0;
         box-shadow: none;
+    }
+
+    /* Nor the space the run leaves under the last piece of a card. A table in here is the last
+       thing in its box by construction — nothing follows it inside — so the rule that spaces a
+       card from what comes after it gave every one of them a bottom margin, and the margin fell
+       inside the card: a blank band under the last row, on every page that has a scroller. Named
+       with its classes so it outweighs that rule, which is built of two classes' worth of
+       selector; one class and an element was lighter, and lost. The scroller itself is still
+       spaced from what follows it, being the last piece of the run in the table's place. */
+    .table-scroll > table:is(.grid, .instances) {
+        margin: 0;
     }
 
     /* What this does not do: let the cells keep their words whole.

@@ -7,6 +7,26 @@
     table-layout: fixed;
 }
 
+    /* On a phone the proportions above are what break it. A fifth of 300px is a column that sets
+       Sample Service down it two letters at a time, and a tenth holds "50 KB" one character to a
+       line. Down here the table is inside its scroller, so it no longer has to fit: the columns are
+       as wide as their words, nothing breaks in the middle of one, and a reader moves the table to
+       reach the rest of the row. The size is short and meaningless split, so it stays on its line;
+       the date may break at its space, which is where a date and a time part anyway. */
+    @media (max-width: 40rem) {
+        .grid.archives {
+            table-layout: auto;
+        }
+
+            .grid.archives td {
+                overflow-wrap: normal;
+            }
+
+            .grid.archives td:nth-child(2) {
+                white-space: nowrap;
+            }
+    }
+
     .grid.archives .col-file {
         width: 36%;
     }

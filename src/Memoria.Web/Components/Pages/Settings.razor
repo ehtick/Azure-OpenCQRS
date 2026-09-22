@@ -54,7 +54,12 @@
             @* The same table the stored data is read in, because a list of what is installed is a
                list of rows the server holds and there is no reason for it to be a second kind of
                table. The columns are declared so the file keeps the room and the facts beside it
-               stay where they are however long a name happens to be. *@
+               stay where they are however long a name happens to be.
+
+               In the box the data pages draw theirs in, so on a phone the table can be as wide as
+               its words and is moved rather than squeezed — see Settings.razor.css for what changes
+               down there. At the table's own indentation, as on those pages. *@
+            <div class="table-scroll">
             <table class="grid archives">
                 <thead>
                 <tr>
@@ -157,6 +162,7 @@
                 }
                 </tbody>
             </table>
+            </div>
         }
 
         @* A link rather than a button, so it still opens without scripting: the address says the form is
