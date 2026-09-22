@@ -546,6 +546,59 @@ function foldBar() {
 // at the moment the control stops being drawn the fold has to be open again or the bar is gone.
 window.matchMedia(barFoldsBelow).addEventListener("change", foldBar);
 
+// An opened payload, brought into view on a phone.
+//
+// Down there a table is wider than its card and is moved sideways inside it, and the payload is
+// one of the last columns — so opening one made its row tall while what it held sat off to the
+// right, and all a reader saw for it was an empty band under the first few columns. The table is
+// moved for them instead, as far as it takes for the payload to be in view: the column's left edge
+// if it is wider than the card, its right edge otherwise, so as much of the row beside it as fits
+// is still there to say which event this is.
+//
+// Only where the table is actually wider than its box, which across it never is. Nothing happens
+// without scripting: the payload still opens, and the reader moves the table to it themselves.
+function revealPayload(payload) {
+    const box = payload.closest(".table-scroll");
+
+    if (!box || box.scrollWidth <= box.clientWidth) {
+        return;
+    }
+
+    // The inside of the box, within its border, against the payload itself rather than the cell
+    // around it: the cell's padding is not what a reader is being shown.
+    const outer = box.getBoundingClientRect();
+    const left = outer.left + box.clientLeft;
+    const right = left + box.clientWidth;
+    const shown = payload.getBoundingClientRect();
+
+    if (shown.width >= right - left || shown.left < left) {
+        box.scrollLeft += shown.left - left;
+    } else if (shown.right > right) {
+        box.scrollLeft += shown.right - right;
+    }
+}
+
+// A payload opened by hand. The toggle event does not bubble, so it is heard on the way down.
+document.addEventListener("toggle", event => {
+    const payload = event.target;
+
+    if (payload instanceof HTMLDetailsElement && payload.matches("details.payload") && payload.open) {
+        revealPayload(payload);
+    }
+}, true);
+
+// Every payload opened at once, by the link above the table: the page arrives with them open, and
+// the first says where the column is for all of them.
+function revealOpenPayloads() {
+    for (const box of document.querySelectorAll(".table-scroll")) {
+        const first = box.querySelector("details.payload[open]");
+
+        if (first) {
+            revealPayload(first);
+        }
+    }
+}
+
 // The same turning ring the loading line carries, built rather than written out: there is one
 // drawing of it, in app.css, and this is the second place it is put on the page.
 function spinner() {
@@ -599,6 +652,13 @@ function apply() {
     // First of all, because it is the bar: a page swapped in brings a fold of its own, rendered
     // open, and on a narrow window it has to be closed again before the reader sees it.
     foldBar();
+
+    // A table that arrives with its payloads open is moved to them, on a window narrow enough for
+    // the table to have to move at all. Once now, and again when the fonts have loaded: text set in
+    // the fallback face and then in the page's own is a few pixels wider, which moved the column
+    // after it had been brought into view and left its edge just outside it.
+    revealOpenPayloads();
+    document.fonts?.ready.then(revealOpenPayloads);
 
     // Before the early return below: the theme is the whole application's, and a reader who never
     // picked a rows-per-page size still has one.

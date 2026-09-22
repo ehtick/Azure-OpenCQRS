@@ -1978,27 +1978,43 @@ h2:focus {
        Named with the classes so it outweighs the .grid.events and .grid.snapshots that declare
        the parts, and the .grid td that lets a cell break anywhere. The installed archives on the
        settings page declare theirs in that page's own stylesheet, which outweighs this, and say
-       the same thing again there. */
+       the same thing again there.
+
+       As wide as its content on one line, too, rather than the card's width. Asked to be 100% of
+       a card it cannot fit, a table comes out as narrow as it can be made — every column at its
+       narrowest wrap — so a date broke at its space and an id at each of its hyphens, and a row
+       was two and three lines tall to show one line's worth. Measured on the DCB aggregates, the
+       rows were 70px and are 35. Never narrower than the card, so a table with little in it still
+       fills the card it is drawn in.
+
+       The column widths the tables declare across — parts of the width, on the heading cells —
+       are let go down here for the same reason: a part of a table this wide is still a part, and
+       held those columns to their narrowest. The class is named twice to outweigh the
+       .grid.events.streamed .col-stream that sets them, which is four classes deep. */
     @media (max-width: 40rem) {
         .table-scroll > table:is(.grid, .instances) {
+            min-width: 100%;
             table-layout: auto;
+            width: max-content;
         }
 
             .table-scroll > table:is(.grid, .instances) td {
                 overflow-wrap: normal;
             }
-    }
 
-    /* What this does not do: let the cells keep their words whole.
-       ------------------------------------------------------------------------------------------
-       A table with no width of its own — .instances — takes what it needs inside here and is moved
-       rather than squeezed, which is the whole gain. The two that lay their columns out in parts
-       of the width, .grid.events and .grid.snapshots, are a different bargain and are left alone:
-       their columns are declared so a payload can open without the table stepping sideways, and
-       the breaking told to happen anywhere (.grid td) is what pays for that. Taking the breaking
-       away was tried and is wrong twice over — a fixed layout does not widen to fit what it is
-       given, so the words simply run out of their cells and over the column beside them. Letting
-       those two grow instead is a change to what the columns are for, not to how they wrap. */
+            .table-scroll .grid.grid :is(th, td)[class] {
+                width: auto;
+            }
+
+            /* The one cell that must not be as wide as its content on one line: an opened payload,
+               whose values are sentences as often as ids. Uncapped, a single payload made its
+               column six hundred pixels wide and its text one line long, more than twice the card —
+               so it could not be brought into view whole however far the table was moved. Held to
+               a width that fits inside the card, and its values wrap within it. */
+            .table-scroll details.payload {
+                max-width: 15rem;
+            }
+    }
 
 /* The pieces that are not tables carry their own padding; a table's belongs to its cells, below. */
 :is(.search, .table-footer) {
@@ -2650,6 +2666,20 @@ h2:focus {
     margin: 0;
     padding: 0;
 }
+
+    /* One number on a phone: the page a reader is on, between the arrows. The five and the ways out
+       of them did not fit one line down here, and wrapping them left the ellipsis alone on a line of
+       its own, reading as a row of nothing. Three numbers were tried and still took three lines on a
+       middle page — the four arrows and two ellipses around them are six controls before a number
+       is drawn. The number either side of this one is where the single arrows already go, so it is
+       the same way somewhere said twice; the ellipses' jump of five goes with them, and the double
+       arrows still reach either end. The server cannot say how wide the window is, so this is the
+       stylesheet's to do. */
+    @media (max-width: 40rem) {
+        .pages > li:not(:has(> .current)) {
+            display: none;
+        }
+    }
 
     /* Every number the same width whatever it is, so the strip does not breathe in and out as a
        reader crosses from single digits into double and the page under it stays where it was. */
