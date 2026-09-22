@@ -82,3 +82,23 @@
             max-width: 42rem;
         }
 
+/* On a narrow window the box goes in front of its name.
+   ----------------------------------------------------------------------------------------------
+   Across, the name fits on one line and the box sits straight after it, where the pickers above
+   sit after theirs. Down here the name wraps, and a wrapped label fills the row, so the box was
+   pushed to the far right, apart from every other control on the card. In front of the name it
+   starts at the left edge the rest of the page's controls start at on a phone.
+
+   Moved by order, not in the markup: the label still comes first to be read out, and it is the
+   label's own control either way. Held against the name's first line rather than centred on the
+   two, so it reads as the start of the sentence it answers. */
+@media (max-width: 40rem) {
+    .preference input[type="checkbox"] {
+        align-self: flex-start;
+        /* The box is shorter than a line of the label. This drops it to that line's middle — set by
+           measuring the two against each other, not worked out from the font. */
+        margin-top: 0.07rem;
+        order: -1;
+    }
+}
+
