@@ -387,6 +387,13 @@ h1 {
 .breadcrumb {
     color: var(--ink-soft);
     display: flex;
+    /* Onto a second line rather than off the side of the window. A trail five deep — Home, the
+       service, the model, the section, the page — is longer than the narrowest window worth
+       drawing for, and a flex row that cannot break ran it past the edge, where it was the last
+       thing left dragging a data page sideways. Wrapped, the trail breaks between its words —
+       the slashes are items of their own, so one may start a line — and at any width where it
+       fits on one line nothing here moves. */
+    flex-wrap: wrap;
     font-size: var(--text-sm);
     gap: 0.5rem;
     margin-bottom: 1.25rem;
