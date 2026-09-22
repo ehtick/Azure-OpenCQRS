@@ -429,6 +429,16 @@ footer {
             align-items: flex-end;
             flex-direction: column;
         }
+
+        /* What opens under a heading, once that heading is at the right edge rather than partway
+           along a row. It is written to open from its heading's left, which is where the room is
+           on a bar laid out across; here there is none on that side, and the panel ran sixty to
+           ninety pixels past the window, where nothing in it could be read or reached. It opens
+           from the right instead — the edge the heading now has. */
+        .bar-menu-content .menu .submenu {
+            left: auto;
+            right: 0;
+        }
 }
 
 #blazor-error-ui {

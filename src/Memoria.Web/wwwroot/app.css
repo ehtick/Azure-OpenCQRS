@@ -619,6 +619,47 @@ h2:focus {
         width: 1rem;
     }
 
+/* A service tile on a phone.
+   ----------------------------------------------------------------------------------------------
+   Laid out across, a service is its name with the counts set against the far edge and a sentence
+   under both, which reads in one glance. Measured, the counts stop fitting beside the name a little
+   below 460px — and what they do then is drop onto a line of their own between the name and the
+   sentence, so the tile reads a name, some numbers, and only then what the service actually is.
+   That is the wrong way round for anyone meeting it for the first time, and it is the order a
+   phone is most likely to show.
+
+   Down here the three are a column in the order they are wanted: which service this is, what it
+   is, and then how much is in it. The head stops being a box of its own so that its two parts can
+   take their places in that column, and the counts are ordered last rather than moved in the
+   markup — beside the name is where they belong to be read out, and it is the name they count. */
+@media (max-width: 30rem) {
+    .tiles.services .body {
+        display: flex;
+        flex-direction: column;
+        gap: 0.15rem;
+    }
+
+    .tiles.services .head {
+        display: contents;
+    }
+
+    .tiles.services .facts {
+        /* Last of the three. Everything else is at the default, so this alone moves. */
+        order: 1;
+        /* The auto margin is what held them at the far edge of the name's line; in a column it
+           would hold them at the far edge of the tile, away from the two lines above them. */
+        margin-left: 0;
+        /* They are a row of short counts rather than one word, and at this width they are as
+           likely to need two lines as one. */
+        white-space: normal;
+    }
+
+    /* The gap belongs to the column now; the sentence's own would be added to it. */
+    .tiles.services .detail {
+        margin-top: 0;
+    }
+}
+
     /* The whole card is the link, so the target is the tile a reader is already pointing at rather
        than the two words at the top of it. The sheet's white over the page's ground and carried by
        its rule, the way every other card here is drawn. */
