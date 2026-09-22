@@ -236,6 +236,12 @@
 /* The upload form, brought up over the page rather than sitting on it. */
 .dialog {
     border: 1px solid var(--rule);
+    /* The width below is the whole box, padding and border included. Measured the default way it
+       was the content alone, so the box came out fifty pixels wider than the window minus its
+       gutters: on a phone it could not be centred, sat hard against the left edge and ran the
+       Cancel side off the right — opened by a tap exactly as much as by the address. The 32rem
+       measure counts the same way, so the dialog is that wide on a monitor, padding and all. */
+    box-sizing: border-box;
     border-radius: 8px;
     box-shadow: 0 10px 30px rgb(var(--shadow-rgb) / 0.18);
     color: var(--ink);
