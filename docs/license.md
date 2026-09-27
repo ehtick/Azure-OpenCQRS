@@ -1,10 +1,12 @@
 ---
 title: Licence
-description: "The Memoria framework is free and open source under the Apache License 2.0. Memoria Web, the browser tool that reads a store, is a commercial product that is free for one service and paid above it. Which applies to you, and the full terms."
+description: "The Memoria framework is free and open source under the Apache License 2.0. Memoria Web, the separate browser tool that reads a store, is a commercial product that is free for one service and paid above it. Which applies to you, and the full terms."
 nav_order: 11
 redirect_from:
   - /licence.html
   - /licensing.html
+  - /pricing.html
+  - /thank-you.html
 ---
 
 # Licence
@@ -13,7 +15,7 @@ Memoria is two things under two licences, and which one applies depends on which
 
 The **framework** — every package published under the `Memoria` NuGet prefix — is free and open source under the [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0). Use it in anything, commercial or not, closed source or open, at any scale, without asking and without paying. There is no edition, no threshold and no key.
 
-**Memoria Web** — the browser tool that reads a store through your own domain assemblies — is a commercial product under the [Memoria Web Licence](#memoria-web-licence-agreement) below. Its source is published in the repository so you can read it, build it and audit what you are about to run, but running it is what the licence governs. It is **free for one service**, and paid above that.
+**[Memoria Web](tools/index.md)** — the browser tool that reads a store through your own domain assemblies — is a separate product, developed in its own private repository, and a commercial one under the [Memoria Web Licence](#memoria-web-licence-agreement) below. Running it is what the licence governs. It is **free for one service**, and paid above that.
 
 ## Which licence do you need?
 
@@ -42,13 +44,13 @@ The tool is a different purchase. It is opened by a team already running event-s
 | **Professional** | Up to 25         | One legal entity                                     | Email, first response within two business days | $2,499 USD | $249.90 USD |
 | **Enterprise**   | Unlimited        | The Licensee and all its Affiliates                  | Email, first response within one business day  | $4,999 USD | $499.90 USD |
 
-Every edition grants the same rights to the software itself: run Memoria Web against your stores, read its source, and modify it for your own use. The editions differ in how many services one instance may read, in whether affiliates are covered, and in the support that comes with them. There is no limit on how many people sign in, how many instances you run, or how many environments you run them in.
+Every edition grants the same rights to the software itself: run Memoria Web against your stores. The editions differ in how many services one instance may read, in whether affiliates are covered, and in the support that comes with them. There is no limit on how many people sign in, how many instances you run, or how many environments you run them in.
 
 A paid edition is a subscription, paid yearly or monthly. Paid yearly, it runs for twelve months from purchase and renews for another twelve; paid monthly, it runs for a month and renews month by month, at a tenth of the yearly price, so a year paid monthly costs a fifth more than a year paid up front. Either way it covers every version of Memoria Web released while it runs, and renews at the price then published.
 
 **Launch offer.** Any paid edition bought on or before 31 December 2026 is half price for its first term, yearly or monthly, and renews at that same half price for as long as the subscription is kept unbroken.
 
-To license a paid edition, buy it on the [Pricing](pricing.html) page. To ask about any of this, or to arrange an Enterprise licence, a purchase order or a bank transfer, reach out via [LinkedIn](https://www.linkedin.com/in/lucabriguglia).
+Paid editions are sold from Memoria Web's own site, which is on its way. Until it is up, to license one, to ask about any of this, or to arrange an Enterprise licence, a purchase order or a bank transfer, reach out via [LinkedIn](https://www.linkedin.com/in/lucabriguglia).
 
 ---
 
@@ -74,13 +76,9 @@ This Agreement governs Memoria Web alone. It does not govern the Memoria framewo
 
 2.1 Subject to this Agreement and, for a paid Edition, to payment of the applicable fees, the Licensor grants the Licensee a non-exclusive, non-transferable, worldwide licence, for the term of the Agreement and within the scope of the Licensee's Edition, to:
 
-(a) run the Software, on any number of Instances, in any number of environments, accessed by any number of people;
+(a) run the Software, on any number of Instances, in any number of environments, accessed by any number of people; and
 
-(b) read, compile and build the Software from its published source;
-
-(c) modify the Software for the Licensee's own internal use, and run the result under this Agreement; and
-
-(d) make copies of the Software as reasonably required for backup, testing, continuous integration and deployment.
+(b) make copies of the Software as reasonably required for backup, testing, continuous integration and deployment.
 
 2.2 The number of Services the Software may read at once is set by the Licensee's Edition under section 3. No other use is metered.
 
@@ -100,11 +98,9 @@ This Agreement governs Memoria Web alone. It does not govern the Memoria framewo
 
 ### 4. Source code
 
-4.1 The Licensor publishes the source code of the Software in the Memoria repository. Publishing it is not a grant of any licence beyond this Agreement: the Software is not open source, and the source is published so that the Licensee can read it, audit it, build it and modify it for its own use under section 2.1.
+4.1 The Software is not open source, and its source code is not published. Nothing in this Agreement grants access to the source code, or any right to it.
 
-4.2 Reading the published source, and copying it as reasonably required to do so, requires no Edition and no fee.
-
-4.3 A modification the Licensee makes under section 2.1(c) is the Licensee's own, subject to the Licensor's rights in the Software it is made to, and is governed by this Agreement when run.
+4.2 Versions of the Software whose source was published in the Memoria repository before this Agreement was revised remain under the terms they were released with, under section 13.2.
 
 ### 5. Restrictions
 
@@ -152,7 +148,7 @@ The Licensee may not:
 
 ### 8. Intellectual property
 
-The Software is licensed, not sold. The Licensor retains all right, title and interest in and to the Software, including all intellectual property rights. The Licensee owns its own modifications of the Software, subject to the Licensor's rights in the Software those modifications are made to.
+The Software is licensed, not sold. The Licensor retains all right, title and interest in and to the Software, including all intellectual property rights.
 
 ### 9. Pre-release versions
 
@@ -186,6 +182,5 @@ Copyright © Luca Cammarata Briguglia. All rights reserved.
 
 ## Related
 
-- [Pricing](pricing.md) — the editions, and buying one
-- [Memoria Web](tools/memoria-web.md) — what the tool does
+- [Memoria Web](tools/index.md) — what the tool is, and where it went
 - [Release notes](release-notes.md)

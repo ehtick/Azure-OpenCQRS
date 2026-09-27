@@ -17,7 +17,7 @@ The solution file is `Memoria.slnx` (modern .slnx format). Target framework is .
 
 ## Project Overview
 
-Memoria is a .NET framework for DDD, CQRS, and Event Sourcing. It can be used as a simple mediator or as a full event sourcing solution. The solution has 13 source projects, 13 test projects, and 6 example projects.
+Memoria is a .NET framework for DDD, CQRS, and Event Sourcing. It can be used as a simple mediator or as a full event sourcing solution. The solution has 16 source projects, 19 test projects, and 8 example projects. Memoria Web, the browser tool that reads a store, is developed in its own private repository and is not part of this solution.
 
 ## Architecture
 

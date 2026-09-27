@@ -1,6 +1,6 @@
 ---
 title: Upgrade to 2.0.0
-description: "The licence is unchanged, where a RabbitMQ connection failure now surfaces, and the manifest an uploaded Memoria Web zip must carry."
+description: "The licence is unchanged, where a RabbitMQ connection failure now surfaces, and the optional type bindings a store can carry."
 parent: Upgrading
 nav_order: 1
 ---
@@ -34,9 +34,9 @@ upgrading needs no action from anybody.
 The packages went back with it: an SPDX `Apache-2.0` expression in place of the packed `LICENSE.md`,
 and no licence acceptance prompt on install.
 
-**[Memoria Web](../tools/memoria-web.md) is the exception**, and always was a separate question. The
-tool is a commercial product, free over a single service and [paid above that](../pricing.md). If
-you only use the packages, none of that reaches you.
+**[Memoria Web](../tools/index.md) is the exception**, and always was a separate question. The tool
+is a commercial product developed in its own repository, free over a single service and
+[paid above that](../license.md). If you only use the packages, none of that reaches you.
 
 <a name="rabbitmq"></a>
 ## 2. If you publish to RabbitMQ, a connection failure now surfaces later
@@ -75,22 +75,8 @@ before.
 it and RESP2 to one that does not. Nothing in the provider's use of the client changes, and nothing
 in yours has to.
 
-<a name="memoria-web"></a>
-## 4. If you use Memoria Web, your zips need a manifest
-
-[Memoria Web](../tools/memoria-web.md) changed more than the library did.
-
-- **An uploaded zip must now carry a `memoria.json` at its root**, declaring the services the archive
-  brings: for each, a display name, the assembly files its domain types are read from, the name of
-  the connection string it is read over, and optionally the claim values that may read and update it.
-  An archive without one is rejected. See
-  [Configuration](../tools/memoria-web-configuration.md) for the manifest's shape.
-- **Every page that reads a store moved under its service's name** — `/orders/streamed/events`,
-  `/orders/dcb/aggregates/data`. Bookmarked URLs from an earlier version will not resolve.
-- One instance can now hold several services, each reading the store its manifest names.
-
 <a name="type-bindings"></a>
-## 5. Optional: give a store its own type bindings
+## 4. Optional: give a store its own type bindings
 
 Until now, event and aggregate keys — `OrderPlaced:1`, `Order:1` — resolved to CLR types through one
 set of bindings per process, the static maps on `TypeBindings` and `DcbTypeBindings`. A host reading
@@ -106,4 +92,4 @@ read more than one context's store.
 - [Licence](../license.md) — Apache 2.0 for the framework, and the Memoria Web terms
 - [Release notes](../release-notes.md) — everything in 2.0.0-beta, not only what needs action
 - [Publish to RabbitMQ](publish-to-rabbitmq.md)
-- [Memoria Web](../tools/memoria-web.md)
+- [Memoria Web](../tools/index.md) — the separate tool, and where it went

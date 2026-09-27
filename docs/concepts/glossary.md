@@ -9,10 +9,6 @@ nav_order: 8
 
 Definitions for terms used across the Memoria documentation. See also [Overview](overview.md) and [Aggregates and Streams](aggregates-and-streams.md).
 
-## Administrator
-
-*Memoria Web.* The role that may also install, remove and reread the uploaded assemblies on the Settings page — which is running code on the host. Includes [Updater](#updater). Granted by mapping a claim value under `Authorization:Roles:Administrator` — see [Roles](../tools/memoria-web-configuration.md#roles).
-
 ## Aggregate
 
 A consistency boundary that derives its state by applying domain events. Inherits from `AggregateRoot`. Decides which events it cares about via `EventTypeFilter`, and produces new events via `Add(@event)`.
@@ -41,17 +37,9 @@ The sequence number a writer expects the stream to be at when persisting new eve
 
 An aggregate reconstructed entirely from events, with no snapshot involved. Useful for auditing, historical replay, or rebuilding state at a specific point in time (`upToSequence` or `upToDate`).
 
-## Manifest
-
-*Memoria Web.* The file a zip must carry at its root, `memoria.json`, declaring the [services](#service) the archive brings: for each, its name, the assemblies holding its domain types, the name of the connection string it is read over, and optionally the claim values that may read and update it and a sentence saying what it is. An upload without one, or with one that breaks a rule, is refused with the rule. See [What to put in a zip](../tools/memoria-web-configuration.md#what-to-put-in-a-zip).
-
 ## Notification
 
 A fan-out message. Multiple `INotificationHandler<T>` handlers can be registered for the same notification; the dispatcher invokes them all and returns the list of results.
-
-## Operator
-
-*Memoria Web.* A person signed in to the tool. For each [service](#service), an operator may hold one of three roles, each including the one before it: [Reader](#reader), [Updater](#updater), [Administrator](#administrator) — granted for that service by its [manifest](#manifest), or for every service by the tool's configuration. An operator holding none sees no service.
 
 ## Projection
 
@@ -65,17 +53,9 @@ A unique identifier for a projection snapshot, serving as its persistence key. I
 
 Controls how `IDomainService.GetAggregate` reconstructs an aggregate. Four variants trade off freshness against I/O — see [Read Modes](read-modes.md).
 
-## Reader
-
-*Memoria Web.* The role that may read a [service](#service)'s pages and nothing more. Granted for one service by a claim value its [manifest](#manifest) names under `roles.read`, or for every service by mapping a claim value under `Authorization:Roles:Reader` — see [Roles](../tools/memoria-web-configuration.md#roles). An operator whose claims match no mapping and no manifest holds no role and sees no service.
-
 ## Result Pattern
 
 `Result` and `Result<T>` are discriminated unions of `Success` / `Failure`. Memoria returns them from every handler and provider operation instead of throwing — see [Result Pattern](result-pattern.md).
-
-## Service
-
-*Memoria Web.* A named set of domain assemblies read over one store — what a [manifest](#manifest) declares and what an [operator](#operator) picks on the home page. Its name is shown as the manifest wrote it; the address it is browsed under is made from the name — letters and digits kept, each run of spaces one dash, lower case, so `Samples Streamed` is browsed at `/samples-streamed` — and that address is unique across every installed archive. Not the framework's `IDomainService`, which is the object a store is read through. See [Memoria Web](../tools/memoria-web.md).
 
 ## Snapshot
 
@@ -84,10 +64,6 @@ The persisted latest state of an aggregate, stored alongside its event stream. S
 ## Stream Id
 
 A unique identifier for an event stream. Implements `IStreamId`. A stream typically groups events related to one entity (e.g. one customer, one tenant), but can hold events for multiple aggregates that filter the stream differently.
-
-## Updater
-
-*Memoria Web.* The role that may also press **Update** on a model's detail page, which writes a refreshed snapshot. Includes [Reader](#reader); included in [Administrator](#administrator). Granted by mapping a claim value under `Authorization:Roles:Updater` — see [Roles](../tools/memoria-web-configuration.md#roles).
 
 ## Related
 

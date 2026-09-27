@@ -24,4 +24,3 @@ Runnable sample projects live under [`examples/`](https://github.com/lucabrigugl
 - [Quickstart: Mediator](getting-started/quickstart-mediator.md)
 - [Quickstart: Event Sourcing](getting-started/quickstart-event-sourcing.md)
 - [Install](getting-started/install.md) — which package each example needs
-- [Try Memoria Web with sample data](tools/memoria-web-samples.md) — a store filled for you to browse

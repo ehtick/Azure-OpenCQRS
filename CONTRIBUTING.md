@@ -20,36 +20,19 @@ everywhere the project has a presence.
 ## Open an issue before you write code
 
 Please agree the shape of a code change in an issue before you build it. This is not ceremony: it
-saves you writing something that does not fit, and it lets the licensing question below be settled
-before you have spent your evening on it.
+saves you writing something that does not fit before you have spent your evening on it.
 
 Documentation and typo fixes are the exception — send those directly.
 
-## The contributor licence agreement
+## Nothing to sign
 
-**For the framework — every package under the `Memoria` NuGet prefix — there is nothing to sign.**
-It is under the Apache License 2.0, and section 5 of that licence already says your contribution
-comes in under the same terms the project goes out under. Send the pull request.
+Everything in this repository is under the Apache License 2.0, and section 5 of that licence already
+says your contribution comes in under the same terms the project goes out under. Send the pull
+request; there is no contributor agreement.
 
-The one exception is [Memoria Web](https://lucabriguglia.github.io/Memoria/tools/memoria-web.html),
-under `src/Memoria.Web`. It is a
-[commercial product](https://lucabriguglia.github.io/Memoria/license.html), licensed to the people
-who run it, and only a contribution's copyright holder can allow it to be offered on those terms —
-so a code contribution *there* needs you to agree to the
-[Memoria Contributor Licence Agreement](CLA.md) before it can be merged.
-
-It grants a licence. **You keep the copyright in your work**, and you stay free to use your own
-contribution anywhere else on any terms you like. Read it in full — it is short — and then comment
-on your pull request with this line:
-
-```
-I have read the Memoria Contributor Licence Agreement and I agree to it. Signed, <your full name>.
-```
-
-You agree once and it covers every later contribution to Memoria Web. If you are contributing work
-your employer has rights in, please read [section 4](CLA.md#4-what-you-promise) before you agree.
-
-Issues, discussions, bug reports and framework contributions need none of this.
+[Memoria Web](https://lucabriguglia.github.io/Memoria/tools/), the browser tool that reads a store,
+is a separate commercial product developed in its own private repository. Nothing of it is here, so
+nothing here is affected by its licence.
 
 ## Building and testing
 

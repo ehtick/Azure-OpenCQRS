@@ -23,7 +23,7 @@ dotnet add package Memoria
 | Understand what the pieces are before writing any | [Concepts: Overview](concepts/overview.md) |
 | Decide how to model consistency | [Streams or DCB?](guides/choose-streams-or-dcb.md) |
 | Look up an API or a settings key | [Reference](reference/) |
-| Read a store you already have | [Memoria Web](tools/memoria-web.md) |
+| Read a store you already have | [Memoria Web](tools/index.md), a separate tool |
 | Move from an earlier version | [Upgrading](upgrading.md) |
 
 Everything is in the sidebar too: [Guides](guides/) for a task you already know you want to do,
@@ -52,9 +52,9 @@ looking something up.
 - [Repository](https://github.com/lucabriguglia/Memoria) ·
   [Examples](examples.md) ·
   [Release notes](release-notes.md)
-- [Licence](license.md) — the framework is Apache 2.0; Memoria Web is a commercial product, free for
-  one service
-- [Pricing](pricing.md) — what the Memoria Web editions cost, and who pays nothing
-- [Demo](https://demo.getmemoria.io) — [Memoria Web](tools/memoria-web.md), hosted and running;
-  access is by invitation
+- [Licence](license.md) — the framework is Apache 2.0; Memoria Web is a separate commercial product,
+  free for one service
+- [Memoria Web](tools/index.md) — the browser tool for reading a store, developed in its own
+  repository and being made to read any framework's store; a hosted
+  [demo](https://demo.getmemoria.io) is open by invitation
 - [Contributing](https://github.com/lucabriguglia/Memoria/blob/main/CONTRIBUTING.md)

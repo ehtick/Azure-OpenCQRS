@@ -46,10 +46,6 @@
     <File Path="docs/reference/configuration/messaging-rabbitmq.md" />
     <File Path="docs/reference/configuration/messaging-servicebus.md" />
     <File Path="docs/reference/configuration/validation.md" />
-    <File Path="docs/tools/memoria-web.md" />
-    <File Path="docs/tools/memoria-web-configuration.md" />
-    <File Path="docs/tools/memoria-web-deployment.md" />
-    <File Path="docs/tools/memoria-web-samples.md" />
     <File Path="docs/reference/domain-service.md" />
     <File Path="docs/reference/ef-core-extensions.md" />
     <File Path="docs/Release-Notes.md" />
@@ -71,10 +67,6 @@
     <File Path="scripts/migrations/1.5.0-indexes-sqlserver.sql" />
   </Folder>
   <Folder Name="/src/">
-    <Project Path="src/Memoria.Web/Memoria.Web.csproj" />
-    <Project Path="src/Memoria.Web.Samples/Memoria.Web.Samples.csproj" />
-    <Project Path="src/Memoria.Web.Samples.Streamed/Memoria.Web.Samples.Streamed.csproj" />
-    <Project Path="src/Memoria.Web.Samples.Dcb/Memoria.Web.Samples.Dcb.csproj" />
     <Project Path="src/Memoria/Memoria.csproj" />
     <Project Path="src/Memoria.EventSourcing/Memoria.EventSourcing.csproj" />
     <Project Path="src/Memoria.EventSourcing.Dcb/Memoria.EventSourcing.Dcb.csproj" />
@@ -112,8 +104,6 @@
     <Project Path="tests/Memoria.Messaging.ServiceBus.InMemory.Tests/Memoria.Messaging.ServiceBus.InMemory.Tests.csproj" />
     <Project Path="tests/Memoria.Caching.Memory.Tests/Memoria.Caching.Memory.Tests.csproj" />
     <Project Path="tests/Memoria.Caching.Redis.Tests/Memoria.Caching.Redis.Tests.csproj" />
-    <Project Path="tests/Memoria.Web.Tests/Memoria.Web.Tests.csproj" />
-    <Project Path="tests/Memoria.Web.Samples.Tests/Memoria.Web.Samples.Tests.csproj" />
   </Folder>
   <Folder Name="/examples/">
     <Project Path="examples/Memoria.Examples.EventSourcing.EntityFrameworkCore/Memoria.Examples.EventSourcing.EntityFrameworkCore.csproj" />
@@ -127,6 +117,5 @@
   </Folder>
   <Folder Name="/workflows/">
     <File Path=".github/workflows/build.yml" />
-    <File Path=".github/workflows/deploy.yml" />
   </Folder>
 </Solution>

@@ -20,7 +20,6 @@ From Latin _memoria_ (memory).
 📗 [Reference](https://lucabriguglia.github.io/Memoria/reference/)
 
 📚 [Examples](https://lucabriguglia.github.io/Memoria/examples.html) ·
-🔎 [Memoria Web](https://lucabriguglia.github.io/Memoria/tools/memoria-web.html) ·
 ⬆️ [Upgrading](https://lucabriguglia.github.io/Memoria/upgrading.html) ·
 📣 [Release notes](https://lucabriguglia.github.io/Memoria/release-notes.html)
 
@@ -30,12 +29,11 @@ From Latin _memoria_ (memory).
 every package under the `Memoria` NuGet prefix, every version. Use it in anything, commercial or
 not, closed source or open, at any scale. No edition, no threshold, no key, nothing to sign.
 
-[Memoria Web](https://lucabriguglia.github.io/Memoria/tools/memoria-web.html), the browser tool that
-reads a store through your own domain assemblies, is the one part that is not: it is a commercial
-product, free for a single service and [paid above that](https://lucabriguglia.github.io/Memoria/pricing.html).
-Its source is published so you can read and build it, under
-[its own licence](https://lucabriguglia.github.io/Memoria/license.html). Installing the packages
-never requires it.
+[Memoria Web](#-memoria-web), the browser tool that reads a store through your own domain
+assemblies, is a separate product developed in its own repository: commercial, free for a single
+service and paid above that, under
+[its own licence](https://lucabriguglia.github.io/Memoria/license.html). Nothing in this repository
+is part of it, and installing the packages never requires it.
 
 **Already on 1.x?**
 [Upgrade to 2.0.0](https://lucabriguglia.github.io/Memoria/guides/upgrade-2.0.0.html) walks through
@@ -119,50 +117,27 @@ the [reference](https://lucabriguglia.github.io/Memoria/reference/) has the
 | **Event queries** | Filter applied events by event type, or by event property declared as key/value pairs on the aggregate id; query stream events from or up to a sequence, date or date range; retrieve every event applied to an aggregate |
 | **Providers** | Stores: EF Core (plus [ASP.NET Identity](https://lucabriguglia.github.io/Memoria/guides/integrate-aspnet-identity.html) and [PostgreSQL `jsonb`](https://lucabriguglia.github.io/Memoria/guides/use-postgres-jsonb.html) companions), Cosmos DB. Messaging: Azure Service Bus, RabbitMQ. Caching: in-memory, Redis. Validation: FluentValidation |
 | **Testing** | [In-memory variants](https://lucabriguglia.github.io/Memoria/guides/test-without-external-deps.html) of Cosmos DB, Service Bus and RabbitMQ, so a test suite needs no external dependency |
-| **Tooling** | [Memoria Web](#-memoria-web) — read any Memoria store through your own domain assemblies |
+| **Tooling** | [Memoria Web](#-memoria-web) — a separate browser tool that reads a store through your own domain assemblies, being made to read other frameworks' stores too |
 
 ## 🔎 Memoria Web
 
-A browser tool for reading a Memoria store. Point it at a database, upload a zip of **your own**
-domain assemblies — with a `memoria.json` at its root naming the services in it — and it shows you
-the events that were appended, the aggregates and projections snapshotted from them, and the types
-both were written through, for both consistency models side by side.
+A browser tool for reading an event-sourced store. Point it at a database, upload a zip of **your
+own** domain assemblies — with a `memoria.json` at its root naming the services in it — and it shows
+you the events that were appended, the aggregates and projections snapshotted from them, and the
+types both were written through. Open a row and the aggregate is folded from its events, so you can
+see the state a snapshot stands at and how far behind its history it is. It creates nothing and
+deletes nothing.
 
-```bash
-dotnet run --project src/Memoria.Web
-```
+It began here as a reader of Memoria stores. It now lives in its own repository, which is private,
+and **it is being made to read any framework's store, not only Memoria's**: a service's manifest
+tells the tool which uploaded types are the streams, events, aggregates and projections, how they
+are named and folded, and where in the store the events and snapshots are. Memoria's own stores are
+described the same way as anyone else's.
 
-![A CustomerAccount aggregate folded from its events, on the State tab](https://raw.githubusercontent.com/lucabriguglia/Memoria/main/docs/images/memoria-web/aggregate-state.png)
-
-Every section has a **Types** page listing what the uploaded assemblies declare, and a **Data** page
-listing what the store actually holds — filtered, sorted and paged, with all of it in the query
-string so a view can be bookmarked and shared. Open a row and the aggregate is folded from its
-events, so you can see the state a snapshot stands at and how far behind its stream it is.
-
-It ships in the repository rather than on NuGet, so you build and run it yourself. It creates
-nothing and deletes nothing: the only write it offers is refreshing a snapshot that has fallen
-behind its stream or its boundary.
-
-There is also a hosted instance at [demo.getmemoria.io](https://demo.getmemoria.io), if you would
-rather try it than build it. It is behind its sign-in, so access is by invitation: message me on
-[LinkedIn](https://www.linkedin.com/in/lucabriguglia) and I will send you one.
-
-Operators sign in through an OpenID Connect provider, and every page and update is behind one of
-three roles — Reader, Updater, Administrator — granted for every service by configuration or for a
-single service by its manifest. Setting `Authentication:Disabled` runs the tool open instead, with
-nobody signed in and nothing withheld.
-
-> **Uploading an assembly runs its code in the tool's process.** Upload only assemblies you trust,
-> and keep an open instance on localhost or behind a proxy that authenticates every request.
-
-To try it without a domain of your own, `src/Memoria.Web.Samples.Streamed` and
-`src/Memoria.Web.Samples.Dcb` carry a sample ecommerce domain modelled once in each consistency
-model, and `src/Memoria.Web.Samples` fills a store with data written through it.
-
-🔎 [What it is, and what each page shows](https://lucabriguglia.github.io/Memoria/tools/memoria-web.html) ·
-⚙️ [Configuration](https://lucabriguglia.github.io/Memoria/tools/memoria-web-configuration.html) ·
-🚢 [Deployment](https://lucabriguglia.github.io/Memoria/tools/memoria-web-deployment.html) ·
-🌱 [Sample data](https://lucabriguglia.github.io/Memoria/tools/memoria-web-samples.html)
+It is a commercial product, separate from the framework: free over a single service, and
+[paid above that](https://lucabriguglia.github.io/Memoria/license.html). There is a hosted instance
+at [demo.getmemoria.io](https://demo.getmemoria.io), behind its sign-in, so access is by invitation:
+message me on [LinkedIn](https://www.linkedin.com/in/lucabriguglia) and I will send you one.
 
 ## 📦 Packages
 
@@ -193,7 +168,6 @@ Shipped work is in the [release notes](https://lucabriguglia.github.io/Memoria/r
 Next up, in no fixed order:
 
 - Pipelines
-- Various improvements to Memoria Web
 - Option to automatically validate commands
 - Event Grid messaging provider
 - Kafka messaging provider
@@ -206,9 +180,8 @@ Bug reports, questions and feature requests are welcome as
 [issues](https://github.com/lucabriguglia/Memoria/issues) and
 [discussions](https://github.com/lucabriguglia/Memoria/discussions). For code, please open an issue
 first, and read [CONTRIBUTING.md](https://github.com/lucabriguglia/Memoria/blob/main/CONTRIBUTING.md)
-— it covers how to build and test, the conventions to follow, and the
-[contributor licence agreement](https://github.com/lucabriguglia/Memoria/blob/main/CLA.md) that
-dual licensing makes necessary. You keep the copyright in your work.
+— it covers how to build and test and the conventions to follow. There is nothing to sign: the
+framework is Apache 2.0, and a contribution comes in under the same terms it goes out under.
 
 By taking part you agree to the [Code of Conduct](https://github.com/lucabriguglia/Memoria/blob/main/CODE_OF_CONDUCT.md).
 
@@ -232,13 +205,12 @@ every package published under the `Memoria` NuGet prefix, every version, 1.x and
 whatever you like with it, licence that however you like, ship it to whomever you like. The full
 text is in [LICENSE.md](https://github.com/lucabriguglia/Memoria/blob/main/LICENSE.md).
 
-**Memoria Web is a commercial product**, licensed separately under the
-[Memoria Web Licence](https://lucabriguglia.github.io/Memoria/license.html). Its source lives in
-`src/Memoria.Web` and is published so that you can read it, audit it and build it; running it is
-what the licence governs, metered by *services* — a named set of domain assemblies read over one
-connection string. One service is free, and always will be. Above that it is $999, $2,499 or $4,999
-USD a year, by how many services one instance reads, with no limit on people, instances or
-environments. See [pricing](https://lucabriguglia.github.io/Memoria/pricing.html).
+**Memoria Web is a commercial product**, developed in its own private repository and licensed
+separately under the [Memoria Web Licence](https://lucabriguglia.github.io/Memoria/license.html).
+Running it is what the licence governs, metered by *services* — a named set of domain assemblies
+read over one connection string. One service is free, and always will be. Above that it is $999,
+$2,499 or $4,999 USD a year, by how many services one instance reads, with no limit on people,
+instances or environments. Nothing of it is in this repository.
 
 Version 2.0.0-beta was briefly offered under the Reciprocal Public License 1.5 or a commercial
 licence covering the packages. That was withdrawn four days later at 2.0.0-beta.2 and the framework

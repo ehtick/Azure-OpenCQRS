@@ -223,5 +223,4 @@ Both stores record store exceptions on the current activity with
 ## Related
 
 - [Domain Service](domain-service.md) — the operations that write these activities
-- [Memoria Web](../tools/memoria-web.md) — reading a store when the telemetry is not enough
-- [Memoria Web: deployment](../tools/memoria-web-deployment.md)
+- [Memoria Web](../tools/index.md) — the separate browser tool for reading a store when the telemetry is not enough
